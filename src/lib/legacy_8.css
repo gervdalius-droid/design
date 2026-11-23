@@ -1,0 +1,58 @@
+.av-explode-tools{display:flex;gap:8px;padding:8px 14px;border-bottom:1px solid var(--line)}.av-explode-tools[hidden]{display:none}.av-explode-tools button{border:1px solid var(--line);border-radius:7px;padding:7px 11px;background:#fff;cursor:pointer}.av-explode-tools button[aria-pressed=true]{background:#315c50;color:white;border-color:#315c50}.fh{grid-template-columns:44px 96px minmax(40px,120px) auto}
+.fh-real{font:600 12.5px var(--f-mono);color:var(--muted);white-space:nowrap}
+.fh.bad input{border-color:var(--bad)!important;box-shadow:0 0 0 1px var(--bad) inset!important;background:var(--bad-bg)!important;text-decoration:line-through;text-decoration-color:var(--bad)}
+.fh.bad .fh-real{color:var(--bad)}
+.rm-body.art{fill:transparent;stroke:transparent}
+.rm-cab.sel .rm-body.art{stroke:#2448c9;stroke-width:2.6}
+.rm-cab.bad .rm-body.art{stroke:#b4291f;stroke-width:2.4;fill:rgba(180,41,31,.12)}
+.rm-open.art{stroke:#fff;stroke-opacity:.55;stroke-dasharray:4 4;stroke-width:1;fill:none}
+.rm-art{overflow:visible;pointer-events:none}
+.rm3-wrap{position:relative;background:linear-gradient(180deg,#f3f2ee 0%,#e6e4de 100%);border-radius:6px;overflow:hidden}
+.rm3-canvas{display:block;cursor:grab}
+.rm3-over{position:absolute;left:0;top:0;pointer-events:none}
+.rm3-sel{fill:none;stroke:#2448c9;stroke-width:2;stroke-linejoin:round}
+.rm3-sel.bad{stroke:#b4291f;stroke-dasharray:6 4}
+.rm3-num .rm-no{fill:#1b211e;opacity:.85}
+.rm3-num.sel .rm-no{fill:#2448c9;opacity:1}
+
+/* v9: bottom choice, feet, smaller screens */
+.bottomrow{align-items:flex-end}
+.bxfronts{display:grid;gap:10px}.bxfront{border:1px solid var(--line);border-left:4px solid var(--line2);border-radius:var(--r);background:var(--sunk);padding:10px 12px}
+.bxfront.k-doors{border-left-color:#c77b2a}.bxfront.k-cargo{border-left-color:#7a3fb8}.bxfront.k-drawers{border-left-color:#3553c9}.bxfhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.bxfhead .kind{font:600 13px var(--f-mono);letter-spacing:.06em;text-transform:uppercase}
+.botpic{margin:0 0 2px;line-height:0}
+@media(min-width:1250px){
+  .sheet{max-height:calc(100vh - 96px);overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;padding-right:2px}
+}
+@media(max-width:1749px){   /* not room for everything on one line: the tabs get a line of their own, full width */
+  .top .tabs{order:5;flex:1 1 100%}
+  .top .tabs button{flex:1 1 auto}
+  .top .hbtns{margin-left:auto}
+}
+@media(max-width:1440px){
+  .brand .sub{display:none}
+  .top .wrap{gap:10px;padding-block:8px}
+  .projname{flex-basis:150px}
+  .newbtn .nlbl{display:none}
+}
+@media(max-height:820px) and (min-width:901px){
+  .av-head{padding:10px 14px 8px}.av-tools{padding:0 14px 8px}
+  .av-stage{height:clamp(260px,46vh,460px)}
+  .av-footer{padding:10px 14px;gap:8px}
+  .card{padding:14px}
+}
+@media(max-width:1249px) and (min-width:901px){ .av-stage{height:clamp(280px,46vh,420px)} }
+@media(max-width:1249px) and (min-width:901px){ .rail{grid-column:1!important;min-width:0} .cablist{flex-direction:column!important;overflow:visible!important} .cablist .cab{min-width:0!important} }
+@media(max-width:1200px){ .projname .unit{display:none} .projname{flex-basis:110px} .saved{display:none} .brand h1{font-size:17px} .tabs button{padding-inline:10px} }
+
+/* banded edges editor in the part view */
+.ebedit{margin:10px 0 8px;padding:10px;border:1px solid var(--paper-line);border-radius:8px;background:#fff}
+.ebh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px;color:#1b211e}
+.ebh .unit{color:#5f6a64}
+.ebreset{margin-left:auto;padding:3px 9px;font-size:12.5px}
+.ebgrid{display:grid;grid-template-columns:auto minmax(80px,220px) auto;grid-template-areas:". top ." "left part right" ". bot .";gap:4px;align-items:center;justify-content:center}
+.ebgrid .top{grid-area:top}.ebgrid .bot{grid-area:bot}.ebgrid .left{grid-area:left}.ebgrid .right{grid-area:right}
+.ebpart{grid-area:part;display:block;border:1.5px solid #1b211e;background:#f6f6f3;border-radius:2px}
+.ebt{font:600 12px var(--f-mono);border:1px dashed #9aa59f;background:#fff;color:#5f6a64;border-radius:6px;padding:5px 8px;cursor:pointer;min-height:30px}
+.ebt.top,.ebt.bot{width:100%}
+.ebt.on{border:2px solid #1b211e;background:#1b211e;color:#fff}
+.ebt:hover{border-color:#1b211e}

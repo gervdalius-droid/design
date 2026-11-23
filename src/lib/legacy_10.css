@@ -1,0 +1,15 @@
+/* drawings tab */
+.drw{display:grid;gap:16px}.drwhead{display:grid;gap:12px}.drwctl{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}.drwctl .f{display:flex;flex-direction:column;gap:4px}
+.drwctl .f>span{font-size:12px;color:var(--muted)}.drwctl select{padding:8px 10px;border:1px solid var(--line2);border-radius:8px;background:var(--panel);font:inherit;min-width:220px;color:var(--ink)}
+.drwctl .f>div,.drwctl .f{flex-direction:row}.drwctl .f:has(select){flex-direction:column}.drwctl .btn.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.drwgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.drwcard{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.drwthumb{display:block;padding:8px;border:0;background:#f4f5f3;cursor:zoom-in;width:100%}.drwthumb svg,.drwthumb img{display:block;width:100%;height:auto;box-shadow:0 1px 4px #0002;background:#fff}
+.drwthumb:hover svg,.drwthumb:focus-visible svg,.drwthumb:hover img,.drwthumb:focus-visible img{outline:2px solid var(--accent)}
+.drwcard figcaption{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;font-size:13px;border-top:1px solid var(--line)}.drwcard figcaption .btn{min-height:32px;padding:5px 10px}
+.drwover{position:fixed;inset:0;z-index:60;background:rgba(10,14,12,.6);display:flex;align-items:center;justify-content:center;padding:14px}
+.drwbox{background:var(--panel);border-radius:12px;max-width:min(1500px,100%);width:100%;max-height:100%;display:flex;flex-direction:column;overflow:hidden}
+.drwbar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap;font-size:13px}.drwbar span{display:flex;gap:6px;flex-wrap:wrap}
+.drwbig{overflow:auto;padding:10px;background:#e9ebe8}.drwbig svg{display:block;width:min(100%,calc((100vh - 120px) * 1.4142));min-width:560px;height:auto;background:#fff;margin:auto}
+.drwgo{width:100%;margin-top:8px}
+@media (max-width:700px){.drwgrid{grid-template-columns:1fr}.drwctl select{min-width:0;width:100%}.drwctl .f:has(select){width:100%}}
