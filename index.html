@@ -2572,6 +2572,23 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 .nv3-range input{flex:1;accent-color:var(--ink)}.nv3-range output{min-width:38px;text-align:right;font-variant-numeric:tabular-nums}
 .nve-3d:has(.nv3){overflow:visible;border-top:0}
 
+/* Jungtys in the 3-D view */
+.nv3-jbar{flex-direction:column;align-items:stretch;gap:8px}
+.nv3-jrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.nv3-jchips{display:inline-flex;flex-wrap:wrap;gap:6px}
+.nv3-jchip{border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:4px 10px;font-weight:600;font-size:13px;cursor:pointer}
+.nv3-jchip:hover{border-color:var(--ink)}.nv3-jchip i{font-style:normal;color:var(--muted);margin-left:4px}
+.nv3-jchip.empty{border-color:var(--bad-line);background:var(--bad-bg);color:var(--bad)}
+.nv3-jseg button{display:inline-flex;align-items:center;gap:6px}
+.nv3-jtype i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.nv3-jpos{display:inline-flex;flex-wrap:wrap;gap:6px}
+.nv3-jpos label{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:9px;background:var(--panel);overflow:hidden}
+.nv3-jpos label.on{border-color:var(--accent);box-shadow:0 0 0 3px #cfdafb}
+.nv3-jpos input{width:58px;border:0;min-height:32px;padding:2px 6px;font:600 14px var(--f-body);font-variant-numeric:tabular-nums;text-align:right;background:none}
+.nv3-jpos button{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 7px;min-height:32px}.nv3-jpos button:hover{color:var(--bad)}
+.nv3-jlim{font-size:12px}
+.nv3-jtip{background:#1c211e;color:#fff;z-index:3}
+
 </style>
 <style>
 /* src/ui/49-sketch.css */
@@ -15882,7 +15899,7 @@ function saveFile(name, data, type) {
 var NV = {
   topic: 'size',     // open topic of the cabinet workspace (30-editor.js)
   secSel: null,      // selected section (index in c.sections) or null
-  view: 'front',     // picture shown in the cabinet workspace: 'front' | '3d'
+  view: '3d',        // picture shown in the cabinet workspace: '3d' (the main one) | 'front'
   flash: null,       // id of the element to scroll to and flash after the next render
   issues: null,      // cache of nvComputeIssues() for the current build
   hist: { id: null, past: [], future: [], last: null, at: 0, mute: false }
@@ -17501,7 +17518,7 @@ NVSTAGE.cab = function (info) {
       '<button type="button" class="nve-new" data-act="pick">' + t('newCab') + '</button></aside>' +
     '<section class="nve-canvas nv-card" aria-label="' + esc(L('Spintelės vaizdas', 'Cabinet picture')) + '">' +
       '<header class="nve-chead"><div class="nve-ctitle" data-live="ehead">' + nveHead(c) + '</div>' +
-        (box ? '' : '<div class="seg nve-view" role="group" aria-label="' + esc(L('Vaizdas', 'View')) + '">' + [['front', L('Priekis', 'Front')], ['3d', '3D']].map(function (o) { var on = (NV.view === '3d' ? '3d' : 'front') === o[0]; return '<button type="button" id="nve-view-' + o[0] + '" data-nv="view" data-v="' + o[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + o[1] + '</button>'; }).join('') + '</div>') + '</header>' +
+        (box ? '' : '<div class="seg nve-view" role="group" aria-label="' + esc(L('Vaizdas', 'View')) + '">' + [['3d', '3D'], ['front', L('Priekis', 'Front')]].map(function (o) { var on = (NV.view === '3d' ? '3d' : 'front') === o[0]; return '<button type="button" id="nve-view-' + o[0] + '" data-nv="view" data-v="' + o[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + o[1] + '</button>'; }).join('') + '</div>') + '</header>' +
       (view3 ? '<div class="nve-3d">' + ((typeof nv3Html === 'function' && nv3Html()) || '<div id="assembly-preview"></div>') + '</div>'
         : '<div class="nve-stage' + (c.kind || c.dishwasher ? ' plain' : '') + '"><div class="nve-pic" data-live="epic" style="--a:' + pic.a.toFixed(4) + '">' + pic.html + '</div></div>' +
           (c.kind || c.dishwasher ? '' : '<p class="nve-tip">' + L('Spustelėkite sekciją, kad ją keistumėte · „+“ prideda naują viršuje', 'Click a section to change it · "+" adds a new one on top') + '</p>')) +
@@ -18569,7 +18586,7 @@ new MutationObserver(nvaAvBtn).observe(app, { childList: true, subtree: true });
    The live view stays for what this one does not do yet: editing connectors (Jungtys) and 3-D constructions.
    Cabinet axes: x right, y from the front to the back, z up → the whole model sits in a group turned −90° about x. */
 var NV3 = { T: null, OC: null, loading: false, failed: false, R: null, scene: null, cam: null, ctl: null, root: null, env: null,
-  open: 0.65, mode: 'assembly', edges: false, focus: null, dims: true, handles: false, hw: true, full: false,
+  open: 0.65, mode: 'assembly', edges: false, focus: null, joints: false, jSel: null, jBoth: true, jpick: [], jdrag: null, dims: true, handles: false, hw: true, full: false,
   pick: [], labels: [], links: [], hover: null, cabId: null, raf: 0, down: null, mats: {} };
 function nv3Load() {
   if (NV3.T || NV3.loading || NV3.failed) return;
@@ -18589,26 +18606,28 @@ function nv3Html() {
   return '<div class="nv3' + (NV3.full ? ' full' : '') + '" id="nv3"><div class="nv3-tools">' +
       b('m:assembly', L('Surinkta', 'Assembled'), NV3.mode === 'assembly') + b('m:interior', L('Be fasadų', 'No fronts'), NV3.mode === 'interior') +
       b('edges', '▭ ' + L('Kraštai', 'Edges'), NV3.edges, L('Kraštų laminavimas: spustelėkite kraštą modelyje', 'Edge banding: click an edge on the model')) +
-      b('joints', '⊙ ' + L('Jungtys', 'Joints'), null, L('Jungčių redagavimas', 'Edit the connectors')) +
+      b('joints', '⊙ ' + L('Jungtys', 'Joints'), NV3.joints, L('Jungtys: spustelėkite jungtį modelyje, tempkite tašką', 'Connectors: click a joint on the model, drag a point')) +
       '<span class="nv3-sep"></span>' + b('v:front', L('Priekis', 'Front')) + b('v:iso', '3D') + b('v:under', L('Apačia', 'Below')) + b('v:back', L('Galas', 'Back')) +
       '<span class="nv3-grow"></span>' + b('full', NV3.full ? L('Uždaryti ✕', 'Close ✕') : L('Išplėsti ⤢', 'Expand ⤢'), NV3.full) + '</div>' +
+    (NV3.joints ? nv3JBar(c) : '') +
     (NV3.edges ? '<div class="nv3-bar">' + (fp ? '<b>' + L('Kraštai', 'Edges') + ' — ' + esc(typeof nvpName === 'function' ? nvpName({ kind: 'panel', role: fp.role }, fp) : fp.short) + '</b> <span class="nv-muted">' + fmt(fp.L) + ' × ' + fmt(fp.W) + '</span>' : '<b>' + L('Kraštų laminavimas', 'Edge banding') + '</b>') +
       ' <span class="nv3-leg"><i style="background:#1f5fbf"></i>' + esc(c.edge.carc || L('karkaso kraštas', 'carcass edge')) + ' <i style="background:#d9730d"></i>' + L('pagal fasadą', 'as the fronts') + ' <i style="background:#b9b4a8"></i>' + L('nelaminuojama', 'not banded') + '</span>' +
       '<span class="nv3-grow"></span>' + (fp ? '<button type="button" class="nv-btn sm" data-act="ebk" data-v="' + esc(fp.key) + '" data-i="all">' + L('Visi 4 / nė vieno', 'All 4 / none') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="unfocus">' + L('Visa spintelė', 'Whole cabinet') + '</button>' : '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="ecall">' + L('Sąrašas ir patvirtinimas →', 'List and confirmation →') + '</button>') +
       '<button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="edges">' + L('Gerai', 'Done') + '</button></div>' : '') +
     '<div class="nv3-stage" id="nv3-stage"><div class="nv3-cam"><button type="button" data-nv="nv3" data-v="z:0.8" aria-label="+">+</button><button type="button" data-nv="nv3" data-v="z:1.25" aria-label="−">−</button><button type="button" data-nv="nv3" data-v="v:iso" aria-label="reset">↺</button></div>' +
-      '<div class="nv3-hint">' + (NV3.edges ? L('Spustelėkite kraštą: nelaminuojama → karkaso kraštas → pagal fasadą', 'Click an edge: not banded → carcass edge → as the fronts') : L('Tempkite — sukite · ratukas — mastelis · dešinys klavišas — perstumti · spustelėkite detalę — keisti', 'Drag to turn · wheel to zoom · right button to pan · click a board to change it')) + '</div></div>' +
+      '<div class="nv3-hint">' + (NV3.joints ? L('Spustelėkite jungties liniją ar tašką · tempkite tašką išilgai · spustelėjus liniją pridedama jungtis', 'Click a joint line or a point · drag a point along it · a click on the line adds a connector') : NV3.edges ? L('Spustelėkite kraštą: nelaminuojama → karkaso kraštas → pagal fasadą', 'Click an edge: not banded → carcass edge → as the fronts') : L('Tempkite — sukite · ratukas — mastelis · dešinys klavišas — perstumti · spustelėkite detalę — keisti', 'Drag to turn · wheel to zoom · right button to pan · click a board to change it')) + '</div></div>' +
     '<div class="nv3-foot"><label class="nv3-range"><span>' + L('Atidarymas', 'Opening') + '</span><input type="range" min="0" max="100" step="1" value="' + Math.round(NV3.open * 100) + '" id="nv3-open"><output id="nv3-open-o">' + Math.round(NV3.open * 100) + '%</output></label>' +
       '<label class="chk"><input type="checkbox" data-nv3="hw"' + (NV3.hw ? ' checked' : '') + '> ' + L('Furnitūra', 'Hardware') + '</label><label class="chk"><input type="checkbox" data-nv3="dims"' + (NV3.dims ? ' checked' : '') + '> ' + L('Matmenys', 'Dimensions') + '</label><label class="chk"><input type="checkbox" data-nv3="handles"' + (NV3.handles ? ' checked' : '') + '> ' + L('Rankenos', 'Handles') + '</label></div>' +
     '<span data-live="nv3" hidden></span></div>';
 }
 NVLIVE.nv3 = function () { nv3Build(); return ''; };
 NVA.nv3 = function (el, v) {
-  if (v.indexOf('m:') === 0) { NV3.mode = v.slice(2); return; }
-  if (v === 'edges') { NV3.edges = !NV3.edges; NV3.focus = null; return; }
+  if (v.indexOf('m:') === 0) { NV3.mode = v.slice(2); NV3.joints = false; return; }
+  if (v === 'edges') { NV3.edges = !NV3.edges; NV3.focus = null; NV3.joints = false; return; }
   if (v === 'unfocus') { NV3.focus = null; return; }
   if (v === 'ecall') { S.echeck = true; S.jcheck = false; return; }
-  if (v === 'joints') { NV.r3off = 'joints'; NV3.full = false; return; }
+  if (v === 'joints') { NV3.joints = !NV3.joints; NV3.edges = false; NV3.focus = null; NV3.jSel = null; return; }
+  if (v.indexOf('j:') === 0) return nv3JAct(v.slice(2), el);
   if (v === 'full') { NV3.full = !NV3.full; return; }
   if (v.indexOf('v:') === 0) { nv3View(v.slice(2)); return false; }
   if (v.indexOf('z:') === 0) { var k = +v.slice(2), cm = NV3.cam, tg = NV3.ctl.target; cm.position.sub(tg).multiplyScalar(k).add(tg); NV3.ctl.update(); return false; }
@@ -18631,9 +18650,12 @@ function nv3Init() {
   NV3.root = new T.Group(); NV3.root.rotation.x = -Math.PI / 2; sc.add(NV3.root);
   NV3.ray = new T.Raycaster();
   var cv = R.domElement; cv.className = 'nv3-cv';
-  cv.addEventListener('pointerdown', function (e) { NV3.down = e.button === 0 ? [e.clientX, e.clientY] : null; });
-  cv.addEventListener('pointerup', function (e) { var d = NV3.down; NV3.down = null; if (!d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 4) return; nv3Click(e); });
-  cv.addEventListener('pointermove', function (e) { if (e.buttons) return; nv3Hover(e); });
+  cv.addEventListener('pointerdown', function (e) { NV3.down = e.button === 0 ? [e.clientX, e.clientY] : null;
+    if (NV3.joints && e.button === 0) { var h = nv3JHit(e); if (h && h.object.userData.dot != null) { NV3.jdrag = { seam: h.object.userData.seam, i: h.object.userData.dot, obj: h.object, moved: false }; NV3.ctl.enabled = false; try { cv.setPointerCapture(e.pointerId); } catch (x) {} } } });
+  cv.addEventListener('pointerup', function (e) { var d = NV3.down; NV3.down = null; var jd = NV3.jdrag; NV3.jdrag = null; NV3.ctl.enabled = true;
+    if (jd && jd.moved) { nv3JDrop(jd); return; }
+    if (!d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 4) return; if (NV3.joints) nv3JClick(e); else nv3Click(e); });
+  cv.addEventListener('pointermove', function (e) { if (NV3.jdrag) { nv3JMove(e); return; } if (e.buttons) return; if (NV3.joints) { var h = nv3JHit(e); cv.style.cursor = h ? 'pointer' : 'grab'; return; } nv3Hover(e); });
   cv.addEventListener('pointerleave', function () { nv3SetHover(null); });
   cv.addEventListener('dragover', function (e) { if (typeof MD !== 'undefined' && MD.name) { e.preventDefault(); e.stopPropagation(); } });
   cv.addEventListener('drop', function (e) { if (typeof MD === 'undefined' || !MD.name) return; e.preventDefault(); e.stopPropagation(); var h = nv3Hit(e), nm = MD.name; MD.name = null; document.body.classList.remove('mddrag'); if (h && h.object.userData.part) dropMat(cur(), h.object.userData.part, nm); else toast(t('mdNone'), true); });
@@ -18670,13 +18692,13 @@ function nv3Board(p, color, opt) {
   if (!g) g = new T.BoxGeometry(p.L, p.W, p.T);
   if (edgeMode) { var em = function (e) { var st = ecState(p, e, fe); return new T.MeshStandardMaterial({ color: new T.Color(st === 1 ? '#1f5fbf' : st === 2 ? '#d9730d' : '#b9b4a8'), roughness: 0.6, emissive: new T.Color(st === 1 ? '#0b2a5c' : st === 2 ? '#6a3200' : '#000000'), emissiveIntensity: st ? 0.35 : 0 }); };
     var face = nv3Mat(color); mats = [em('x1'), em('x0'), em('y1'), em('y0'), face, face]; }
-  else mats = dim ? nv3Mat(color, { transparent: true, opacity: 0.16, depthWrite: false }) : nv3Mat(color);
+  else mats = dim ? nv3Mat(color, { transparent: true, opacity: 0.1, depthWrite: false }) : nv3Mat(color);
   var m = new T.Mesh(g, mats), u = new T.Vector3().fromArray(q.u).normalize(), v = new T.Vector3().fromArray(q.v).normalize(), n = new T.Vector3().fromArray(q.n).normalize();
   var z = new T.Vector3().crossVectors(u, v);   // right-handed third axis: n or −n, the box is symmetric
   m.matrixAutoUpdate = false;
   var cx = [0, 1, 2].map(function (i) { return q.o[i] + q.u[i] * p.L / 2 + q.v[i] * p.W / 2 - q.n[i] * p.T / 2; });
   m.matrix.makeBasis(u, v, z).setPosition(cx[0], cx[1], cx[2]); void n;
-  var ln = new T.LineSegments(new T.EdgesGeometry(g, 25), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.12 : 0.28 })); m.add(ln);
+  var ln = new T.LineSegments(new T.EdgesGeometry(g, 25), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.42 : 0.28 })); m.add(ln);
   if (!dim && typeof NVS !== 'undefined' && NVS.key === p.key && NVS.cab === cur().id) { m.material = new T.MeshStandardMaterial({ color: new T.Color(color), roughness: 0.62, emissive: new T.Color('#2a55d9'), emissiveIntensity: 0.22 }); }   // the board being sketched on
   m.userData = { part: { kind: 'panel', role: p.role, name: p.name }, key: p.key, cen: cx, edge: !!edgeMode };
   if (!dim) NV3.pick.push(m);
@@ -18794,14 +18816,16 @@ function nv3Build() {
     var g = new T.Group(); g.position.set(off[0], off[1], off[2]); g.add(m); return g;
   };
   /* carcass */
-  (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return; root.add(place(nv3Board(p, MC(p.mat, '#e9e6de'), { dim: focus && p.key !== focus }), p)); });
+  var jm = NV3.joints && !focus; NV3.jpick = [];
+  (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return; root.add(place(nv3Board(p, MC(p.mat, '#e9e6de'), { dim: jm || (focus && p.key !== focus) }), p)); });
+  if (jm) nv3Seams(r, root);
   var faint = focus ? { transparent: true, opacity: 0.16, depthWrite: false } : null;
   if (c.hang !== true) (r.legs || []).forEach(function (l) {
     var rad = (l.d || 40) / 2, g1 = new T.CylinderGeometry(rad, rad, l.h, 28); g1.rotateX(Math.PI / 2);
     var a = new T.Mesh(g1, nv3Mat('#2b3230', Object.assign({ roughness: 0.5 }, faint || {}))); a.position.set(l.x, l.y, -l.h / 2); root.add(a);
     if (!l.feet) { var g2 = new T.CylinderGeometry(rad * 1.4, rad * 1.5, 10, 28); g2.rotateX(Math.PI / 2); var b2 = new T.Mesh(g2, nv3Mat('#222826', Object.assign({ roughness: 0.5 }, faint || {}))); b2.position.set(l.x, l.y, -l.h + 5); root.add(b2); }
   });
-  var asm = NV3.mode === 'assembly' && !focus, vis = r.visual || {};
+  var asm = NV3.mode === 'assembly' && !focus && !jm, vis = r.visual || {};
   if (asm || (focus && false)) {
     if (vis.plinth) { var pl = vis.plinth; root.add(nv3Box([pl.x0, pl.y0, pl.z0], [pl.x1 - pl.x0, pl.t, pl.z1 - pl.z0], MC(pl.mat, '#d5cbbd'), null, { kind: 'plinth' })); }
     if (r.worktop) { var wt = r.worktop; root.add(nv3Box([wt.x0, wt.y0, wt.z0], [wt.L, wt.y1 - wt.y0, wt.T], MC(wt.mat, '#b98d5e'), { roughness: 0.45 }, { kind: 'worktop' })); }
@@ -18809,7 +18833,7 @@ function nv3Build() {
   }
   if (NV3.hw && !focus) nv3Screws(r, root);
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
-  var fronts = (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
+  var fronts = jm ? [] : (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
     var door = p.role === 'DURYS', m = door ? (vis.doors || [])[di++] : (vis.drawers || [])[fi++];
     if (focus) { if (p.key === focus) root.add(place(nv3Board(p, MC(p.mat, '#d5cbbd')), p)); return; }
@@ -18911,6 +18935,112 @@ function nv3Click(e) {
   if (part && typeof nvpOpen === 'function') nvpOpen(part, e.clientX, e.clientY);
 }
 document.addEventListener('keydown', function (e) { if (e.key !== 'Escape' || !document.getElementById('nv3')) return; if (NV3.focus) { NV3.focus = null; render(); } else if (NV3.full) { NV3.full = false; render(); } });
+
+/* ================================================================= Jungtys — the connectors, edited in this same picture
+   The engine gives the seams (r.seams: where two boards meet — origin, direction, length) and the joints on them
+   (r.joints: type and the connectors' places in mm along the seam, per side when left and right differ). The carcass
+   is shown see-through; every seam is a line with a point per connector. A click selects a joint; a point is dragged
+   along its seam; a click on the line adds one. Changes go through the live setJoint(), as the live editor's do. */
+var NV3_JC = { confirmat: '#285ac4', cam: '#ca6b23', dowel: '#387b53' };
+function nv3JSpec(r, s) { var j = (r.joints || []).filter(function (x) { return x.key === s.key; })[0]; if (!j) return null; return { j: j, sd: s.at || (j.sides ? j.sides[s.side || 'L'] || j.sides.L : j) }; }
+function nv3Seams(r, root) {
+  var T = NV3.T, sel = NV3.jSel;
+  (r.seams || []).forEach(function (s, si) {
+    var q = nv3JSpec(r, s); if (!q) return;
+    var on = sel && sel.key === s.key && (q.j.single || NV3.jBoth || !s.side || sel.side === s.side), col = on ? '#1c4fd8' : '#7f93a8';
+    var a = new T.Vector3().fromArray(s.o), d = new T.Vector3().fromArray(s.d).normalize(), b = a.clone().addScaledVector(d, s.w);
+    var ln = new T.Line(new T.BufferGeometry().setFromPoints([a, b]), new T.LineBasicMaterial({ color: new T.Color(col), depthTest: false, transparent: true, opacity: on ? 1 : 0.8 })); ln.renderOrder = 5; root.add(ln);
+    var hit = nv3Rod(s.o, [b.x, b.y, b.z], on ? 4.5 : 7, col, { transparent: true, opacity: on ? 0.55 : 0.001, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si }; root.add(hit); NV3.jpick.push(hit);
+    (q.sd.pos || []).forEach(function (pp, k) {
+      var m = new T.Mesh(NV3.gDot = NV3.gDot || new T.SphereGeometry(1, 20, 14), new T.MeshBasicMaterial({ color: new T.Color(NV3_JC[q.sd.type] || '#444'), depthTest: false }));
+      m.scale.setScalar(on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k }; root.add(m); NV3.jpick.push(m);
+      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar((on ? 9.5 : 7.5) + 2.2); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
+    });
+  });
+}
+function nv3JHit(e) {
+  var cv = NV3.R.domElement, rc = cv.getBoundingClientRect(), T = NV3.T;
+  NV3.ray.setFromCamera(new T.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height * 2 - 1)), NV3.cam);
+  var hits = NV3.ray.intersectObjects(NV3.jpick, false); if (!hits.length) return null;
+  return hits.filter(function (h) { return h.object.userData.dot != null; })[0] || hits[0];   // a point wins over its line
+}
+function nv3JAlong(e, s) {   // where along the seam the pointer is: the seam point nearest to the ray under the pointer, in mm from its start
+  var T = NV3.T, cv = NV3.R.domElement, rc = cv.getBoundingClientRect();
+  NV3.ray.setFromCamera(new T.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height * 2 - 1)), NV3.cam);
+  var P = NV3.root.localToWorld(new T.Vector3().fromArray(s.o)), D = new T.Vector3().fromArray(s.d).normalize().transformDirection(NV3.root.matrixWorld), O = NV3.ray.ray.origin, R = NV3.ray.ray.direction;
+  var w0 = P.clone().sub(O), b = D.dot(R), dd = D.dot(w0), ee = R.dot(w0), den = 1 - b * b; if (Math.abs(den) < 1e-6) return null;
+  return (b * ee - dd) / den;
+}
+function nv3JLimits(type) { return { edge: type === 'cam' ? 12 : 9, gap: type === 'cam' ? 24 : 16 }; }
+function nv3JWidth(r, key, side, single) { var ws = (r.seams || []).filter(function (s) { return s.key === key && (single || NV3.jBoth || !side || s.side === side); }).map(function (s) { return s.w; }); return ws.length ? Math.min.apply(null, ws) : 0; }
+/* write a joint: its type and places, for both sides or the selected one; refused (with the reason) when a place breaks the limits */
+function nv3JCommit(key, side, type, pos, keepSel) {
+  var c = cur(), r = S._info[S.sel].r, j = (r.joints || []).filter(function (x) { return x.key === key; })[0]; if (!j) return false;
+  var sd = j.single || NV3.jBoth ? null : side;
+  if (pos) { pos = pos.map(function (v) { return Math.round(v * 10) / 10; }).sort(function (a, b) { return a - b; });
+    var lim = nv3JLimits(type), w = nv3JWidth(r, key, side, j.single), bad = pos.some(function (v, i) { return !isFinite(v) || v < lim.edge - 0.01 || v > w - lim.edge + 0.01 || (i && v - pos[i - 1] < lim.gap - 0.01); });
+    if (bad) { toast(L('Netinkama vieta: nuo krašto ≥ ' + lim.edge + ' mm, tarp jungčių ≥ ' + lim.gap + ' mm. Nepakeista.', 'Not a valid place: ≥ ' + lim.edge + ' mm from the end, ≥ ' + lim.gap + ' mm apart. Not changed.'), true); nv3Build(); return false; } }
+  pushUndo(); setJoint(c, key, { side: sd, type: type, pos: pos || null }); if (!keepSel && NV3.jSel) NV3.jSel.idx = null; save(); render(); return true;
+}
+function nv3JClick(e) {
+  var h = nv3JHit(e), r = S._info[S.sel].r; if (!h) { if (NV3.jSel) { NV3.jSel = null; render(); } return; }
+  var si = h.object.userData.seam, s = r.seams[si], q = nv3JSpec(r, s); if (!q) return;
+  var was = NV3.jSel && NV3.jSel.key === s.key && NV3.jSel.seam === si;
+  if (h.object.userData.dot != null || !was) { NV3.jSel = { key: s.key, side: s.side || 'L', seam: si, idx: h.object.userData.dot != null ? h.object.userData.dot : null }; render(); return; }
+  var at = nv3JAlong(e, s); if (at == null) return;   // a second click on the selected line: a connector there
+  nv3JCommit(s.key, s.side || 'L', q.sd.type, (q.sd.pos || []).concat([Math.round(at)]));
+}
+function nv3JMove(e) {
+  var jd = NV3.jdrag, r = S._info[S.sel].r, s = r.seams[jd.seam], q = nv3JSpec(r, s), at = nv3JAlong(e, s); if (!q || at == null) return;
+  var lim = nv3JLimits(q.sd.type); at = Math.max(lim.edge, Math.min(s.w - lim.edge, Math.round(at))); jd.at = at; jd.moved = true;
+  var T = NV3.T; jd.obj.position.copy(new T.Vector3().fromArray(s.o)).addScaledVector(new T.Vector3().fromArray(s.d).normalize(), at);
+  var lab = document.getElementById('nv3-jtip'); if (!lab) { lab = document.createElement('span'); lab.id = 'nv3-jtip'; lab.className = 'nv3-dim nv3-jtip'; NV3.R.domElement.parentNode.appendChild(lab); }
+  var rc = NV3.R.domElement.getBoundingClientRect(); lab.textContent = at + ' mm'; lab.style.transform = 'translate(-50%,-180%) translate(' + (e.clientX - rc.left) + 'px,' + (e.clientY - rc.top) + 'px)';
+}
+function nv3JDrop(jd) {
+  var lab = document.getElementById('nv3-jtip'); if (lab) lab.remove();
+  var r = S._info[S.sel].r, s = r.seams[jd.seam], q = nv3JSpec(r, s); if (!q || jd.at == null) return;
+  var pos = (q.sd.pos || []).slice(); pos[jd.i] = jd.at; NV3.jSel = { key: s.key, side: s.side || 'L', seam: jd.seam, idx: null };
+  nv3JCommit(s.key, s.side || 'L', q.sd.type, pos);
+}
+/* the bar under the toolbar: which joint, its type, how many, where */
+function nv3JBar(c) {
+  var r = S._info[S.sel].r, joints = r.joints || [], sel = NV3.jSel, j = sel && joints.filter(function (x) { return x.key === sel.key; })[0];
+  var nm = function (x) { return esc(typeof tJ === 'function' ? tJ('jk_' + x.key) : x.label || x.key); };
+  if (!joints.length) return '<div class="nv3-bar"><b>' + L('Jungtys', 'Joints') + '</b> <span class="nv-muted">' + L('Šioje spintelėje jungčių nėra.', 'This cabinet has no joints.') + '</span></div>';
+  if (!j) { NV3.jSel = null;
+    return '<div class="nv3-bar"><b>' + L('Jungtys', 'Joints') + '</b><span class="nv3-jchips">' + joints.map(function (x) { var n = (x.single ? ['L'] : ['L', 'R']).reduce(function (a, sd) { return a + ((x.sides ? x.sides[sd] || x.sides.L : x).pos || []).length; }, 0);
+      return '<button type="button" class="nv3-jchip' + (n ? '' : ' empty') + '" data-nv="nv3" data-v="j:pick:' + esc(x.key) + '">' + nm(x) + ' <i>' + n + '</i></button>'; }).join('') + '</span>' +
+      '<span class="nv3-grow"></span><button type="button" class="nv-btn sm ghost" data-act="jcopen">' + L('Sąrašas ir patvirtinimas →', 'List and confirmation →') + '</button><button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="joints">' + L('Gerai', 'Done') + '</button></div>'; }
+  var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, w = nv3JWidth(r, j.key, sel.side, j.single), pos = sd.pos || [], lim = nv3JLimits(sd.type);
+  var ty = function (k, label) { return '<button type="button" class="' + (sd.type === k ? 'on' : '') + '" data-nv="nv3" data-v="j:type:' + k + '"><i style="background:' + NV3_JC[k] + '"></i>' + label + '</button>'; };
+  return '<div class="nv3-bar nv3-jbar"><div class="nv3-jrow"><b>' + nm(j) + '</b> <span class="nv-muted">' + fmt(Math.round(w)) + ' mm' + (j.custom || j.manual ? ' · ' + L('pakeista', 'changed') : ' · ' + L('standartas', 'standard')) + '</span>' +
+      '<span class="nv3-grow"></span>' + (j.single ? '' : '<span class="seg nv3-jseg"><button type="button" class="' + (NV3.jBoth ? 'on' : '') + '" data-nv="nv3" data-v="j:both:1">' + L('Abu šonai', 'Both sides') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'L' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:L">' + L('Kairė', 'Left') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'R' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:R">' + L('Dešinė', 'Right') + '</button></span>') +
+      '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Standartas', 'Standard') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:none">' + L('Visos jungtys', 'All joints') + '</button><button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="joints">' + L('Gerai', 'Done') + '</button></div>' +
+    '<div class="nv3-jrow"><span class="seg nv3-jseg nv3-jtype">' + ty('confirmat', t('jtConf')) + ty('cam', t('jtCam')) + ty('dowel', t('jtDowel')) + '</span>' +
+      '<span class="nv-step"><button type="button" data-nv="nv3" data-v="j:n:-1"' + (pos.length ? '' : ' disabled') + '>−</button><b>' + pos.length + '</b><button type="button" data-nv="nv3" data-v="j:n:1">+</button></span>' +
+      '<span class="nv3-jpos">' + pos.map(function (v, k) { return '<label class="' + (sel.idx === k ? 'on' : '') + '"><input type="text" inputmode="decimal" value="' + fmt(v) + '" data-nv3j="' + k + '" aria-label="' + (k + 1) + '"><button type="button" data-nv="nv3" data-v="j:del:' + k + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></label>'; }).join('') + '</span>' +
+      '<span class="nv-muted nv3-jlim">' + L('mm nuo jungties pradžios · kraštas ≥ ' + lim.edge + ', tarpas ≥ ' + lim.gap, 'mm from the start · end ≥ ' + lim.edge + ', apart ≥ ' + lim.gap) + '</span></div></div>';
+}
+function nv3JAct(a, el) {
+  var r = S._info[S.sel].r, sel = NV3.jSel, p = a.split(':');
+  if (p[0] === 'pick') { var s0 = (r.seams || []).map(function (s, i) { return { s: s, i: i }; }).filter(function (x) { return x.s.key === p[1]; })[0]; NV3.jSel = { key: p[1], side: (s0 && s0.s.side) || 'L', seam: s0 ? s0.i : null, idx: null }; return; }
+  if (p[0] === 'none') { NV3.jSel = null; return; }
+  if (!sel) return;
+  var j = (r.joints || []).filter(function (x) { return x.key === sel.key; })[0]; if (!j) return;
+  var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, pos = (sd.pos || []).slice(), w = nv3JWidth(r, j.key, sel.side, j.single);
+  if (p[0] === 'both') { if (p[1] === '1') NV3.jBoth = true; else { NV3.jBoth = false; sel.side = p[1]; var s1 = (r.seams || []).map(function (s, i) { return { s: s, i: i }; }).filter(function (x) { return x.s.key === sel.key && x.s.side === p[1]; })[0]; if (s1) sel.seam = s1.i; } return; }
+  if (p[0] === 'type') { nv3JCommit(j.key, sel.side, p[1], null, true); return false; }   // the type's own standard places
+  if (p[0] === 'reset') { pushUndo(); var c = cur(); if (j.single || NV3.jBoth) { if (c.cnc.joints) delete c.cnc.joints[j.key]; } else setJoint(c, j.key, { side: sel.side, type: sd.type, pos: null }); save(); return; }
+  if (p[0] === 'del') { pos.splice(+p[1], 1); nv3JCommit(j.key, sel.side, sd.type, pos); return false; }
+  if (p[0] === 'n') { var n = Math.max(0, pos.length + (+p[1])), lim = nv3JLimits(sd.type), e0 = Math.max(lim.edge, Math.min(pos.length ? pos[0] : (j.defE || 50), w / 2 - 1));
+    var np = n === 0 ? [] : n === 1 ? [Math.round(w / 2)] : Array.from({ length: n }, function (_, i) { return Math.round((e0 + (w - 2 * e0) * i / (n - 1)) * 10) / 10; });
+    nv3JCommit(j.key, sel.side, sd.type, np); return false; }
+}
+app.addEventListener('change', function (e) { var k = e.target.getAttribute && e.target.getAttribute('data-nv3j'); if (k == null || !NV3.jSel) return;
+  var r = S._info[S.sel].r, sel = NV3.jSel, j = (r.joints || []).filter(function (x) { return x.key === sel.key; })[0]; if (!j) return;
+  var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, pos = (sd.pos || []).slice(), v = num(e.target.value); if (!isFinite(v)) { e.target.value = fmt(pos[+k]); return; }
+  pos[+k] = v; if (!nv3JCommit(j.key, sel.side, sd.type, pos)) e.target.value = fmt((sd.pos || [])[+k]); });
 
 
 /* ======== src/ui/49-sketch.js ======== */

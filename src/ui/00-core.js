@@ -21,7 +21,7 @@
 var NV = {
   topic: 'size',     // open topic of the cabinet workspace (30-editor.js)
   secSel: null,      // selected section (index in c.sections) or null
-  view: 'front',     // picture shown in the cabinet workspace: 'front' | '3d'
+  view: '3d',        // picture shown in the cabinet workspace: '3d' (the main one) | 'front'
   flash: null,       // id of the element to scroll to and flash after the next render
   issues: null,      // cache of nvComputeIssues() for the current build
   hist: { id: null, past: [], future: [], last: null, at: 0, mute: false }
