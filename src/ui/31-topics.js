@@ -392,7 +392,7 @@ function nvtBoxStep(c, key) {
 }
 function nvtBoxWrap(key, lead, html) { return '<div class="nvt nvt-box nvt-' + key + '">' + (lead ? nvtNote(lead, 'nvt-lead') : '') + html + '</div>'; }
 NVA.nvtbox3d = function () {   // the live "box3d", but the 3-D picture has to be the one shown first
-  NV.view = '3d'; render();
+  NV.view = '3d'; NV.r3off = 'box'; render();   // boards are placed in the live model (the new 3-D view shows and joins them)
   if (window.DBAssembly && window.DBAssembly.setBoards) window.DBAssembly.setBoards(true);
   mountAssembly();
   var ap = document.getElementById('assembly-preview'); if (ap) ap.scrollIntoView({ behavior: 'smooth', block: 'center' });

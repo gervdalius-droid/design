@@ -42,3 +42,14 @@
 .nv3-jtip{background:#1c211e;color:#fff;z-index:3}
 
 .nv-btn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+/* connector library (joints mode) */
+.nv3-pal{padding-bottom:8px;border-bottom:1px dashed var(--line2)}
+.nv3-pal-t{font-weight:700;font-size:13px}
+.nv3-pal-r{font-size:12.5px;flex:1 1 220px}
+.nv3-conn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);border-radius:9px;min-height:34px;padding:5px 11px;font-weight:600;font-size:13.5px;cursor:grab;color:var(--ink);touch-action:none;user-select:none}
+.nv3-conn i{width:12px;height:12px;border-radius:50%;flex:none}
+.nv3-conn:hover{border-color:var(--ink)}
+.nv3-conn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.nv3-ghost{position:fixed;left:0;top:0;z-index:2000;pointer-events:none;box-shadow:var(--nv-shadow-lg);opacity:.92;cursor:grabbing}
+.nv3-ghost.ok{border-color:#f0a202;background:#fff7e0}
