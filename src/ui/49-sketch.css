@@ -12,3 +12,5 @@
 .nvs-row label{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}.nvs-row label span{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
 .nvs-row input{width:100%;border:1px solid var(--line2);border-radius:8px;min-height:34px;padding:4px 8px;font:600 14px var(--f-body);font-variant-numeric:tabular-nums;text-align:right;background:var(--panel)}
 .nvs-f{display:flex;justify-content:space-between;margin-top:12px}
+.nvs-guide{stroke:#2a55d9;stroke-dasharray:6 5;pointer-events:none}
+.nvs-live{fill:#1c211e!important;font-weight:700;paint-order:stroke;stroke:#fff;stroke-width:4px;pointer-events:none}

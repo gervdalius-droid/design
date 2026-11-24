@@ -150,6 +150,7 @@ function nv3Screws(r, root) {
     var ext = []; all.forEach(function (q) { [0, q.L].forEach(function (a) { [0, q.W].forEach(function (b) { [0, q.T].forEach(function (d) { ext.push(q.place.o[ax] + a * q.place.u[ax] + b * q.place.v[ax] - d * q.place.n[ax]); }); }); }); });
     var outA = Math.abs(pl.o[ax] - (pl.n[ax] > 0 ? Math.max.apply(null, ext) : Math.min.apply(null, ext))) < 0.5;   // face A is the cabinet's outside (an outside back)
     (p.holes || []).forEach(function (h) {
+      if (h.nv) return;   // a sketched through hole, not a connector
       var cam = !h.op && !h.mark && !h.through && Math.abs(h.d - 15) < 0.1, conf = !h.op && !h.mark && h.through && Math.abs(h.d - 8) < 0.1, pin = h.op === 'pin'; if (!cam && !conf && !pin) return;
       var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
