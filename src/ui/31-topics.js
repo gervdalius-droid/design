@@ -321,7 +321,7 @@ function nvtCncRows(c) {
 }
 function nvtCnc(c) {
   var rows = nvtCncRows(c), sup = c.cnc.legs && c.hang !== true;
-  return '<div class="nvt nvt-cnc">' +
+  return '<div class="nvt nvt-cnc">' + skBanner(c) +
     (rows.length ? '<p class="nv-hint nvt-lead">' + L('Ką CNC gręžia papildomai — rodoma tik tai, kas šioje spintelėje yra. Korpuso jungtys gręžiamos visada.', 'What the CNC drills in addition — only what this cabinet has. The carcass joints are always drilled.') + '</p><div class="nvt-ops">' + rows.join('') + '</div>'
       : '<p class="nvt-nothing">' + L('Šioje spintelėje nėra stalčių, durų ar kilnojamų lentynų — papildomai gręžti nėra ko.', 'This cabinet has no drawers, doors or adjustable shelves — nothing extra to drill.') + '</p>') +
     '<p class="nv-hint nvt-foot">' + (sup ? L('Kojelių ir pėdučių žymės gręžiamos pagal', 'The marks for legs and feet follow') : L('Kojelės ir pėdutės nustatomos skiltyje', 'Legs and feet are set in')) +

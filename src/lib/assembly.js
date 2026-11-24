@@ -269,6 +269,19 @@ function mount(el,c,r,lang,hooks={}){
  function scene(){faces=[];guides=[];PKS=[];CUR_PK=0;
  // Actual panel placement, including panel rotations performed by the manufacturing engine.
  (r.panels||[]).forEach(p=>{if(!p.place||p.drawerOf||/^(DURYS|FASADAS)$/.test(p.role))return;CUR_PK=pkOf({kind:'panel',role:p.role,name:p.name});let q=p.place;const tf=v=>add(q.o,add(mul(q.u,v[0]),add(mul(q.v,v[1]),mul(q.n,-v[2]))));const bi=isBox?r.box.boards.findIndex(b=>b.name===p.name):-1,sel=V.boards&&bi>=0&&r.box.boards[bi].id===BX.sel,k0=faces.length;box([0,0,0],[p.L,p.W,p.T],sel?'#9fd0b4':mat(p.mat,'#e5e2da'),tf,!sel&&wood(p.mat),false,false,sel?null:{name:p.mat,g:0});for(let k=k0;k<faces.length;k++)faces[k].bid=bi+1;});
+ // operations drawn by hand (Detalių operacijos): what the cutter takes away, on the face it works from — dark when it goes through
+ (r.panels||[]).forEach(p=>{if(!p.place||p.drawerOf||/^(DURYS|FASADAS)$/.test(p.role)||!p.sketch||!p.sketch.length)return;const q=p.place,RO=window.DBEngine.R.rout,rr=RO.dia/2,thrD=p.T-RO.skin-.01;
+  const W3=(x,y,fB)=>add(q.o,add(mul(q.u,x),add(mul(q.v,y),mul(q.n,fB?-(p.T+.4):.4))));
+  const put=(pts,fB,col,both)=>{if(both){put(pts,false,col);put(pts,true,col);return;}if(pts.length<3)return;let a=0;for(let i=0;i<pts.length;i++){const s0=pts[i],t0=pts[(i+1)%pts.length];a+=s0[0]*t0[1]-t0[0]*s0[1];}if(Math.abs(a)<1e-6)return;if((a>0)===fB)pts=pts.slice().reverse();face(pts.map(s0=>W3(s0[0],s0[1],fB)),col);};
+  const disc=(c0,rad,fB,col,both)=>put(Array.from({length:20},(_,i)=>[c0[0]+rad*Math.cos(i*Math.PI/10),c0[1]+rad*Math.sin(i*Math.PI/10)]),fB,col,both);
+  (p.paths||[]).forEach(g=>{const fB=g.face==='B',thr=g.depth>=thrD,col=thr?'#2b302d':'#7a6650',P=g.pts;   // through: seen from both faces
+   for(let i=0;i<P.length-1;i++){const a=P[i],b=P[i+1],dx=b[0]-a[0],dy=b[1]-a[1],l=Math.hypot(dx,dy);if(l<1e-6)continue;const nx=-dy/l*rr,ny=dx/l*rr;put([[a[0]+nx,a[1]+ny],[b[0]+nx,b[1]+ny],[b[0]-nx,b[1]-ny],[a[0]-nx,a[1]-ny]],fB,col,thr);
+    if(i>0){const z=P[i-1],ang=Math.abs(Math.atan2((a[0]-z[0])*dy-(a[1]-z[1])*dx,(a[0]-z[0])*dx+(a[1]-z[1])*dy));if(ang>.35)disc(a,rr,fB,col,thr);}}
+   if(P.length){disc(P[0],rr,fB,col,thr);disc(P[P.length-1],rr,fB,col,thr);}});
+  p.sketch.forEach(sh=>{if((sh.op==='in'||sh.op==='pocket')&&sh.closed&&(p.paths||[]).some(g=>g.name==='ESKIZAS_'+sh.n||g.name.indexOf('ESKIZAS_'+sh.n+'_')===0)){const g0=(p.paths||[]).filter(g=>g.name==='ESKIZAS_'+sh.n||g.name.indexOf('ESKIZAS_'+sh.n+'_')===0)[0];
+   window.DBEngine.triangulate(sh.pts).forEach(t=>put(t,sh.face==='B',g0.depth>=thrD?'#2b302d':'#7a6650',g0.depth>=thrD));}});
+  (p.holes||[]).forEach(h=>{if(h.op==='sketch')disc([h.x,h.y],h.d/2,h.face==='B',h.through?'#2b302d':'#5d4f3f',!!h.through);});
+ });
  CUR_PK=0;faces.forEach(f=>f.carcass=true);
  (r.legs||[]).forEach(l=>{if(l.feet){cylinder([l.x,l.y,-l.h],[0,0,1],l.d*.5,l.h,'#343b3a');return;}cylinder([l.x,l.y,-l.h],[0,0,1],l.d*.5,l.h,'#343b3a');cylinder([l.x,l.y,-l.h],[0,0,1],l.d*.68,8,'#272e2c');cylinder([l.x,l.y,-12],[0,0,1],30,12,'#414844');});
  {const pl=(r.visual||{}).plinth;CUR_PK=pl?pkOf({kind:'plinth'}):0;if(pl&&V.mode==='assembly'&&!V.edit)box([pl.x0,pl.y0,pl.z0],[pl.x1-pl.x0,pl.t,pl.z1-pl.z0],mat(pl.mat,'#d5cbbd'),null,wood(pl.mat),false,true,{name:pl.mat,g:0});}

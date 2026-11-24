@@ -87,6 +87,10 @@ def main():
         return t
     js += ''.join('<script>' + lib(n) + '</script>\n' for n in LIB)
     js += '<script>' + closure + '</script>\n'
+    # sign-in, cloud saving and "one editor per project" — the live app's own scripts, unchanged, loaded exactly as there
+    # (copies next to the page so it also runs outside app.dedesbaldai.lt; tools/sync_legacy.py refreshes them)
+    js += ''.join('<script src="%s"%s></script>\n' % (s, ' defer' if 'notices' in s else '') for s in
+                  ['workshop-auth.js', 'shared/notices.js', 'cloud.js', 'shared/project-lock.js', 'locks.js', 'shared/back.js'])
     if re.search(r'</script', overlay, re.I):   # an inline script must never contain its own end tag
         sys.exit("build.py: a src/ui script contains '</script' — write it as '<\\/script'")
     page = ('<!doctype html>\n<html lang="lt" data-theme="light">\n<head>\n' + head + css + '</head>\n<body>\n'

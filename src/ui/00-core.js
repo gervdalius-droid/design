@@ -195,6 +195,12 @@ function render() {
   if (!NVSTAGE[S.tab]) S.tab = 'cab';
   nvHistBase();
   if (window.DBLook) window.DBLook.set(S.proj.look);
+  S.proj.cabinets.forEach(function (c) {   // cutouts drawn in an earlier builder2 (c.nvCuts) → the live app's part operations (c.sketch)
+    if (!c.nvCuts) return; c.sketch = c.sketch || {};
+    Object.keys(c.nvCuts).forEach(function (k) { (c.nvCuts[k] || []).forEach(function (q, i) {
+      var id = Date.now() % 1e9 + i + Math.floor(Math.random() * 1e6), dr = q.k === 'circ' && E.R.drills.top.indexOf(+q.d) >= 0;
+      (c.sketch[k] = c.sketch[k] || []).push(q.k === 'circ' ? { id: id, t: 'circle', x: q.x, y: q.y, r: q.d / 2, op: dr ? 'drill' : 'in', face: 'A', through: true } : { id: id, t: 'rect', x: q.x, y: q.y, w: q.w, h: q.h, op: 'in', face: 'A', through: true }); }); });
+    delete c.nvCuts; });
   var cabInfo = S.proj.cabinets.map(function (c, i) { return buildOne(i); });
   cabInfo.forEach(function (inf, i) {   // a plinth fitted by its gaps: its row's length and height as the cabinet makes them
     var pl = inf && inf.r && inf.r.visual && inf.r.visual.plinth, c = S.proj.cabinets[i], k = pl && pl.fit ? plinthIdx(c) : -1; if (k < 0) return;
@@ -203,7 +209,8 @@ function render() {
   S._info = cabInfo;
   var stage = NVSTAGE[S.tab], body;
   try { body = stage(cabInfo); } catch (e1) { if (window.console) console.error(e1); body = '<div class="nv-card nv-crash"><b>' + L('Šio lango parodyti nepavyko', 'This view could not be shown') + '</b><pre>' + esc(String(e1 && e1.stack || e1)) + '</pre></div>'; }
-  var modal = S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '';
+  if (S.sk && !S.proj.cabinets[S.sk.cab]) S.sk = null;
+  var modal = S.sk ? skModal() : S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '';
   app.className = 'nv-app nv-tab-' + S.tab;
   app.innerHTML = nvHeader() + '<main class="nv-main" id="nv-main">' + body + '</main>' + modal +
     '<datalist id="dl-mat">' + listOpts('mat') + '</datalist><datalist id="dl-edge">' + listOpts('edge') + '</datalist><datalist id="dl-wt">' + listOpts('wt') + '</datalist>';

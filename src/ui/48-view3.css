@@ -40,3 +40,5 @@
 .nv3-jpos button{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 7px;min-height:32px}.nv3-jpos button:hover{color:var(--bad)}
 .nv3-jlim{font-size:12px}
 .nv3-jtip{background:#1c211e;color:#fff;z-index:3}
+
+.nv-btn.on{background:var(--ink);border-color:var(--ink);color:#fff}

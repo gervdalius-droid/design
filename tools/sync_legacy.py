@@ -44,6 +44,11 @@ def main():
     shutil.copy(os.path.join(src_dir, 'index.html'), os.path.join(R, 'legacy/index.html'))
     for f in ('cloud.js', 'locks.js', 'workshop-auth.js', 'README.md'):
         if os.path.exists(os.path.join(src_dir, f)): shutil.copy(os.path.join(src_dir, f), os.path.join(R, 'legacy', f))
+    for f in ('cloud.js', 'locks.js', 'workshop-auth.js'):   # the page loads these from its own folder
+        if os.path.exists(os.path.join(src_dir, f)): shutil.copy(os.path.join(src_dir, f), os.path.join(R, f))
+    hub = os.path.join(src_dir, '..', 'hub', 'shared')
+    for f in ('notices.js', 'project-lock.js', 'back.js'):
+        if os.path.exists(os.path.join(hub, f)): shutil.copy(os.path.join(hub, f), os.path.join(R, 'shared', f)); shutil.copy(os.path.join(hub, f), os.path.join(R, 'legacy', 'hub-shared', f))
     new_app = open(os.path.join(R, 'src/lib/app.js'), encoding='utf-8').read()
     ui = ''.join(open(os.path.join(R, 'src/ui', f), encoding='utf-8').read() for f in sorted(os.listdir(os.path.join(R, 'src/ui'))) if f.endswith('.js'))
     over = sorted(set(re.findall(r'^function ([A-Za-z_$][\w$]*)\s*\(', ui, re.M)) & set(fn_bodies(new_app)))

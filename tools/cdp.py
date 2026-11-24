@@ -122,6 +122,9 @@ class Chrome:
         self.cmd("Log.enable")
         self.cmd("Network.enable")
         self.cmd("Network.setCacheDisabled", {"cacheDisabled": True})
+        # the app offers the workshop sign-in once per session (cloud.js); tests work signed out, in this browser only
+        self.cmd("Page.addScriptToEvaluateOnNewDocument", {"source":
+            "try{sessionStorage.setItem('dbKurejas.cloudAsked','1')}catch(e){}"})
         self.cmd("Emulation.setDeviceMetricsOverride", {
             "width": self.w, "height": self.h, "deviceScaleFactor": self.dpr, "mobile": self.mobile})
         if self.mobile:

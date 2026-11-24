@@ -31,6 +31,7 @@ function nv3Html() {
       b('m:assembly', L('Surinkta', 'Assembled'), NV3.mode === 'assembly') + b('m:interior', L('Be fasadų', 'No fronts'), NV3.mode === 'interior') +
       b('edges', '▭ ' + L('Kraštai', 'Edges'), NV3.edges, L('Kraštų laminavimas: spustelėkite kraštą modelyje', 'Edge banding: click an edge on the model')) +
       b('joints', '⊙ ' + L('Jungtys', 'Joints'), NV3.joints, L('Jungtys: spustelėkite jungtį modelyje, tempkite tašką', 'Connectors: click a joint on the model, drag a point')) +
+      (c.dishwasher ? '' : '<button type="button" class="nv3-b" data-act="skopen" title="' + esc(L('Detalių operacijos: braižykite ant detalės — išpjovos, frezavimas, gręžimas', 'Part operations: draw on a part — cutouts, routing, drilling')) + '">✎ ' + L('Braižyti', 'Draw') + (skCount(c) ? ' <b>' + skCount(c) + '</b>' : '') + '</button>') +
       '<span class="nv3-sep"></span>' + b('v:front', L('Priekis', 'Front')) + b('v:iso', '3D') + b('v:under', L('Apačia', 'Below')) + b('v:back', L('Galas', 'Back')) +
       '<span class="nv3-grow"></span>' + b('full', NV3.full ? L('Uždaryti ✕', 'Close ✕') : L('Išplėsti ⤢', 'Expand ⤢'), NV3.full) + '</div>' +
     (NV3.joints ? nv3JBar(c) : '') +
@@ -75,7 +76,7 @@ function nv3Init() {
   NV3.ray = new T.Raycaster();
   var cv = R.domElement; cv.className = 'nv3-cv';
   cv.addEventListener('pointerdown', function (e) { NV3.down = e.button === 0 ? [e.clientX, e.clientY] : null;
-    if (NV3.joints && e.button === 0) { var h = nv3JHit(e); if (h && h.object.userData.dot != null) { NV3.jdrag = { seam: h.object.userData.seam, i: h.object.userData.dot, obj: h.object, moved: false }; NV3.ctl.enabled = false; try { cv.setPointerCapture(e.pointerId); } catch (x) {} } } });
+    if (NV3.joints && e.button === 0) { var h = nv3JHit(e); if (h && h.object.userData.dot != null) { NV3.jdrag = { seam: h.object.userData.seam, i: h.object.userData.dot, obj: h.object, o: h.object.userData.o, moved: false }; NV3.ctl.enabled = false; try { cv.setPointerCapture(e.pointerId); } catch (x) {} } } });
   cv.addEventListener('pointerup', function (e) { var d = NV3.down; NV3.down = null; var jd = NV3.jdrag; NV3.jdrag = null; NV3.ctl.enabled = true;
     if (jd && jd.moved) { nv3JDrop(jd); return; }
     if (!d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 4) return; if (NV3.joints) nv3JClick(e); else nv3Click(e); });
@@ -111,7 +112,7 @@ function nv3Shade(hex, k) { var c = new NV3.T.Color(hex); c.multiplyScalar(k); r
    Box faces in three's order: +x −x +y −y +z −z  →  edges x1 x0 y1 y0, then the two big faces. */
 function nv3Board(p, color, opt) {
   var T = NV3.T, q = p.place, g = null, fe = (cur().edge.facade || 'PAGAL FASADA'), mats;
-  var dim = opt && opt.dim, edgeMode = NV3.edges && !dim && p.key, cuts = !edgeMode && p.key && (cur().nvCuts || {})[p.key];
+  var dim = opt && opt.dim, edgeMode = NV3.edges && !dim && p.key, cuts = !edgeMode && p.key && nv3Cuts(p);
   if (cuts && cuts.length) { try { var shp = nv3CutShapes(p.L, p.W, cuts); if (shp.length) { g = new T.ExtrudeGeometry(shp, { depth: p.T, bevelEnabled: false, curveSegments: 28 }); g.translate(-p.L / 2, -p.W / 2, -p.T / 2); } } catch (e) { g = null; } }
   if (!g) g = new T.BoxGeometry(p.L, p.W, p.T);
   if (edgeMode) { var em = function (e) { var st = ecState(p, e, fe); return new T.MeshStandardMaterial({ color: new T.Color(st === 1 ? '#1f5fbf' : st === 2 ? '#d9730d' : '#b9b4a8'), roughness: 0.6, emissive: new T.Color(st === 1 ? '#0b2a5c' : st === 2 ? '#6a3200' : '#000000'), emissiveIntensity: st ? 0.35 : 0 }); };
@@ -123,7 +124,7 @@ function nv3Board(p, color, opt) {
   var cx = [0, 1, 2].map(function (i) { return q.o[i] + q.u[i] * p.L / 2 + q.v[i] * p.W / 2 - q.n[i] * p.T / 2; });
   m.matrix.makeBasis(u, v, z).setPosition(cx[0], cx[1], cx[2]); void n;
   var ln = new T.LineSegments(new T.EdgesGeometry(g, 25), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.42 : 0.28 })); m.add(ln);
-  if (!dim && typeof NVS !== 'undefined' && NVS.key === p.key && NVS.cab === cur().id) { m.material = new T.MeshStandardMaterial({ color: new T.Color(color), roughness: 0.62, emissive: new T.Color('#2a55d9'), emissiveIntensity: 0.22 }); }   // the board being sketched on
+  if (!dim && !edgeMode) nv3Routed(p, m);
   m.userData = { part: { kind: 'panel', role: p.role, name: p.name }, key: p.key, cen: cx, edge: !!edgeMode };
   if (!dim) NV3.pick.push(m);
   return m;
@@ -150,6 +151,37 @@ function nv3CutShapes(L, W, cuts) {
       var h = new T.Path(); h.absarc(q.x, q.y, rr, 0, Math.PI * 2, true); sh.holes.push(h); });
     return sh; });
 }
+/* part operations of the live app (c.sketch → p.sketch, p.paths, p.holes with op 'sketch'):
+   what goes right through becomes a real opening in the board … */
+function nv3Cuts(p) {
+  var thrD = p.T - E.R.rout.skin - 0.01, out = [];
+  (p.sketch || []).forEach(function (sh) { if (sh.op !== 'in' || !sh.closed || sh.pts.length < 3) return;
+    var g = (p.paths || []).filter(function (x) { return x.name === 'ESKIZAS_' + sh.n; })[0]; if (!g || g.depth < thrD) return;
+    var xs = sh.pts.map(function (q) { return q[0]; }), ys = sh.pts.map(function (q) { return q[1]; }), x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    if (sh.t === 'rect') out.push({ k: 'rect', x: x0, y: y0, w: x1 - x0, h: y1 - y0, n: sh.n });
+    else if (sh.t === 'circle') out.push({ k: 'circ', x: (x0 + x1) / 2, y: (y0 + y1) / 2, d: x1 - x0, n: sh.n }); });
+  (p.holes || []).forEach(function (h) { if (h.op === 'sketch' && h.through) out.push({ k: 'circ', x: h.x, y: h.y, d: h.d }); });
+  return out;
+}
+/* … and everything else the cutter takes away is drawn on the face it works from: pockets, grooves along a line, blind holes */
+function nv3Routed(p, m) {
+  if (!(p.sketch && p.sketch.length) && !(p.holes || []).some(function (h) { return h.op === 'sketch'; })) return;
+  var T = NV3.T, rr = E.R.rout.dia / 2, thrD = p.T - E.R.rout.skin - 0.01, opened = {}; nv3Cuts(p).forEach(function (q) { if (q.n) opened[q.n] = 1; });
+  var flat = function (shape, fB, color) { var g = new T.ShapeGeometry(shape, 20), x = new T.Mesh(g, new T.MeshBasicMaterial({ color: new T.Color(color), side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    x.position.set(-p.L / 2, -p.W / 2, 0); var hold = new T.Group(); hold.add(x); hold.userData.face = fB ? 'B' : 'A'; m.add(hold); return hold; };
+  var zs = m.matrix.elements, nz = new T.Vector3(zs[8], zs[9], zs[10]), sgn = nz.dot(new T.Vector3().fromArray(p.place.n)) > 0 ? 1 : -1;   // local +z is face A when it points along n
+  var zOf = function (fB) { return (fB ? -1 : 1) * sgn * (p.T / 2 + 0.3); };
+  var poly = function (pts) { return new T.Shape(pts.map(function (q) { return new T.Vector2(q[0], q[1]); })); };
+  (p.paths || []).forEach(function (g) { var m0 = /^ESKIZAS_(\d+)/.exec(g.name || ''); if (!m0 || opened[+m0[1]]) return;
+    var fB = g.face === 'B', thr = g.depth >= thrD, col = thr ? '#2b302d' : '#7a6650', P = g.pts, faces = thr ? [false, true] : [fB];
+    faces.forEach(function (f) {
+      for (var i = 0; i < P.length - 1; i++) { var a = P[i], b = P[i + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); if (l < 1e-6) continue; var nx = -dy / l * rr, ny = dx / l * rr;
+        flat(poly([[a[0] + nx, a[1] + ny], [b[0] + nx, b[1] + ny], [b[0] - nx, b[1] - ny], [a[0] - nx, a[1] - ny]]), f, col).position.z = zOf(f);
+        var c0 = new T.Shape(); c0.absarc(a[0], a[1], rr, 0, Math.PI * 2, false); flat(c0, f, col).position.z = zOf(f); }
+      if (P.length) { var e = P[P.length - 1], c1 = new T.Shape(); c1.absarc(e[0], e[1], rr, 0, Math.PI * 2, false); flat(c1, f, col).position.z = zOf(f); } }); });
+  (p.sketch || []).forEach(function (sh) { if (sh.op !== 'pocket' || !sh.closed || sh.pts.length < 3) return; flat(poly(sh.pts), sh.face === 'B', '#7a6650').position.z = zOf(sh.face === 'B'); });
+  (p.holes || []).forEach(function (h) { if (h.op !== 'sketch' || h.through) return; var c2 = new T.Shape(); c2.absarc(h.x, h.y, h.d / 2, 0, Math.PI * 2, false); flat(c2, h.face === 'B', '#3d342b').position.z = zOf(h.face === 'B'); });
+}
 /* connectors as they sit in the boards, from the engine's real drillings: confirmat heads, cam housings, shelf pins */
 function nv3Screws(r, root) {
   var T = NV3.T, steel = { metalness: 0.9, roughness: 0.3 }, gHead = NV3.gHead = NV3.gHead || new T.CylinderGeometry(5.2, 5.2, 1.6, 20), gHex = NV3.gHex = NV3.gHex || new T.CylinderGeometry(2.2, 2.2, 1.8, 6),
@@ -159,7 +191,7 @@ function nv3Screws(r, root) {
     var ext = []; all.forEach(function (q) { [0, q.L].forEach(function (a) { [0, q.W].forEach(function (b) { [0, q.T].forEach(function (d) { ext.push(q.place.o[ax] + a * q.place.u[ax] + b * q.place.v[ax] - d * q.place.n[ax]); }); }); }); });
     var outA = Math.abs(pl.o[ax] - (pl.n[ax] > 0 ? Math.max.apply(null, ext) : Math.min.apply(null, ext))) < 0.5;   // face A is the cabinet's outside (an outside back)
     (p.holes || []).forEach(function (h) {
-      if (h.nv) return;   // a sketched through hole, not a connector
+      if (h.op === 'sketch') return;   // a hole drawn by hand, not a connector
       var cam = !h.op && !h.mark && !h.through && Math.abs(h.d - 15) < 0.1, conf = !h.op && !h.mark && h.through && Math.abs(h.d - 8) < 0.1, pin = h.op === 'pin'; if (!cam && !conf && !pin) return;
       var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
@@ -241,10 +273,13 @@ function nv3Build() {
   };
   /* carcass */
   var jm = NV3.joints && !focus; NV3.jpick = [];
-  (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return; root.add(place(nv3Board(p, MC(p.mat, '#e9e6de'), { dim: jm || (focus && p.key !== focus) }), p)); });
-  if (jm) nv3Seams(r, root);
+  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return (cen[i] - mid[i]) * 0.55; }); };   // joints: the boards pulled apart so every joint shows what goes into what
+  (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return;
+    var bm = nv3Board(p, MC(p.mat, '#e9e6de'), { dim: (jm && !jx) || (focus && p.key !== focus) });
+    if (jx) { var eo = expOff(bm.userData.cen), eg = new T.Group(); eg.position.set(eo[0], eo[1], eo[2]); eg.add(bm); root.add(eg); } else root.add(place(bm, p)); });
+  if (jm) nv3Seams(r, root, jx ? expOff : null);
   var faint = focus ? { transparent: true, opacity: 0.16, depthWrite: false } : null;
-  if (c.hang !== true) (r.legs || []).forEach(function (l) {
+  if (c.hang !== true && !jx) (r.legs || []).forEach(function (l) {
     var rad = (l.d || 40) / 2, g1 = new T.CylinderGeometry(rad, rad, l.h, 28); g1.rotateX(Math.PI / 2);
     var a = new T.Mesh(g1, nv3Mat('#2b3230', Object.assign({ roughness: 0.5 }, faint || {}))); a.position.set(l.x, l.y, -l.h / 2); root.add(a);
     if (!l.feet) { var g2 = new T.CylinderGeometry(rad * 1.4, rad * 1.5, 10, 28); g2.rotateX(Math.PI / 2); var b2 = new T.Mesh(g2, nv3Mat('#222826', Object.assign({ roughness: 0.5 }, faint || {}))); b2.position.set(l.x, l.y, -l.h + 5); root.add(b2); }
@@ -255,7 +290,7 @@ function nv3Build() {
     if (r.worktop) { var wt = r.worktop; root.add(nv3Box([wt.x0, wt.y0, wt.z0], [wt.L, wt.y1 - wt.y0, wt.T], MC(wt.mat, '#b98d5e'), { roughness: 0.45 }, { kind: 'worktop' })); }
     if (E.sidePanels) E.sidePanels(c).forEach(function (q) { root.add(nv3Box([q.x0, q.y0, q.z0], [q.x1 - q.x0, q.y1 - q.y0, q.z1 - q.z0], MC(q.mat, '#d5cbbd'))); });
   }
-  if (NV3.hw && !focus) nv3Screws(r, root);
+  if (NV3.hw && !focus && !jx) nv3Screws(r, root);
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
   var fronts = jm ? [] : (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
@@ -367,18 +402,31 @@ document.addEventListener('keydown', function (e) { if (e.key !== 'Escape' || !d
    along its seam; a click on the line adds one. Changes go through the live setJoint(), as the live editor's do. */
 var NV3_JC = { confirmat: '#285ac4', cam: '#ca6b23', dowel: '#387b53' };
 function nv3JSpec(r, s) { var j = (r.joints || []).filter(function (x) { return x.key === s.key; })[0]; if (!j) return null; return { j: j, sd: s.at || (j.sides ? j.sides[s.side || 'L'] || j.sides.L : j) }; }
-function nv3Seams(r, root) {
-  var T = NV3.T, sel = NV3.jSel;
+function nv3Seams(r, root, expOff) {
+  var T = NV3.T, sel = NV3.jSel, boards = (r.panels || []).filter(function (p) { return p.place && !p.drawerOf && p.role !== 'FASADAS' && p.role !== 'DURYS'; });
   (r.seams || []).forEach(function (s, si) {
     var q = nv3JSpec(r, s); if (!q) return;
     var on = sel && sel.key === s.key && (q.j.single || NV3.jBoth || !s.side || sel.side === s.side), col = on ? '#1c4fd8' : '#7f93a8';
-    var a = new T.Vector3().fromArray(s.o), d = new T.Vector3().fromArray(s.d).normalize(), b = a.clone().addScaledVector(d, s.w);
+    var d = new T.Vector3().fromArray(s.d).normalize(), offs = [[0, 0, 0]];
+    if (expOff) {   // pulled apart: the joint is drawn on each of the two boards it joins, and every connector spans the gap between them
+      var M = [0, 1, 2].map(function (i) { return s.o[i] + d.getComponent(i) * s.w / 2; }), found = [];
+      boards.forEach(function (p) { var pl = p.place, rel = [0, 1, 2].map(function (i) { return M[i] - pl.o[i]; }), dot = function (v) { return rel[0] * v[0] + rel[1] * v[1] + rel[2] * v[2]; }, a1 = dot(pl.u), b1 = dot(pl.v), t1 = -dot(pl.n);
+        if (a1 < -2 || a1 > p.L + 2 || b1 < -2 || b1 > p.W + 2 || t1 < -2 || t1 > p.T + 2) return;
+        var o1 = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; }));
+        if (!found.some(function (f) { return Math.hypot(f[0] - o1[0], f[1] - o1[1], f[2] - o1[2]) < 1; })) found.push(o1); });
+      if (found.length) offs = found.slice(0, 2);
+      if (offs.length === 2) (q.sd.pos || []).forEach(function (pp) { var P0 = [0, 1, 2].map(function (i) { return s.o[i] + d.getComponent(i) * pp + offs[0][i]; }), P1 = [0, 1, 2].map(function (i) { return s.o[i] + d.getComponent(i) * pp + offs[1][i]; });
+        root.add(nv3Rod(P0, P1, on ? 3.4 : 2.4, NV3_JC[q.sd.type] || '#444', on ? { roughness: 0.4 } : { roughness: 0.4, transparent: true, opacity: 0.55 })); });
+    }
+    offs.forEach(function (off) {
+    var a = new T.Vector3(s.o[0] + off[0], s.o[1] + off[1], s.o[2] + off[2]), b = a.clone().addScaledVector(d, s.w), so = [a.x, a.y, a.z];
     var ln = new T.Line(new T.BufferGeometry().setFromPoints([a, b]), new T.LineBasicMaterial({ color: new T.Color(col), depthTest: false, transparent: true, opacity: on ? 1 : 0.8 })); ln.renderOrder = 5; root.add(ln);
-    var hit = nv3Rod(s.o, [b.x, b.y, b.z], on ? 4.5 : 7, col, { transparent: true, opacity: on ? 0.55 : 0.001, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si }; root.add(hit); NV3.jpick.push(hit);
+    var hit = nv3Rod(so, [b.x, b.y, b.z], on ? 4.5 : 7, col, { transparent: true, opacity: on ? 0.55 : 0.001, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si, o: so }; root.add(hit); NV3.jpick.push(hit);
     (q.sd.pos || []).forEach(function (pp, k) {
       var m = new T.Mesh(NV3.gDot = NV3.gDot || new T.SphereGeometry(1, 20, 14), new T.MeshBasicMaterial({ color: new T.Color(NV3_JC[q.sd.type] || '#444'), depthTest: false }));
-      m.scale.setScalar(on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k }; root.add(m); NV3.jpick.push(m);
+      m.scale.setScalar(on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
       var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar((on ? 9.5 : 7.5) + 2.2); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
+    });
     });
   });
 }
@@ -388,10 +436,10 @@ function nv3JHit(e) {
   var hits = NV3.ray.intersectObjects(NV3.jpick, false); if (!hits.length) return null;
   return hits.filter(function (h) { return h.object.userData.dot != null; })[0] || hits[0];   // a point wins over its line
 }
-function nv3JAlong(e, s) {   // where along the seam the pointer is: the seam point nearest to the ray under the pointer, in mm from its start
+function nv3JAlong(e, s, o) {   // where along the seam the pointer is: the seam point nearest to the ray under the pointer, in mm from its start
   var T = NV3.T, cv = NV3.R.domElement, rc = cv.getBoundingClientRect();
   NV3.ray.setFromCamera(new T.Vector2((e.clientX - rc.left) / rc.width * 2 - 1, -((e.clientY - rc.top) / rc.height * 2 - 1)), NV3.cam);
-  var P = NV3.root.localToWorld(new T.Vector3().fromArray(s.o)), D = new T.Vector3().fromArray(s.d).normalize().transformDirection(NV3.root.matrixWorld), O = NV3.ray.ray.origin, R = NV3.ray.ray.direction;
+  var P = NV3.root.localToWorld(new T.Vector3().fromArray(o || s.o)), D = new T.Vector3().fromArray(s.d).normalize().transformDirection(NV3.root.matrixWorld), O = NV3.ray.ray.origin, R = NV3.ray.ray.direction;
   var w0 = P.clone().sub(O), b = D.dot(R), dd = D.dot(w0), ee = R.dot(w0), den = 1 - b * b; if (Math.abs(den) < 1e-6) return null;
   return (b * ee - dd) / den;
 }
@@ -411,13 +459,13 @@ function nv3JClick(e) {
   var si = h.object.userData.seam, s = r.seams[si], q = nv3JSpec(r, s); if (!q) return;
   var was = NV3.jSel && NV3.jSel.key === s.key && NV3.jSel.seam === si;
   if (h.object.userData.dot != null || !was) { NV3.jSel = { key: s.key, side: s.side || 'L', seam: si, idx: h.object.userData.dot != null ? h.object.userData.dot : null }; render(); return; }
-  var at = nv3JAlong(e, s); if (at == null) return;   // a second click on the selected line: a connector there
+  var at = nv3JAlong(e, s, h.object.userData.o); if (at == null) return;   // a second click on the selected line: a connector there
   nv3JCommit(s.key, s.side || 'L', q.sd.type, (q.sd.pos || []).concat([Math.round(at)]));
 }
 function nv3JMove(e) {
-  var jd = NV3.jdrag, r = S._info[S.sel].r, s = r.seams[jd.seam], q = nv3JSpec(r, s), at = nv3JAlong(e, s); if (!q || at == null) return;
+  var jd = NV3.jdrag, r = S._info[S.sel].r, s = r.seams[jd.seam], q = nv3JSpec(r, s), at = nv3JAlong(e, s, jd.o); if (!q || at == null) return;
   var lim = nv3JLimits(q.sd.type); at = Math.max(lim.edge, Math.min(s.w - lim.edge, Math.round(at))); jd.at = at; jd.moved = true;
-  var T = NV3.T; jd.obj.position.copy(new T.Vector3().fromArray(s.o)).addScaledVector(new T.Vector3().fromArray(s.d).normalize(), at);
+  var T = NV3.T; jd.obj.position.copy(new T.Vector3().fromArray(jd.o || s.o)).addScaledVector(new T.Vector3().fromArray(s.d).normalize(), at);
   var lab = document.getElementById('nv3-jtip'); if (!lab) { lab = document.createElement('span'); lab.id = 'nv3-jtip'; lab.className = 'nv3-dim nv3-jtip'; NV3.R.domElement.parentNode.appendChild(lab); }
   var rc = NV3.R.domElement.getBoundingClientRect(); lab.textContent = at + ' mm'; lab.style.transform = 'translate(-50%,-180%) translate(' + (e.clientX - rc.left) + 'px,' + (e.clientY - rc.top) + 'px)';
 }
@@ -435,12 +483,12 @@ function nv3JBar(c) {
   if (!j) { NV3.jSel = null;
     return '<div class="nv3-bar"><b>' + L('Jungtys', 'Joints') + '</b><span class="nv3-jchips">' + joints.map(function (x) { var n = (x.single ? ['L'] : ['L', 'R']).reduce(function (a, sd) { return a + ((x.sides ? x.sides[sd] || x.sides.L : x).pos || []).length; }, 0);
       return '<button type="button" class="nv3-jchip' + (n ? '' : ' empty') + '" data-nv="nv3" data-v="j:pick:' + esc(x.key) + '">' + nm(x) + ' <i>' + n + '</i></button>'; }).join('') + '</span>' +
-      '<span class="nv3-grow"></span><button type="button" class="nv-btn sm ghost" data-act="jcopen">' + L('Sąrašas ir patvirtinimas →', 'List and confirmation →') + '</button><button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="joints">' + L('Gerai', 'Done') + '</button></div>'; }
+      '<span class="nv3-grow"></span>' + '<button type="button" class="nv-btn sm' + (NV3.jExp !== false ? ' on' : ' ghost') + '" data-nv="nv3" data-v="j:exp" title="' + esc(L('Detalės atitraukiamos viena nuo kitos — matyti, kas į ką sukama', 'The boards are pulled apart — you see what goes into what')) + '">⤢ ' + L('Išskleista', 'Exploded') + '</button>' + '<button type="button" class="nv-btn sm ghost" data-act="jcopen">' + L('Sąrašas ir patvirtinimas →', 'List and confirmation →') + '</button><button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="joints">' + L('Gerai', 'Done') + '</button></div>'; }
   var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, w = nv3JWidth(r, j.key, sel.side, j.single), pos = sd.pos || [], lim = nv3JLimits(sd.type);
   var ty = function (k, label) { return '<button type="button" class="' + (sd.type === k ? 'on' : '') + '" data-nv="nv3" data-v="j:type:' + k + '"><i style="background:' + NV3_JC[k] + '"></i>' + label + '</button>'; };
   return '<div class="nv3-bar nv3-jbar"><div class="nv3-jrow"><b>' + nm(j) + '</b> <span class="nv-muted">' + fmt(Math.round(w)) + ' mm' + (j.custom || j.manual ? ' · ' + L('pakeista', 'changed') : ' · ' + L('standartas', 'standard')) + '</span>' +
       '<span class="nv3-grow"></span>' + (j.single ? '' : '<span class="seg nv3-jseg"><button type="button" class="' + (NV3.jBoth ? 'on' : '') + '" data-nv="nv3" data-v="j:both:1">' + L('Abu šonai', 'Both sides') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'L' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:L">' + L('Kairė', 'Left') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'R' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:R">' + L('Dešinė', 'Right') + '</button></span>') +
-      '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Standartas', 'Standard') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:none">' + L('Visos jungtys', 'All joints') + '</button><button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="joints">' + L('Gerai', 'Done') + '</button></div>' +
+      '<button type="button" class="nv-btn sm' + (NV3.jExp !== false ? ' on' : ' ghost') + '" data-nv="nv3" data-v="j:exp" title="' + esc(L('Detalės atitraukiamos viena nuo kitos — matyti, kas į ką sukama', 'The boards are pulled apart — you see what goes into what')) + '">⤢ ' + L('Išskleista', 'Exploded') + '</button>' + '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Standartas', 'Standard') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:none">' + L('Visos jungtys', 'All joints') + '</button><button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="joints">' + L('Gerai', 'Done') + '</button></div>' +
     '<div class="nv3-jrow"><span class="seg nv3-jseg nv3-jtype">' + ty('confirmat', t('jtConf')) + ty('cam', t('jtCam')) + ty('dowel', t('jtDowel')) + '</span>' +
       '<span class="nv-step"><button type="button" data-nv="nv3" data-v="j:n:-1"' + (pos.length ? '' : ' disabled') + '>−</button><b>' + pos.length + '</b><button type="button" data-nv="nv3" data-v="j:n:1">+</button></span>' +
       '<span class="nv3-jpos">' + pos.map(function (v, k) { return '<label class="' + (sel.idx === k ? 'on' : '') + '"><input type="text" inputmode="decimal" value="' + fmt(v) + '" data-nv3j="' + k + '" aria-label="' + (k + 1) + '"><button type="button" data-nv="nv3" data-v="j:del:' + k + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></label>'; }).join('') + '</span>' +
@@ -450,6 +498,7 @@ function nv3JAct(a, el) {
   var r = S._info[S.sel].r, sel = NV3.jSel, p = a.split(':');
   if (p[0] === 'pick') { var s0 = (r.seams || []).map(function (s, i) { return { s: s, i: i }; }).filter(function (x) { return x.s.key === p[1]; })[0]; NV3.jSel = { key: p[1], side: (s0 && s0.s.side) || 'L', seam: s0 ? s0.i : null, idx: null }; return; }
   if (p[0] === 'none') { NV3.jSel = null; return; }
+  if (p[0] === 'exp') { NV3.jExp = NV3.jExp === false; return; }
   if (!sel) return;
   var j = (r.joints || []).filter(function (x) { return x.key === sel.key; })[0]; if (!j) return;
   var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, pos = (sd.pos || []).slice(), w = nv3JWidth(r, j.key, sel.side, j.single);

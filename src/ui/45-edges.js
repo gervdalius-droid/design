@@ -17,7 +17,12 @@ function nveShade(hex, k) {   // a colour made darker (k < 1) or lighter (k > 1)
   var n = parseInt(m[1], 16), f = function (v) { return Math.max(0, Math.min(255, Math.round(v * k))); };
   return 'rgb(' + f(n >> 16) + ',' + f((n >> 8) & 255) + ',' + f(n & 255) + ')';
 }
-function ecModel(c, r) {
+var nveLiveEcModel = ecModel;
+ecModel = function (c, r, mode) {
+  if (mode === 'sk') return nveLiveEcModel(c, r, mode);   // the live part-operations window picks parts on the live model
+  return nveEcModel(c, r);
+};
+function nveEcModel(c, r) {
   var lt = S.lang === 'lt', V = S.ecView = S.ecView || { th:0.62, ph:0.42, zoom:1, exp:false, fronts:false }, fe = c.edge.facade || 'PAGAL FASADA';
   var isFront = function (p) { return p.role === 'FASADAS' || p.role === 'DURYS'; };
   var focus = !S.echeck && NV.ecFocus ? NV.ecFocus.key : null, fp = focus ? r.panels.filter(function (p) { return p.key === focus; })[0] : null;

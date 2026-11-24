@@ -176,6 +176,86 @@ function stdEdges(out, eCarc, back) {
       if (cov < area * 0.5) p.eb[e] = eCarc; }); });
   out.forEach(function (p) { if (/^JUOSTA_/.test(p.role)) { if (!p.eb.y0) p.eb.y0 = eCarc; if (!p.eb.y1) p.eb.y1 = eCarc; } });   // tie rails: both long edges, always
 }
+/* ---- operations drawn by hand on a part (c.sketch[part key] = [shape]), in the part's program frame as seen from face A:
+   X along the part from X0, Y across it from Y0 — exactly as the part drawing shows it. A shape:
+   { id, t:'line' (pts:[[x,y]..], closed) | 'rect' (x, y = corner, w, h) | 'circle' (x, y = centre, r),
+     op:'none' (only a sketch) | 'on' (routed along the line) | 'in' (cut out: tool inside) | 'out' (tool outside) | 'pocket' | 'drill',
+     face:'A'|'B', depth, through } */
+function skOutline(s) {
+  if (!s) return { pts:[], closed:false };
+  if (s.t === 'rect') { var x = +s.x || 0, y = +s.y || 0, w = +s.w || 0, h = +s.h || 0; return { pts:[[x, y], [x + w, y], [x + w, y + h], [x, y + h]], closed:true }; }
+  if (s.t === 'circle') { var r = Math.max(0, +s.r || 0), cx = +s.x || 0, cy = +s.y || 0, n = Math.max(24, Math.min(360, Math.ceil(2 * Math.PI * r / 3))), pts = [];
+    for (var i = 0; i < n; i++) { var a = 2 * Math.PI * i / n; pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return { pts:pts, closed:true }; }
+  var P = (s.pts || []).map(function (q) { return [+q[0] || 0, +q[1] || 0]; });
+  return { pts:P, closed:!!s.closed && P.length > 2 };
+}
+function triangulate(P) {   // ear clipping: a simple polygon (either way round) → triangles
+  var Q = P.slice(); if (polyArea(Q) < 0) Q.reverse(); var out = [], guard = 0;
+  var inside = function (p, a, b, c) { var s1 = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0]), s2 = (c[0] - b[0]) * (p[1] - b[1]) - (c[1] - b[1]) * (p[0] - b[0]), s3 = (a[0] - c[0]) * (p[1] - c[1]) - (a[1] - c[1]) * (p[0] - c[0]); return s1 >= 0 && s2 >= 0 && s3 >= 0; };
+  while (Q.length > 3 && guard++ < 5000) { var n = Q.length, cut = false;
+    for (var i = 0; i < n; i++) { var a = Q[(i + n - 1) % n], b = Q[i], c = Q[(i + 1) % n];
+      if ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) <= 1e-9) continue;
+      var ok = true; for (var j = 0; j < n && ok; j++) { var q = Q[j]; if (q === a || q === b || q === c) continue; if (inside(q, a, b, c)) ok = false; }
+      if (ok) { out.push([a, b, c]); Q.splice(i, 1); cut = true; break; } }
+    if (!cut) break; }
+  if (Q.length === 3) out.push(Q); return out;
+}
+function polyArea(P) { var a = 0; for (var i = 0; i < P.length; i++) { var p = P[i], q = P[(i + 1) % P.length]; a += p[0] * q[1] - q[0] * p[1]; } return a / 2; }
+/* a closed polygon moved d inwards (d < 0: outwards), corners mitred; null when it no longer exists at that distance */
+function offsetPoly(P, d) {
+  var Q = []; P.forEach(function (p) { var l = Q[Q.length - 1]; if (!l || Math.hypot(p[0] - l[0], p[1] - l[1]) > 1e-6) Q.push(p); });
+  if (Q.length > 2 && Math.hypot(Q[0][0] - Q[Q.length - 1][0], Q[0][1] - Q[Q.length - 1][1]) < 1e-6) Q.pop();
+  if (Q.length < 3 || Math.abs(polyArea(Q)) < 1e-6) return null;
+  if (polyArea(Q) < 0) Q.reverse();   // counter-clockwise: the inside is on the left of every edge
+  var n = Q.length, Ls = [];
+  for (var i = 0; i < n; i++) { var a = Q[i], b = Q[(i + 1) % n], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy); Ls.push({ a:[a[0] - dy / len * d, a[1] + dx / len * d], dx:dx, dy:dy }); }
+  var out = [];
+  for (var j = 0; j < n; j++) { var l1 = Ls[(j + n - 1) % n], l2 = Ls[j], den = l1.dx * l2.dy - l1.dy * l2.dx;
+    if (Math.abs(den) < 1e-9) { out.push(l2.a.slice()); continue; }
+    var t = ((l2.a[0] - l1.a[0]) * l2.dy - (l2.a[1] - l1.a[1]) * l2.dx) / den; out.push([l1.a[0] + l1.dx * t, l1.a[1] + l1.dy * t]); }
+  for (var k = 0; k < n; k++) { var p0 = out[k], p1 = out[(k + 1) % n]; if ((p1[0] - p0[0]) * Ls[k].dx + (p1[1] - p0[1]) * Ls[k].dy <= 1e-9) return null; }   // an edge turned round: collapsed
+  return polyArea(out) > 0 ? out : null;
+}
+function applySketch(p, list, warn) {
+  if (!list || !list.length) return;
+  var C0 = R.rout, r = C0.dia / 2, maxD = p.T - C0.skin, air = C0.air, lbl = (p.short || p.key || p.name) + ' eskizas #';
+  p.sketch = []; p.paths = p.paths || [];
+  var nOp = 0, nThr = 0;
+  list.forEach(function (s, i) {
+    var o = skOutline(s), op = s.op || 'none', face = s.face === 'B' ? 'B' : 'A', tag = lbl + (i + 1) + ': ';
+    p.sketch.push({ pts:o.pts, closed:o.closed, op:op, face:face, id:s.id, n:i + 1, t:s.t, thr:!!s.through || (op === 'drill' && (+s.depth || 0) >= p.T) });
+    if (op === 'none' || o.pts.length < 2) return;
+    if (o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }
+    if (op === 'drill') {
+      if (s.t !== 'circle') { warn.push(tag + 'gręžti galima tik apskritimą — NEPROGRAMUOTA'); return; }
+      var d = Math.round(2 * (+s.r || 0) * 100) / 100, thr = !!s.through || (+s.depth || 0) >= p.T;
+      if (R.drills.top.indexOf(d) < 0) { warn.push(tag + 'ø' + num(d) + ' grąžto nėra (' + R.drills.top.join(', ') + ') — rinkitės frezavimą'); return; }
+      hole(p, face, +s.x || 0, +s.y || 0, d, thr ? 0 : Math.max(0.5, +s.depth || 0), { through:thr, op:'sketch' }); nOp++; return;
+    }
+    var dep = s.through ? maxD : Math.min(+s.depth || 0, maxD);
+    if (!(dep > 0)) { warn.push(tag + 'nenurodytas gylis — NEPROGRAMUOTA'); return; }
+    if (!s.through && (+s.depth || 0) > maxD + 1e-6) warn.push(tag + 'gylis sumažintas iki ' + num(maxD) + ' mm (frezuojant paliekama ' + C0.skin + ' mm)');
+    if (s.through) nThr++;
+    var loops = [];
+    if (op === 'on') loops.push(o.closed ? o.pts.concat([o.pts[0]]) : o.pts);
+    else {
+      if (!o.closed) { warn.push(tag + 'linija neuždara — frezuoti iš vidaus / išorės ar kišenę galima tik uždarą kontūrą'); return; }
+      var ccw = function (q) { return polyArea(q) < 0 ? q.slice().reverse() : q; };
+      if (op === 'in') { var a1 = offsetPoly(o.pts, r); if (!a1) { warn.push(tag + 'kontūras per mažas frezai ø' + num(C0.dia) + ' — NEPROGRAMUOTA'); return; } loops.push(ccw(a1)); }   // panel on the right: counter-clockwise
+      else if (op === 'out') { var b1 = offsetPoly(o.pts, -r); if (!b1) { warn.push(tag + 'kontūro nepavyko apeiti — NEPROGRAMUOTA'); return; } loops.push(ccw(b1).reverse()); }   // the part inside: clockwise
+      else if (op === 'pocket') {
+        var step = r * 0.95, dd = r, q;
+        while ((q = offsetPoly(o.pts, dd)) && loops.length < 400) { loops.push(ccw(q)); dd += step; }
+        if (!loops.length) { warn.push(tag + 'plotas per mažas frezai ø' + num(C0.dia) + ' — NEPROGRAMUOTA'); return; }
+        loops.reverse();   // from the middle outwards
+      }
+    }
+    loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep }); });
+    nOp++;
+  });
+  if (nOp) p.note += ', rankinės operacijos: ' + nOp;
+  if (nThr) p.warnings.push(lbl.replace(' eskizas #', '') + ': kiaurai frezuojama paliekant ' + C0.skin + ' mm — išlaužkite rankomis');
+}
 function isCargo(h) { return /^CARGO\b/i.test(String(h || '')); }
 function cargoOf(s) { return !s ? null : s.kind === 'cargo' ? (s.cargoHw || CARGO_HW[0]) : s.kind === 'doors' && !s.fridge && isCargo(s.hinge) ? s.hinge : null; }
 var hingesPerDoor = function (h) { return h <= 900 ? 2 : h <= 1500 ? 3 : h <= 2000 ? 4 : 5; };   // same rule as the offer app
@@ -342,6 +422,7 @@ function buildCabinet(c, idx, projName) {
       applyEbEdit(p, ov, eCarc, eFac);
     });
     out.forEach(function (p) { p.cab = idx + 1; p.short = (idx + 1) + '-' + (p.drawerOf ? p.name.slice(base.length + 1).replace(/_/g, '-') : p.role.replace(/_/g, '-') + (/\d$/.test(p.name) ? p.name.match(/\d+$/)[0] : '')); });
+    var skx = c.sketch || {}; out.forEach(function (p) { applySketch(p, skx[p.key], warn); });   // operations drawn by hand on the parts
   }
 
   var early = function () { return { panels:out, warnings:warn, hardware:hw, legs:[], joints:[], seams:[], visual:{ doors:[], drawers:[], plinth:null, hb:0 }, dims:{ W:W > 0 ? W : 0, H:H > 0 ? H : 0, D:D > 0 ? D : 0, t:t } }; };   // same shape as a full result
@@ -1743,6 +1824,7 @@ function buildBox(c, idx, projName) {
     applyEbEdit(p, ov, eCarc, eFac);
   });
   out.forEach(function (p) { p.cab = idx + 1; p.short = (idx + 1) + '-' + (p.drawerOf ? p.name.slice(base.length + 1).replace(/_/g, '-') : p.role.replace(/_/g, '-') + (/\d$/.test(p.name) ? p.name.match(/\d+$/)[0] : '')); });
+  var skx = c.sketch || {}; out.forEach(function (p) { applySketch(p, skx[p.key], warn); });
   if (nJ) warnOnce('3D konstrukcija: jungtys gręžiamos pagal spintelių taisykles, bet šis surinkimas naujas — patikrinkite pirmą gaminį');
   hardwareFromHoles(out, o, hw);
   /* for the 3-D editor: every board's box, the absent outer boards as ghosts, the corners */
@@ -1759,7 +1841,7 @@ function legHeight(c) { var o = c.cnc || {}; if (c.dishwasher) return +c.legH ||
 function hardwareFromHoles(panels, o, hw) {
   var cams = 0, dowels = 0, conf = 0;
   panels.forEach(function (p) {
-    p.holes.forEach(function (h) { if (h.d === 15 && !h.mark) cams++; if (h.through && h.d === 8) conf++; });
+    p.holes.forEach(function (h) { if (h.op === 'sketch') return; if (h.d === 15 && !h.mark) cams++; if (h.through && h.d === 8) conf++; });
     p.edges.forEach(function (e) { if (e.d === 8 && e.depth === R.cam.dowel.depthEdge) dowels++; });
   });
   if (cams) { hw.push({ item:'Ekscentrikai (Minifix 15)', qty:cams, unit:'vnt.' }); hw.push({ item:'Ekscentrikų varžtai', qty:cams, unit:'vnt.' }); }
@@ -1816,8 +1898,8 @@ function groovePath(g, DX, DY, depth, name) {   // g in program coordinates: x0.
   return routeMoves(P(s0, centres[0]), segs, depth, name);
 }
 function programs(p) {
-  var DX = p.L, DY = p.W, DZ = p.T; var w = [], M = R.machine, GR = p.grooves || [];
-  var cnt = function (f) { return p.holes.filter(function (h) { return h.face === f && !h.through; }).length + GR.filter(function (g) { return g.face === f; }).length; };
+  var DX = p.L, DY = p.W, DZ = p.T; var w = [], M = R.machine, GR = p.grooves || [], PA = p.paths || [];
+  var cnt = function (f) { return p.holes.filter(function (h) { return h.face === f && !h.through; }).length + GR.filter(function (g) { return g.face === f; }).length + PA.filter(function (g) { return g.face === f; }).length; };
   var up1 = cnt('B') > cnt('A') ? 'B' : 'A', up2 = up1 === 'A' ? 'B' : 'A';
   var need2 = cnt(up2) > 0;
   var mach = function (h, up) { return { x:h.x, y:(up === 'A') ? h.y : DY - h.y }; };   // all holes are given as seen from face A; B up mirrors Y
@@ -1867,7 +1949,10 @@ function programs(p) {
     return GR.filter(function (g) { return g.face === up; }).map(function (g) {
       var y0 = up === 'A' ? g.y0 : DY - g.y1, y1 = up === 'A' ? g.y1 : DY - g.y0, dep = Math.min(g.depth, DZ - R.rout.skin);
       return groovePath({ x0:g.x0, x1:g.x1, y0:y0, y1:y1 }, DX, DY, dep, g.name || 'GROOVE');
-    });
+    }).concat(PA.filter(function (g) { return g.face === up; }).map(function (g) {   // drawn by hand: the tool centre's path as worked out with the part (B up: Y mirrored)
+      var P = g.pts.map(function (q) { return [q[0], up === 'A' ? q[1] : DY - q[1]]; }); if (up === 'B') P.reverse();   // mirrored: turn the path round so the panel stays on the same side of the tool
+      return routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), Math.min(g.depth, DZ - R.rout.skin), g.name);
+    }));
   };
   var faceTxt = function (up) { return up === 'A' ? '' : ' -- THIS PROGRAM DRILLS THE OTHER FACE: panel turned over about X (long edge stays, Y mirrored)'; };
   var text = function (bl, op, kind, up, rts) {
@@ -1939,7 +2024,7 @@ var api = { R:R, shelfSetSb:shelfSetSb, DRAWER_HW:DRAWER_HW, DOOR_HW:DOOR_HW, CA
             buildCabinet:function (c, idx, pn) { var r = buildCabinet(c, idx, pn); r.worktop = worktopOf(c);
               var bad = r.panels.filter(function (p) { return !(p.L >= 1 && p.W >= 1 && p.T > 0 && isFinite(p.L + p.W + p.T)); });   // a part with no size (dimensions too small for the layout) is left out
               if (bad.length) { r.panels = r.panels.filter(function (p) { return bad.indexOf(p) < 0; }); r.warnings.push(bad.map(function (p) { return p.short || p.role; }).join(', ') + ': per maži matmenys (' + bad.map(function (p) { return num(Math.round(p.L)) + '×' + num(Math.round(p.W)); }).join(', ') + ') — detalės nepridėtos, padidinkite spintelę'); }
-              return r; }, worktopOf:worktopOf, sidePanels:sidePanels, sideWidths:sideWidths, WT_DEF:WT_DEF, programs:programs, num:num, ascii:ascii, safeName:safeName, hingesPerDoor:hingesPerDoor,
+              return r; }, worktopOf:worktopOf, sidePanels:sidePanels, sideWidths:sideWidths, WT_DEF:WT_DEF, programs:programs, skOutline:skOutline, offsetPoly:offsetPoly, triangulate:triangulate, num:num, ascii:ascii, safeName:safeName, hingesPerDoor:hingesPerDoor,
             hingeYs:hingeYs, hingesFit:hingesFit, setRules:setRules, splitFronts:splitFronts, pairedDowels:pairedDowels, legHeight:legHeight,
             buildBox:buildBox, underDeduct:underDeduct, boxDefaults:boxDefaults, BOX_IDS:BOX_IDS, BOX_DEF:BOX_DEF, boxPair:boxPair, boxCoverDefault:boxCoverDefault };
 if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.DBEngine = api;
