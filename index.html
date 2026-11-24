@@ -19361,7 +19361,7 @@ function nv3Routed(p, m) {
   (p.holes || []).forEach(function (h) { if (h.op !== 'sketch' || h.through) return; var c2 = new T.Shape(); c2.absarc(h.x, h.y, h.d / 2, 0, Math.PI * 2, false); flat(c2, h.face === 'B', '#3d342b').position.z = zOf(h.face === 'B'); });
 }
 /* connectors as they sit in the boards, from the engine's real drillings: confirmat heads, cam housings, shelf pins */
-function nv3Screws(r, root) {
+function nv3Screws(r, root, expOff) {
   var T = NV3.T, steel = { metalness: 0.9, roughness: 0.3 }, gHead = NV3.gHead = NV3.gHead || new T.CylinderGeometry(5.2, 5.2, 1.6, 20), gHex = NV3.gHex = NV3.gHex || new T.CylinderGeometry(2.2, 2.2, 1.8, 6),
     gCam = NV3.gCam = NV3.gCam || new T.CylinderGeometry(7.4, 7.4, 1.2, 28), gSlot = NV3.gSlot = NV3.gSlot || new T.BoxGeometry(9, 1.5, 1.4), gPin = NV3.gPin = NV3.gPin || new T.CylinderGeometry(2.5, 2.5, 7, 12), up = new T.Vector3(0, 1, 0);
   var all = (r.panels || []).filter(function (q) { return q.place && !q.drawerOf && q.role !== 'FASADAS' && q.role !== 'DURYS'; });
@@ -19373,8 +19373,13 @@ function nv3Screws(r, root) {
       var cam = !h.op && !h.mark && !h.through && Math.abs(h.d - 15) < 0.1, conf = !h.op && !h.mark && h.through && Math.abs(h.d - 8) < 0.1, pin = h.op === 'pin'; if (!cam && !conf && !pin) return;
       var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
-      var qn = new T.Quaternion().setFromUnitVectors(up, n), put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off); m.quaternion.copy(qn); root.add(m); return m; };
-      if (conf) { put(gHead, '#aeb7bc', 0.6); put(gHex, '#3c4549', 0.9, { metalness: 0.5, roughness: 0.6 }); }
+      if (expOff) { var eo = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; })); o.x += eo[0]; o.y += eo[1]; o.z += eo[2]; }
+      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = expOff ? 2.4 : 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // pulled apart: connectors drawn larger than life so they can be told apart
+      if (conf) { put(gHead, '#aeb7bc', 0.6); put(gHex, '#3c4549', 0.9, { metalness: 0.5, roughness: 0.6 });
+        if (expOff) {   // pulled apart: the whole screw, through its board and out towards the edge it goes into
+          var tip = o.clone().addScaledVector(n, -p.T - 62), neck = o.clone().addScaledVector(n, -p.T - 48);
+          root.add(nv3Rod([o.x, o.y, o.z], [neck.x, neck.y, neck.z], 6.5, '#8f999e'));
+          var cg = new T.Mesh(NV3.gTip = NV3.gTip || new T.ConeGeometry(6.5, 14, 16), nv3Mat('#8f999e', steel)); cg.position.copy(neck).add(tip).multiplyScalar(0.5); cg.quaternion.setFromUnitVectors(up, n.clone().negate()); root.add(cg); } }
       else if (cam) { put(gCam, '#b9c1c6', 0.2); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }).rotateY(Math.PI / 2); }
       else put(gPin, '#a4adb2', 3.5);
     }); });
@@ -19468,7 +19473,7 @@ function nv3Build() {
     if (r.worktop) { var wt = r.worktop; root.add(nv3Box([wt.x0, wt.y0, wt.z0], [wt.L, wt.y1 - wt.y0, wt.T], MC(wt.mat, '#b98d5e'), { roughness: 0.45 }, { kind: 'worktop' })); }
     if (E.sidePanels) E.sidePanels(c).forEach(function (q) { root.add(nv3Box([q.x0, q.y0, q.z0], [q.x1 - q.x0, q.y1 - q.y0, q.z1 - q.z0], MC(q.mat, '#d5cbbd'))); });
   }
-  if (NV3.hw && !focus && !jx) nv3Screws(r, root);
+  if (jx) nv3Screws(r, root, expOff); else if (NV3.hw && !focus) nv3Screws(r, root);
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
   var fronts = jm ? [] : (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
@@ -19525,7 +19530,8 @@ function nv3Build() {
     [[[W / 2, -o, zb], W], [[-o, D / 2, zb], D], [[-o, -o, H / 2], H]].forEach(function (x) { var el = document.createElement('span'); el.className = 'nv3-dim'; el.textContent = fmt(x[1]) + ' mm'; st.appendChild(el); NV3.labels.push({ el: el, p: new T.Vector3().fromArray(x[0]) }); });
   }
   root.updateMatrixWorld(true);
-  if (NV3.cabId !== c.id + '|' + W + '|' + H + '|' + D) { var keep = NV3.cabId && NV3.cabId.split('|')[0] === c.id; NV3.cabId = c.id + '|' + W + '|' + H + '|' + D; nv3View(keep ? null : 'iso'); }
+  var fitId = c.id + '|' + W + '|' + H + '|' + D + '|' + (jx ? 'x' : '');
+  if (NV3.cabId !== fitId) { var keep = NV3.cabId && NV3.cabId.split('|')[0] === c.id; NV3.cabId = fitId; nv3View(keep ? null : 'iso'); }
 }
 function nv3Pose() {   // doors and drawers at the opening of the slider
   (NV3.moving || []).forEach(function (m) { if (m.door) m.g.rotation.z = m.hinged ? m.sign * NV3.open * Math.PI * 0.55 : 0; else m.g.position.y = -m.travel * NV3.open; });
@@ -19540,11 +19546,12 @@ function nv3Pose() {   // doors and drawers at the opening of the slider
 }
 function nv3View(kind) {
   var T = NV3.T, c = cur(); if (!c || !NV3.cam) return;
-  var W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, D = num(c.D) || 560, size = Math.hypot(W, H, D), tg = new T.Vector3(W / 2, H / 2 - 30, -D / 2 + 60);
-  if (!kind) { NV3.ctl.target.copy(tg); NV3.ctl.update(); return; }   // the same cabinet, another size: keep the angle
-  var dir = kind === 'front' ? [0, 0.05, 1] : kind === 'under' ? [-0.5, -0.75, 1] : kind === 'back' ? [0.6, 0.45, -1] : [-0.62, 0.48, 1];
-  var dist = size / 2 / Math.tan(NV3.cam.fov * Math.PI / 360) * 1.28;
-  NV3.cam.position.copy(tg).add(new T.Vector3().fromArray(dir).normalize().multiplyScalar(dist)); NV3.cam.near = dist / 60; NV3.cam.far = dist * 12; NV3.cam.updateProjectionMatrix();
+  var W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, D = num(c.D) || 560, pad = NV3.joints && NV3.jExp !== false && c.kind !== 'panel' ? 260 : 0,   // pulled apart: 130 mm further out on every side, plus the screws
+    size = Math.hypot(W + pad, H + pad, D + pad), tg = new T.Vector3(W / 2, H / 2 - (pad ? 0 : 30), -D / 2 + (pad ? 0 : 60));
+  var dirV = kind ? new T.Vector3().fromArray(kind === 'front' ? [0, 0.05, 1] : kind === 'under' ? [-0.5, -0.75, 1] : kind === 'back' ? [0.6, 0.45, -1] : [-0.62, 0.48, 1]) : NV3.cam.position.clone().sub(NV3.ctl.target);   // no kind: the same cabinet, another size or mode — keep the angle
+  if (dirV.length() < 1e-6) dirV.set(-0.62, 0.48, 1);
+  var dist = size / 2 / Math.tan(NV3.cam.fov * Math.PI / 360) * (pad ? 1.02 : 1.22) / Math.min(1, (function () { var e = document.getElementById('nv3-stage'); return e && e.clientHeight ? e.clientWidth / e.clientHeight : NV3.cam.aspect || 1; })());   // a narrow picture is limited by its width
+  NV3.cam.position.copy(tg).add(dirV.normalize().multiplyScalar(dist)); NV3.cam.near = dist / 60; NV3.cam.far = dist * 12; NV3.cam.updateProjectionMatrix();
   NV3.ctl.target.copy(tg); NV3.ctl.update();
 }
 function nv3Hit(e) {
@@ -19590,11 +19597,20 @@ function nv3Seams(r, root, expOff) {
       var M = [0, 1, 2].map(function (i) { return s.o[i] + d.getComponent(i) * s.w / 2; }), found = [];
       boards.forEach(function (p) { var pl = p.place, rel = [0, 1, 2].map(function (i) { return M[i] - pl.o[i]; }), dot = function (v) { return rel[0] * v[0] + rel[1] * v[1] + rel[2] * v[2]; }, a1 = dot(pl.u), b1 = dot(pl.v), t1 = -dot(pl.n);
         if (a1 < -2 || a1 > p.L + 2 || b1 < -2 || b1 > p.W + 2 || t1 < -2 || t1 > p.T + 2) return;
-        var o1 = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; }));
+        var cen = [0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; }), o1 = expOff(cen);
+        o1.cen = cen; o1.edge = Math.abs(t1 - p.T / 2) < p.T / 4;   // the joint runs down the middle of this board's edge
         if (!found.some(function (f) { return Math.hypot(f[0] - o1[0], f[1] - o1[1], f[2] - o1[2]) < 1; })) found.push(o1); });
       if (found.length) offs = found.slice(0, 2);
-      if (offs.length === 2) (q.sd.pos || []).forEach(function (pp) { var P0 = [0, 1, 2].map(function (i) { return s.o[i] + d.getComponent(i) * pp + offs[0][i]; }), P1 = [0, 1, 2].map(function (i) { return s.o[i] + d.getComponent(i) * pp + offs[1][i]; });
-        root.add(nv3Rod(P0, P1, on ? 3.4 : 2.4, NV3_JC[q.sd.type] || '#444', on ? { roughness: 0.4 } : { roughness: 0.4, transparent: true, opacity: 0.55 })); });
+      if (offs.length === 2) { var eB = offs[0].edge ? offs[0] : offs[1].edge ? offs[1] : null, fB = eB === offs[0] ? offs[1] : offs[0], ax = null;
+        if (eB) { var v0 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v0.addScaledVector(d, -v0.dot(d)); if (v0.length() > 1) ax = v0.normalize(); }   // from the joint into the board whose edge it is
+        (q.sd.pos || []).forEach(function (pp) { var at = function (o3) { return new T.Vector3(s.o[0] + d.x * pp + o3[0], s.o[1] + d.y * pp + o3[1], s.o[2] + d.z * pp + o3[2]); }, P0 = at(offs[0]), P1 = at(offs[1]), arr = function (v) { return [v.x, v.y, v.z]; };
+          root.add(nv3Rod(arr(P0), arr(P1), 1.1, NV3_JC[q.sd.type] || '#444', { roughness: 0.5, transparent: true, opacity: on ? 0.75 : 0.4 }));   // which place meets which
+          if (!ax) return; var PF = at(fB), PE = at(eB);
+          if (q.sd.type === 'cam') {   // the bolt stands in the face of one board and goes into the edge of the other, where the cam turns on it
+            root.add(nv3Rod(arr(PF), arr(PF.clone().addScaledVector(ax, 58)), 6, '#a9b2b7')); root.add(nv3Rod(arr(PF), arr(PF.clone().addScaledVector(ax, 8)), 10, '#8d969b'));
+            var hd = new T.Mesh(NV3.gBall = NV3.gBall || new T.SphereGeometry(9, 16, 12), nv3Mat('#a9b2b7', { metalness: 0.9, roughness: 0.3 })); hd.position.copy(PF).addScaledVector(ax, 60); root.add(hd); }
+          else if (q.sd.type === 'dowel') root.add(nv3Rod(arr(PE.clone().addScaledVector(ax, -52)), arr(PE.clone().addScaledVector(ax, 4)), 8, '#c9a36b', { roughness: 0.8, metalness: 0 }));
+        }); }
     }
     offs.forEach(function (off) {
     var a = new T.Vector3(s.o[0] + off[0], s.o[1] + off[1], s.o[2] + off[2]), b = a.clone().addScaledVector(d, s.w), so = [a.x, a.y, a.z];
@@ -19602,8 +19618,8 @@ function nv3Seams(r, root, expOff) {
     var hit = nv3Rod(so, [b.x, b.y, b.z], on ? 4.5 : 7, col, { transparent: true, opacity: on ? 0.55 : 0.001, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si, o: so }; root.add(hit); NV3.jpick.push(hit);
     (q.sd.pos || []).forEach(function (pp, k) {
       var m = new T.Mesh(NV3.gDot = NV3.gDot || new T.SphereGeometry(1, 20, 14), new T.MeshBasicMaterial({ color: new T.Color(NV3_JC[q.sd.type] || '#444'), depthTest: false }));
-      m.scale.setScalar(on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
-      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar((on ? 9.5 : 7.5) + 2.2); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
+      var dr = expOff ? 0.8 : 1; m.scale.setScalar((on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5) * dr); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
+      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar((on ? 9.5 : 7.5) * dr + (expOff ? 1.4 : 2.2)); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
     });
     });
   });
