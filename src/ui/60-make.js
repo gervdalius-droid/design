@@ -107,7 +107,7 @@ function nvmPanel(g, nFiles) {
       nb ? L('Kol tai nesutvarkyta, staklėms nieko atsisiųsti negalima. Sąrašą ir detales peržiūrėti galima.', 'Until this is sorted out nothing can be downloaded for the machine. The list and the parts can still be looked at.')
          : L('Projekte dar nėra spintelių — pridėkite pirmą.', 'No cabinets in this project yet — add the first one.'),
       '<button type="button" class="nv-btn pri lg" id="nvm-tochk" data-act="tab" data-v="' + (nb ? 'chk' : 'cab') + '">' + (nb ? L('Eiti į patikrą', 'Go to the check') : L('Į spinteles', 'To the cabinets')) + ' →</button>',
-      nb ? nvmLines(g.blockers, 4) : '');
+      nb ? nvmLines(g.blockers, 6) : '');   // 6 = two full rows of the three-column list
   }
   if (g.state === 'ack')
     return wrap('ack', '!', S.lang === 'en' ? 'Review ' + nw + (nw === 1 ? ' warning' : ' warnings') + ' before downloading' : 'Prieš atsisiunčiant peržiūrėkite ' + nw + ' ' + nvkPl(nw, 'įspėjimą', 'įspėjimus', 'įspėjimų'),

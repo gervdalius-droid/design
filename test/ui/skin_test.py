@@ -33,7 +33,7 @@ NOTED = set()
 WIDE = """(function(){
   var out=[];
   [['#nv-main','#nv-main *'],['.drwover','.drwover *'],['#toast:not([hidden])','#toast *']].forEach(function(p){
-    var root=document.querySelector(p[0]); if(!root) return; var lim=Math.min(root.getBoundingClientRect().right, window.innerWidth)+1;
+    var root=document.querySelector(p[0]); if(!root) return; var lim=Math.min(root.getBoundingClientRect().right, document.documentElement.clientWidth)+1;   // the screen itself: innerWidth grows with a too wide page
     [].some.call(document.querySelectorAll(p[1]),function(e){
       var r=e.getBoundingClientRect(); if(!(r.width>0&&r.height>0)||r.right<=lim) return false;
       for(var a=e.parentElement;a&&a!==root.parentElement;a=a.parentElement){
@@ -315,6 +315,9 @@ def run(mode, lang, only):
                 wide = js(c, WIDE)
                 if wide:
                     fail(tag, "wider than its frame: " + wide)
+                side = js(c, "(function(){var b=document.querySelector('.drwover .jcbody, #verdlg .verbody');return b?b.scrollWidth-b.clientWidth:0})()")
+                if side > 1:
+                    fail(tag, "the open window scrolls sideways by %s px" % side)
                 lay = js(c, "window.innerWidth")
                 if mobile and lay > c.w + 1 and tag not in NOTED:   # a phone lays the page out wider when something sticks out: say what
                     NOTED.add(tag)

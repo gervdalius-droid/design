@@ -18,7 +18,7 @@
 /* severity of every own rule, in one place (error: stops production · todo: an open confirmation · warn: to acknowledge · info) */
 var NVC_SEV = {
   'proj.name': 'error', 'proj.name.ascii': 'warn', 'proj.empty': 'error', 'proj.dupname': 'warn', 'proj.prefix': 'error', 'mat.near': 'warn', 'wt.long': 'warn', 'room': 'warn',
-  'size': 'error', 'size.odd': 'warn', 'size.type': 'warn', 'thick.none': 'warn', 'thick.odd': 'warn', 'thick.cam': 'error', 'front.thick': 'warn', 'legs.h': 'warn', 'cab.noparts': 'error',
+  'size': 'error', 'size.odd': 'warn', 'thick.none': 'warn', 'thick.odd': 'warn', 'thick.cam': 'error', 'thick.thin': 'error', 'rail.w': 'warn', 'rail.w.bad': 'error', 'front.gap': 'warn', 'shelf.set': 'warn', 'col.count': 'warn', 'wt.thick': 'warn', 'front.thick': 'warn', 'legs.h': 'warn', 'cab.noparts': 'error', 'cab.broken': 'error',
   'col.fit': 'error', 'sec.none': 'error', 'sec.kind': 'error', 'sec.over': 'error', 'sec.gap': 'warn',
   'drawer.low': 'error', 'drawer.low.soft': 'warn', 'drawer.high': 'warn', 'drawer.rail': 'error', 'drawer.raillen': 'warn', 'drawer.narrow': 'warn',
   'door.wide': 'warn', 'door.narrow': 'warn', 'door.tall': 'warn', 'door.hinges': 'warn', 'shelf.span': 'warn', 'shelf.dense': 'warn',
@@ -32,11 +32,12 @@ var NVC_LIM = {
   baseH: [400, 1000], wallH: [200, 1400], tallH: [1000, 2700],   // usual carcass heights by type
   minW: 150, wideW: 1200,                                        // narrower: odd · wider with no partition: the bottom sags
   minD: 200, maxD: 700, maxWallD: 600,
-  thick: [15, 30], frontT: [16, 25], legH: [50, 200],
+  thick: [15, 30], thickMin: 12, frontT: [16, 25], legH: [50, 200],
+  railW: [60, 200], railMin: 40, gapMax: 20, shelfSet: [0, 150], wtT: [10, 80],   // tie rail width · front gaps · shelf setback (the engine's clamp) · worktop thickness
   dishW: [[440, 460], [590, 610]],                               // a dishwasher is 450 or 600
   frontMin: 70, frontMinTb: 98.5, frontMax: 800,                 // drawer front heights (TANDEMBOX: its bracket needs the hole at 97.5)
   railPlus: 3,                                                   // a runner needs its length + 3 mm of inside depth
-  drawerMinW: 200, doorMaxW: 600, doorMinW: 150, doorMaxH: 2400,
+  drawerMinW: 200, doorMaxW: 600, doorMinW: 110, doorMaxH: 2400,
   shelfSpan: 900, shelfGap: 60,                                  // unsupported shelf length · least clear space between shelves
   partMin: 50, wtMax: 4100                                       // a part the CNC cannot hold · worktop board length
 };
@@ -48,6 +49,7 @@ var NVC_LIB = { at: 0, names: [] };            // file prefixes of the other sav
 function nvcNum(v) { try { var n = num(v); return typeof n === 'number' && isFinite(n) ? n : 0; } catch (e) { return 0; } }
 function nvcStr(v) { return typeof v === 'string' ? v.trim() : v == null ? '' : typeof v === 'number' ? String(v) : ''; }
 function nvcMm(v) { var n = Math.round(nvcNum(v) * 10) / 10; return String(n).replace('.', S.lang === 'en' ? '.' : ','); }
+function nvcShow(v) { return typeof v === 'string' || typeof v === 'number' ? String(v).trim().slice(0, 16) : '?'; }   // what the person typed, safe to quote
 function nvcArr(v) { return Array.isArray(v) ? v : []; }
 function nvcObj(v) { return v && typeof v === 'object' ? v : {}; }
 function nvcBlank(v) { return v == null || (typeof v === 'string' && v.trim() === ''); }
@@ -63,7 +65,7 @@ function nvcTopic(c, tp) {
   if (c.kind === 'panel') return tp === 'review' ? tp : 'size';
   if (c.dishwasher) return tp === 'mats' || tp === 'review' ? tp : 'size';
   if (c.kind === 'box') return { size: 'dims', body: 'boards', inside: 'inner', cnc: 'joints' }[tp] || tp;
-  return tp;
+  return tp === 'fronts' ? 'inside' : tp;
 }
 function nvcAdd(out, o) {
   if (!o || !o.id || !o.msg) return null;
@@ -75,13 +77,14 @@ function nvcAdd(out, o) {
   out.push(o); return o;
 }
 /* the n-th section of a column → its index in c.sections (the engine numbers sections inside their column) */
+function nvcColOf(c, s) { return s && typeof s === 'object' ? colOf(c, s) : -1; }   // a broken section belongs to no column
 function nvcSecIdx(c, col, si) {
   var n = -1, hit = -1;
-  nvcArr(c.sections).some(function (s, k) { if (colOf(c, s) !== col) return false; n++; if (n === si) { hit = k; return true; } return false; });
+  nvcArr(c.sections).some(function (s, k) { if (nvcColOf(c, s) !== col) return false; n++; if (n === si) { hit = k; return true; } return false; });
   return hit;
 }
 function nvcSecName(c, k) {   // "2 sekcija" as the person counts it — the plain index when there is one column
-  var s = c.sections[k], col = colOf(c, s), n = 0; c.sections.some(function (q, i) { if (colOf(c, q) === col) n++; return i === k; });
+  var s = c.sections[k], col = nvcColOf(c, s), n = 0; c.sections.some(function (q, i) { if (nvcColOf(c, q) === col) n++; return i === k; });
   return (colsOf(c) > 1 ? (col + 1) + '.' : '') + n;
 }
 function nvcColName(c, k) { var n = colsOf(c); try { return colName(n, k); } catch (e) { return String(k + 1); } }
@@ -102,7 +105,7 @@ function nvcRoom(c, r, k) {
 
 /* ----------------------------------------------------------------- 1. the engine's sentences
    [ id, pattern over the fixed words, severity, topic, options ]
-   options: f — bind of the field ('c.…', {k} = column, {s} = section index) · sf — field of the section the sentence names
+   options: f — bind of the field ('c.…', {k} = column) · fid — id of a field that does not follow the bind convention · sf — field of the section the sentence names
             hint [lt, en] · cover — own rule (id prefix) that says the same better: the engine line is dropped when it fired
             act — one-click way out · dyn(m, X, ctx) → severity decided from the numbers · tab — stage when not the cabinet */
 var NVC_JC = { label: ['Atidaryti sujungimus', 'Open the joints'], act: 'jcroom' };
@@ -134,7 +137,7 @@ var NVC_ENG = [
   ['eng.backCoverBottom', /nugara dengia dugną tik kai/, 'warn', 'body'],
   ['eng.backCoverTop', /nugara dengia viršų tik kai/, 'warn', 'body'],
   ['eng.backInset', /nugaros atitraukimas sumažintas/, 'warn', 'body', { f: 'c.cnc.backInset' }],
-  ['eng.frontBot', /fasadai gali nusileisti tik/, 'warn', 'inside', { f: 'c.cnc.fg.bot' }],
+  ['eng.frontBot', /fasadai gali nusileisti tik/, 'warn', 'inside', { fid: 'f-fg-bot' }],
   ['eng.visSideCam', /matomas (kairys|dešinys) šonas: dugnas prie jo tvirtinamas ekscentrikais/, 'info', 'body'],
   ['eng.partBack', /nugara ant galo: pertvara nesiekia nugaros/, 'error', 'body', { hint: ['Rinkitės gulsčią galinę juostą arba nugarą viduje — kitaip pertvara prie nugaros nepritvirtinama.', 'Choose a flat back rail or an inside back — otherwise the partition is not fixed to the back.'] }],
   ['eng.partTop', /pertvara viršuje nepritvirtinta/, 'error', 'body', { hint: ['Reikia gulsčios juostos arba pilno viršaus.', 'It needs a flat rail or a full top.'] }],
@@ -261,7 +264,7 @@ function nvcWhere(raw, X) {
   else if ((m = /sekcija (\d+)(?:\.(\d+))?/.exec(raw))) { if (n > 1 && m[2] != null) { ctx.col = +m[1] - 1; ctx.sec = nvcSecIdx(c, ctx.col, +m[2] - 1); } else { ctx.col = 0; ctx.sec = nvcSecIdx(c, 0, +m[1] - 1); } }
   else if ((m = /durys ([\d.]+)×([\d.]+)/.exec(raw)) && vis) { var d = near(vis.doors, +m[1], +m[2]); if (d) { ctx.col = d.col || 0; ctx.sec = nvcSecIdx(c, ctx.col, d.sec); } }
   else if ((m = /fasadas ([\d.]+)×([\d.]+)/.exec(raw)) && vis) { var f = near(vis.drawers, +m[1], +m[2]); if (f) { ctx.col = f.col || 0; ctx.sec = nvcSecIdx(c, ctx.col, f.sec); } }
-  else if ((m = /bėgelio (.+?) L=(\d+)/.exec(raw))) { nvcArr(c.sections).some(function (s, k) { if (s.kind === 'drawers' && s.hw === m[1] && nvcNum(s.rail) === +m[2]) { ctx.sec = k; ctx.col = colOf(c, s); return true; } return false; }); }
+  else if ((m = /bėgelio (.+?) L=(\d+)/.exec(raw))) { nvcArr(c.sections).some(function (s, k) { if (s && s.kind === 'drawers' && s.hw === m[1] && nvcNum(s.rail) === +m[2]) { ctx.sec = k; ctx.col = colOf(c, s); return true; } return false; }); }
   else if ((m = /kolona (\d+)/.exec(raw))) ctx.col = +m[1] - 1;
   if (ctx.sec < 0 && ctx.col < 0) return ctx;
   if (n < 2 && ctx.sec < 0) ctx.col = -1;
@@ -282,6 +285,7 @@ function nvcEngine(out, X) {
     else if (o.sf && ctx.box >= 0) is.field = nvcFid('c.box.fronts.' + ctx.box + '.' + o.sf);
     else if (o.f && o.f.indexOf('{k}') >= 0) is.field = ctx.col >= 0 && ctx.col < colsOf(c) - 1 ? nvcFid(o.f.replace('{k}', ctx.col)) : null;   // the last column has no field: it takes the rest
     else if (o.f) is.field = nvcFid(o.f);
+    else if (o.fid) is.field = o.fid;
     if (o.hint) is.hint = L(o.hint[0], o.hint[1]);
     if (o.tab) is.tab = o.tab;
     if (o.act) { is.act = { label: L(o.act.label[0], o.act.label[1]), i: X.i }; if (o.act.act) is.act.act = o.act.act; else { is.act.nv = o.act.nv; is.act.v = o.act.v; } }
@@ -298,7 +302,7 @@ function nvcDimRules(out, X) {
   var bad = function (k, min, what) {   // error: nothing can be cut from this number
     var raw = c[k], v = nvcNum(raw), nm = NM[k], lt, en;
     if (nvcBlank(raw) || (v === 0 && !/[^0\s.,]/.test(String(raw)))) { lt = 'Neįrašytas ' + nm[0].toLowerCase(); en = nm[1] + ' is missing'; }
-    else if (!(v > 0)) { lt = nm[0] + ' turi būti skaičius, didesnis už 0 (įrašyta „' + String(raw).slice(0, 20) + '“)'; en = nm[1] + ' must be a number above 0 (typed “' + String(raw).slice(0, 20) + '”)'; }
+    else if (!(v > 0)) { lt = nm[0] + ' turi būti skaičius, didesnis už 0 (įrašyta „' + nvcShow(raw) + '“)'; en = nm[1] + ' must be a number above 0 (typed “' + nvcShow(raw) + '”)'; }
     else if (v < min) { lt = nm[0] + ' ' + nvcMm(v) + ' mm per mažas — ' + what[0] + ' reikia bent ' + nvcMm(min) + ' mm'; en = nm[1] + ' ' + nvcMm(v) + ' mm is too small — ' + what[1] + ' needs at least ' + nvcMm(min) + ' mm'; }
     else return false;
     nvcAdd(out, { id: 'size.' + k, sev: nvcSev('size'), cab: i, c: c, topic: 'size', field: nvcFid('c.' + k), msg: L(lt, en) }); return true;
@@ -335,6 +339,7 @@ function nvcDimRules(out, X) {
   /* thicknesses: a blank one is silently cut as 18 */
   var tr = nvcNum(c.thick);
   if (!(tr > 0)) nvcAdd(out, { id: 'thick.none', cab: i, c: c, topic: 'size', field: 'f-c-thick', msg: L('Plokštės storis neįrašytas — skaičiuojama 18 mm', 'Board thickness is missing — 18 mm is used') });
+  else if (tr < LM.thickMin) nvcAdd(out, { id: 'thick.thin', cab: i, c: c, topic: 'size', field: 'f-c-thick', msg: L('Korpuso plokštė ' + nvcMm(tr) + ' mm per plona — jungčių skylės jos krašte netelpa (bent ' + LM.thickMin + ' mm)', 'A ' + nvcMm(tr) + ' mm carcass board is too thin — the connector holes do not fit its edge (at least ' + LM.thickMin + ' mm)') });
   else if (tr < LM.thick[0] || tr > LM.thick[1]) nvcAdd(out, { id: 'thick.odd', cab: i, c: c, topic: 'size', field: 'f-c-thick', msg: L('Korpuso plokštė ' + nvcMm(tr) + ' mm — neįprastas storis (dažniausiai 16–25)', 'Carcass board ' + nvcMm(tr) + ' mm — an unusual thickness (mostly 16–25)') });
   var ft = nvcNum(o.facadeT), hasF = X.P.some(nvcFront);
   if (hasF && !(ft > 0)) nvcAdd(out, { id: 'front.thick', cab: i, c: c, topic: 'size', field: 'f-c-cnc-facadeT', msg: L('Fasadų storis neįrašytas — skaičiuojama 18 mm', 'Front thickness is missing — 18 mm is used') });
@@ -349,6 +354,32 @@ function nvcDimRules(out, X) {
     if (!(lh > 0)) nvcAdd(out, { id: 'legs.h', cab: i, c: c, topic: 'body', field: 'f-c-legH', msg: L('Kojelių aukštis neįrašytas — skaičiuojama 100 mm', 'Leg height is missing — 100 mm is used') });
     else if (lh < LM.legH[0] || lh > LM.legH[1]) nvcAdd(out, { id: 'legs.h', cab: i, c: c, topic: 'body', field: 'f-c-legH', msg: L('Kojelės ' + nvcMm(lh) + ' mm — neįprastas aukštis (įprasta 100–150)', 'Legs ' + nvcMm(lh) + ' mm — an unusual height (usually 100–150)') });
   }
+  /* tie rails: the width comes from Settings into every new cabinet and is never checked — too narrow and the joint holes
+     fall off the rail, two flat rails wider than the depth lie on each other */
+  if (o.top !== 'full' && X.P.some(function (p) { return /^JUOSTA/.test(String(p.role || p.key || '')); })) {
+    var rw = nvcNum(o.railW), rl = nvcObj(o.rails), flat2 = /h/.test(String(rl.front)) && /h/.test(String(rl.back));
+    if (rw > 0 && (rw < LM.railMin || (flat2 && !eD && 2 * rw > D))) nvcAdd(out, { id: 'rail.w', sev: nvcSev('rail.w.bad'), cab: i, c: c, topic: 'body', field: 'f-c-cnc-railW',
+      msg: rw < LM.railMin ? L('Surišimo juostos plotis ' + nvcMm(rw) + ' mm per mažas — jungčių skylės netelpa (bent ' + LM.railMin + ' mm)', 'A tie rail of ' + nvcMm(rw) + ' mm is too narrow — the connector holes do not fit (at least ' + LM.railMin + ' mm)')
+        : L('Dvi ' + nvcMm(rw) + ' mm juostos netelpa į ' + nvcMm(D) + ' mm gylį — jos užeina viena ant kitos', 'Two ' + nvcMm(rw) + ' mm rails do not fit a depth of ' + nvcMm(D) + ' mm — they overlap'),
+      hint: L('Įprastas juostos plotis — 100 mm (Nustatymai → juostos plotis).', 'The usual rail width is 100 mm (Settings → rail width).') });
+    else if (rw > 0 && (rw < LM.railW[0] || rw > LM.railW[1])) nvcAdd(out, { id: 'rail.w', cab: i, c: c, topic: 'body', field: 'f-c-cnc-railW',
+      msg: L('Surišimo juostos plotis ' + nvcMm(rw) + ' mm — neįprastas (dažniausiai 80–120)', 'Tie rail width ' + nvcMm(rw) + ' mm — unusual (mostly 80–120)') });
+  }
+  /* front gaps: typed by hand, taken as they are */
+  var fg = nvcObj(o.fg), FG = { l: ['kairėje', 'on the left'], r: ['dešinėje', 'on the right'], mid: ['tarp fasadų', 'between fronts'], top: ['viršuje', 'at the top'] };
+  if (hasF) Object.keys(FG).some(function (k) {
+    if (nvcBlank(fg[k])) return false; var g = nvcNum(fg[k]);
+    if (g >= 0 && g <= LM.gapMax && (g !== 0 || /^\s*0+([.,]0+)?\s*$/.test(String(fg[k])))) return false;
+    nvcAdd(out, { id: 'front.gap', cab: i, c: c, topic: 'inside', field: 'f-fg-' + k,
+      msg: L('Fasadų tarpas ' + FG[k][0] + ' „' + nvcShow(fg[k]) + '“ mm — neįprastas (įprasta 2–5 mm)', 'Front gap ' + FG[k][1] + ' “' + nvcShow(fg[k]) + '” mm — unusual (usually 2–5 mm)'),
+      hint: L('Palikite tuščią — bus naudojamas dirbtuvės tarpas.', 'Leave it empty to use the workshop gap.') });
+    return true; });
+  /* shelf setback: the engine keeps it inside 0–150 without a word */
+  if (!nvcBlank(c.shelfSb)) { var sb = nvcNum(c.shelfSb), raw = String(c.shelfSb);
+    if (sb < LM.shelfSet[0] || sb > LM.shelfSet[1] || (sb === 0 && /[^0\s.,]/.test(raw))) nvcAdd(out, { id: 'shelf.set', cab: i, c: c, topic: 'inside', field: 'f-c-shelfSb',
+      msg: L('Lentynų atitraukimas „' + nvcShow(c.shelfSb) + '“ mm netinka — galima 0–150 mm, bus pjaunama kitaip nei įrašyta', 'A shelf setback of “' + nvcShow(c.shelfSb) + '” mm is not possible — 0–150 mm; the shelves are cut otherwise than typed') }); }
+  /* more partitions than the cabinet can have */
+  if (nvcNum(c.cols) > 3) nvcAdd(out, { id: 'col.count', cab: i, c: c, topic: 'inside', msg: L('Įrašytos ' + nvcMm(c.cols) + ' kolonos — gaminamos daugiausia 3', nvcMm(c.cols) + ' columns are stored — at most 3 are made'), hint: L('Platesnį baldą dalinkite į kelias spinteles.', 'Split wider furniture into several cabinets.') });
 }
 
 /* ----------------------------------------------------------------- columns, sections, drawers, doors, shelves */
@@ -365,7 +396,7 @@ function nvcInsideRules(out, X) {
   var byCol = []; for (var k0 = 0; k0 < n; k0++) byCol.push([]);
   secs.forEach(function (s, k) {
     if (!s || typeof s !== 'object') return;
-    if (!/^(drawers|doors|cargo|open|oven)$/.test(s.kind)) { nvcAdd(out, { id: 'sec.kind', cab: i, c: c, topic: 'inside', sec: k, col: colOf(c, s), msg: L('Sekcija ' + nvcSecName(c, k) + ' nežinomo tipo („' + String(s.kind).slice(0, 16) + '“) — iš jos nieko nepagaminama', 'Section ' + nvcSecName(c, k) + ' has an unknown kind (“' + String(s.kind).slice(0, 16) + '”) — nothing is made from it'), hint: L('Ištrinkite ją ir pridėkite iš naujo.', 'Delete it and add it again.') }); }
+    if (!/^(drawers|doors|cargo|open|oven)$/.test(s.kind)) { nvcAdd(out, { id: 'sec.kind', cab: i, c: c, topic: 'inside', sec: k, col: colOf(c, s), msg: L('Sekcija ' + nvcSecName(c, k) + ' nežinomo tipo („' + nvcShow(s.kind) + '“) — iš jos nieko nepagaminama', 'Section ' + nvcSecName(c, k) + ' has an unknown kind (“' + nvcShow(s.kind) + '”) — nothing is made from it'), hint: L('Ištrinkite ją ir pridėkite iš naujo.', 'Delete it and add it again.') }); }
     byCol[colOf(c, s)].push(k);
   });
   for (var col = 0; col < n; col++) (function (col) {
@@ -448,7 +479,7 @@ function nvcInsideRules(out, X) {
   })(col);
   /* a long shelf with nothing under it sags */
   var span = 0; X.P.forEach(function (p) { if (p.role !== 'LENTYNA') return; var u = p.place && p.place.u, along = u && Math.abs(u[0]) < 0.5 ? p.W : p.L; if (along > span) span = along; });   // the side that runs across the cabinet
-  if (span > LM.shelfSpan + 0.01) nvcAdd(out, { id: 'shelf.span', cab: i, c: c, topic: 'inside',
+  if (span > LM.shelfSpan + 0.01 && !(n === 1 && nvcNum(c.W) > LM.wideW)) nvcAdd(out, { id: 'shelf.span', cab: i, c: c, topic: 'inside',
     msg: L('Lentyna ' + nvcMm(span) + ' mm be atramos — įlinks (iki ' + LM.shelfSpan + ' mm)', 'A shelf of ' + nvcMm(span) + ' mm with no support — it will sag (up to ' + LM.shelfSpan + ' mm)'),
     hint: L('Dėkite pertvarą arba siaurinkite spintelę.', 'Add a partition or make the cabinet narrower.') });
 }
@@ -484,6 +515,8 @@ function nvcMatRules(out, X) {
   if (wt.on && !c.dishwasher && c.kind !== 'panel') {
     if (!has(wt.mat)) nvcAdd(out, { id: 'wt.mat', cab: i, c: c, topic: 'addons', field: 'f-c-worktop-mat', msg: L('Nenurodyta stalviršio medžiaga', 'No worktop material') });
     else flag(nvcStr(wt.mat), nvcNum(wt.T) || E.WT_DEF.T, 'f-c-worktop-mat');
+    var wT = nvcNum(wt.T);
+    if (!nvcBlank(wt.T) && wT !== 0 && (wT < NVC_LIM.wtT[0] || wT > NVC_LIM.wtT[1])) nvcAdd(out, { id: 'wt.thick', cab: i, c: c, topic: 'addons', field: 'f-c-worktop-T', msg: L('Stalviršio storis ' + nvcMm(wT) + ' mm — neįprastas (dažniausiai 12–40)', 'Worktop thickness ' + nvcMm(wT) + ' mm — unusual (mostly 12–40)') });
     if (has(wt.mat) && !has(wt.edge)) nvcAdd(out, { id: 'wt.edge', cab: i, c: c, topic: 'addons', field: 'f-c-worktop-edge',
       msg: L('Nenurodytas stalviršio kraštas — jo galai ir priekis liks nelaminuoti', 'No worktop edge band — its front and ends get no banding'), hint: L('Akmens ar kompaktinei plokštei taip ir turi būti.', 'For stone or compact boards that is as intended.') });
   }
@@ -538,12 +571,16 @@ function nvcPartRules(out, X) {
 /* ----------------------------------------------------------------- one cabinet */
 function nvcCabinet(out, proj, i, inf, G) {
   var c = proj.cabinets[i]; if (!c || typeof c !== 'object') return;
-  var r = inf && inf.r ? inf.r : null, X = { c: c, i: i, inf: inf, r: r, P: nvcArr(r && r.panels), G: G, t: nvcNum(c.thick) || 18, kind: null };
+  var r = inf && inf.r && typeof inf.r === 'object' && Array.isArray(inf.r.panels) ? inf.r : null, X = { c: c, i: i, inf: inf, r: r, P: nvcArr(r && r.panels), G: G, t: nvcNum(c.thick) || 18, kind: null };
   try { X.kind = cabKind(c); } catch (e) { X.kind = c.type; }
   var from = out.length;
   nvcRun(out, 'dims', i, function () { nvcDimRules(out, X); });
   var sizeBad = out.slice(from).some(function (x) { return x.sev === 'error'; });
-  if (!sizeBad && c.kind !== 'panel' && c.kind !== 'box' && !c.dishwasher) nvcRun(out, 'inside', i, function () { nvcInsideRules(out, X); });
+  var plain = c.kind !== 'panel' && c.kind !== 'box' && !c.dishwasher, nErr = NVC_ERR.length;
+  /* sections the live helpers cannot read (a damaged import): said once, and the section rules are skipped */
+  var secBad = plain && (!Array.isArray(c.sections) || c.sections.some(function (s) { return !s || typeof s !== 'object' || typeof s.kind !== 'string'; }));
+  if (secBad) nvcAdd(out, { id: 'cab.broken', cab: i, c: c, topic: 'inside', msg: L('Spintelės sekcijų duomenys sugadinti — jų patikrinti nepavyko', 'The section data of this cabinet is damaged — it could not be checked'), hint: L('Atšaukite paskutinį pakeitimą (Ctrl+Z) arba ištrinkite spintelę ir sukurkite iš naujo.', 'Undo the last change (Ctrl+Z) or delete the cabinet and make it again.') });
+  if (!sizeBad && plain && !secBad) nvcRun(out, 'inside', i, function () { nvcInsideRules(out, X); });
   nvcRun(out, 'mats', i, function () { nvcMatRules(out, X); });
   if (r) nvcRun(out, 'parts', i, function () { nvcPartRules(out, X); });
   var own = out.slice(from), mine = [];
@@ -565,6 +602,8 @@ function nvcCabinet(out, proj, i, inf, G) {
       msg: c.edgesOk ? L('Kraštų laminavimas pasikeitė — patvirtinkite iš naujo', 'The edge banding changed — confirm it again') : L('Kraštų laminavimas dar nepatvirtintas', 'The edge banding is not confirmed yet'),
       hint: L('Peržiūrėkite, kurie kraštai laminuojami, ir patvirtinkite.', 'Look which edges are banded, then confirm.'), act: { label: L('Peržiūrėti kraštus', 'Review the edges'), act: 'ecroom', i: i } });
   });
+  /* a rule that could not read this cabinet never passes in silence: what was not checked must not go to production */
+  if (NVC_ERR.length > nErr && !secBad) nvcAdd(out, { id: 'cab.broken', cab: i, c: c, topic: null, msg: L('Šios spintelės iki galo patikrinti nepavyko — jos duomenys neįprasti', 'This cabinet could not be checked completely — its data is unusual'), hint: L('Atšaukite paskutinį pakeitimą (Ctrl+Z) arba sukurkite spintelę iš naujo.', 'Undo the last change (Ctrl+Z) or make the cabinet again.') });
 }
 
 /* ----------------------------------------------------------------- the project */
@@ -687,5 +726,5 @@ NVA.nvcfix = function (el, v, i) {
 };
 /* for tests and the console */
 window.__nvc = { compute: nvComputeIssues, classify: function (raw) { var k = nvcClassify(raw); return k < 0 ? null : { id: NVC_ENG[k][0], sev: NVC_ENG[k][2], topic: NVC_ENG[k][3] }; }, table: NVC_ENG, sev: NVC_SEV, lim: NVC_LIM,
-  errors: function () { return NVC_ERR.slice(); }, sig: nvcSig, topicState: nvcTopicState, blockers: nvcBlockers,
+  errors: function () { return NVC_ERR.slice(); }, sig: function (l) { return nvcSig(l); }, topicState: nvcTopicState, blockers: nvcBlockers, level: function (w) { return level(w); },
   build: function (i) { return buildOne(i); }, lib: NVC_LIB };

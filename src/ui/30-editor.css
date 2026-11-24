@@ -298,6 +298,7 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
   .nve-chead{padding:10px 10px 8px 14px}
   .nve-ctitle{flex-direction:column;gap:0}
   .nve-stage{padding:44px 84px 44px 56px;height:min(52vh,430px)}
+  .nve-dim-d b{left:auto;right:-78px}   /* a wide picture leaves only the padding beside it: the depth chip ends inside it and grows to the left */
   .nve-tip{display:none}
   .nve-body{padding:14px 14px 18px}
   .nve-phead{padding:12px 14px 10px}
