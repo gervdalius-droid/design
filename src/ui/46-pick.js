@@ -34,7 +34,7 @@ function nvpOpen(part, x, y) {
   d.innerHTML = '<div class="nvp-h"><div><b>' + esc(nvpName(part, p)) + '</b>' + (size ? '<small>' + size + '</small>' : '') + '</div><button type="button" class="nv-ic" data-nvp="close" aria-label="' + esc(t('close')) + '">✕</button></div>' +
     (tg ? '<label class="nvp-mat"><span>' + L('Medžiaga', 'Material') + (scope ? ' <i>· ' + scope + '</i>' : '') + '</span><input type="text" list="' + (part.kind === 'worktop' ? 'dl-wt' : 'dl-mat') + '" value="' + esc(matNow) + '" data-nvp-mat="1" autocomplete="off" placeholder="' + esc(L('pasirinkite arba įrašykite', 'choose or type')) + '"></label>' : '') +
     '<div class="nvp-acts">' + acts + '</div>';
-  document.body.appendChild(d); nvpS.el = d; nvpS.part = part;
+  document.body.appendChild(d); nvpS.el = d; nvpS.part = part; nvpS.at = [x, y];
   var w = d.offsetWidth, h = d.offsetHeight;
   d.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, x + 14)) + 'px'; d.style.top = Math.max(8, Math.min(window.innerHeight - h - 8, y + 10)) + 'px';
   d.addEventListener('click', function (e) { var bt = e.target.closest('[data-nvp]'); if (bt) nvpDo(bt.getAttribute('data-nvp')); });
@@ -46,7 +46,11 @@ function nvpDo(k) {
   nvpClose();
   if (k === 'close') return;
   if (k.indexOf('go:') === 0) { var a = k.split(':'); nvGo({ topic: a[1], sec: a[2] != null ? +a[2] : null }); return; }
-  if (k === 'edges') { S.echeck = true; S.jcheck = false; render(); return; }
+  if (k === 'edges') {   // this board alone, pulled out of the cabinet, its edges clickable (45-edges.js)
+    var inf = S._info && S._info[S.sel], pp = inf && inf.r ? inf.r.panels.filter(function (q) { return q.name === part.name; })[0] : null; if (!pp) return;
+    NV.ecFocus = { key: pp.key, cab: c.id, name: nvpName(part, pp), x: nvpS.at ? nvpS.at[0] : window.innerWidth / 2, y: nvpS.at ? nvpS.at[1] : 200 };
+    S.ecView = Object.assign(S.ecView || { zoom: 1, exp: false, fronts: false }, { th: 0.62, ph: 0.42, zoom: 1 });
+    render(); return; }
   var n = colsOf(c), said = '';
   if (k === 'backoff') { c.cnc.backs = Array.from({ length: n }, function () { return 'none'; }); said = L('Nugara pašalinta', 'Back removed'); }
   else if (k === 'backswap') { var to = /^NUGARA/.test(role) ? 'hdf' : 'solid'; c.cnc.backs = Array.from({ length: n }, function (_, i) { var v = (c.cnc.backs || [])[i]; return v && v !== 'none' ? to : (n === 1 ? to : 'none'); }); said = to === 'hdf' ? L('Nugara — plaušas', 'Back — fibreboard') : L('Nugara — kieta 18 mm', 'Back — solid 18 mm'); }
@@ -64,6 +68,7 @@ function nvpDo(k) {
 }
 document.addEventListener('pointerdown', function (e) {
   if (nvpS.el && !nvpS.el.contains(e.target)) nvpClose();
+  if (NV.ecFocus && e.target.closest && !e.target.closest('.nve-fcard')) { NV.ecFocus = null; var fc0 = document.querySelector('.nve-fcard'); if (fc0) fc0.remove(); }
   var cv = e.target && e.target.tagName === 'CANVAS' && e.target.closest && e.target.closest('#assembly-preview') ? e.target : null;
   nvpS.down = cv && e.button === 0 ? { x: e.clientX, y: e.clientY } : null;
 }, true);

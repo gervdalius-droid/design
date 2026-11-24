@@ -9,3 +9,13 @@
    (before, the editor panels squeezed the picture down to its 280 px minimum) */
 .nve-3d .av.connector-mode:not(.full){flex:none;overflow:visible}
 .nve-3d .av.connector-mode:not(.full) .av-stage{flex:none;height:min(58vh,560px);min-height:380px}
+
+/* one board's edges, pulled out (from a click on the board in the 3-D picture) */
+.nve-fcard{position:fixed;z-index:60;width:min(560px,calc(100vw - 16px));padding:14px;box-shadow:var(--nv-shadow-lg)}
+.nve-fh{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.nve-fh b{display:block;font:700 15px var(--f-display)}.nve-fh small{color:var(--muted)}
+.nve-fcard .ec-model{position:static;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.nve-fcard .ec-msvg{height:min(48vh,400px)}
+.nve-ff{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.nve-fb{display:inline-flex;gap:6px}
+.nv-app .nv-ecf.big:not(.on):hover{fill:#e8b90c;fill-opacity:.6;stroke:#e8b90c}
