@@ -1,0 +1,11 @@
+.nvp-card{position:fixed;z-index:90;width:300px;padding:14px;box-shadow:var(--nv-shadow-lg);font:14px/1.45 var(--f-body);color:var(--ink)}
+.nvp-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px}
+.nvp-h b{display:block;font:700 15px var(--f-display)}
+.nvp-h small{color:var(--muted);font-variant-numeric:tabular-nums}
+.nvp-h .nv-ic{width:28px;height:28px;font-size:13px;margin:-4px -4px 0 0}
+.nvp-mat{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
+.nvp-mat span{font-size:12px;font-weight:600;color:var(--muted)}.nvp-mat i{font-style:normal;font-weight:500}
+.nvp-mat input{border:1px solid var(--line2);border-radius:9px;min-height:38px;padding:7px 10px;font:inherit;background:var(--panel)}
+.nvp-mat input:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nvp-acts{display:flex;flex-wrap:wrap;gap:6px}
+.nve-3d .av:not(.connector-mode) canvas{cursor:pointer}
