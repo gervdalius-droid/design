@@ -29,6 +29,18 @@ LIB = ['engine', 'export', 'zip', 'sketch', 'look', 'realistic', 'front', 'photo
        'assembly', 'iso', 'room', 'drawings', 'report_tpl', 'report']
 BOOT = "document.documentElement.lang = S.lang;\nrender();"
 
+# Fixes to the live modules, applied at build time (src/lib stays the untouched live code). Each must match exactly once —
+# when the live app fixes it itself the build stops here and the patch can be dropped.
+PATCHES = [
+    # 3-D view: a confirmat's head was always drawn on face B of the drilled part. An outside back (on the rear edges)
+    # has face A outwards, so its screws were shown inside the cabinet, as if they came through the sides.
+    # Picture only — holes and programs are not touched.
+    ('assembly',
+     "const faceName=confirmat?(h.face==='B'?'A':'B'):(h.face||'A'),",
+     "const nvAx=[0,1,2].reduce((m,i)=>Math.abs(pl.n[i])>Math.abs(pl.n[m])?i:m,0),nvSg=pl.n[nvAx]>0?1:-1,nvA=pl.o[nvAx],nvAll=(r.panels||[]).filter(q=>q.place&&!q.drawerOf&&q.role!=='FASADAS'&&q.role!=='DURYS').reduce((acc,q)=>{[0,q.L].forEach(a=>[0,q.W].forEach(b=>[0,q.T].forEach(d=>acc.push(q.place.o[nvAx]+a*q.place.u[nvAx]+b*q.place.v[nvAx]-d*q.place.n[nvAx]))));return acc;},[]),nvOut=nvSg>0?Math.max(...nvAll):Math.min(...nvAll),"
+     "faceName=confirmat?(Math.abs(nvA-nvOut)<.5?'A':(h.face==='B'?'A':'B')):(h.face||'A'),"),
+]
+
 def arg(name):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv and sys.argv.index(name) + 1 < len(sys.argv) else None
 
@@ -60,7 +72,14 @@ def main():
     css += ''.join('<style>\n/* src/ui/%s */\n%s\n</style>\n' % (os.path.basename(p), open(p, encoding='utf-8').read()) for p in ui_css)
     head = rd('src/head.html')
     js = '<script>\n' + rd('vendor/jszip.min.js') + '\n</script>\n'
-    js += ''.join('<script>' + rd('src/lib/%s.js' % n) + '</script>\n' for n in LIB)
+    def lib(n):
+        t = rd('src/lib/%s.js' % n)
+        for (m, old, new) in PATCHES:
+            if m == n:
+                if t.count(old) != 1: sys.exit("build.py: patch for src/lib/%s.js no longer matches exactly once — the live app changed there; review PATCHES." % n)
+                t = t.replace(old, new)
+        return t
+    js += ''.join('<script>' + lib(n) + '</script>\n' for n in LIB)
     js += '<script>' + closure + '</script>\n'
     if re.search(r'</script', overlay, re.I):   # an inline script must never contain its own end tag
         sys.exit("build.py: a src/ui script contains '</script' — write it as '<\\/script'")
