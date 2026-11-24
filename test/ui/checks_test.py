@@ -52,7 +52,7 @@ HELP = r"""(function () {
     (new Function('P', 'c', 'S', 'E', js))(P, c, S, E);
     return JSON.stringify({ is: T.brief(T.issues()), err: __nvc.errors() });
   };
-  T.presets = function () { S.proj.cabinets = __dbk.PRESETS.map(function (p) { return __dbk.fromPreset(p); }); S.proj.layout = undefined; };
+  T.presets = function () { S.proj.cabinets = __dbk.PRESETS.filter(function (p) { return !p.robe; }).map(function (p) { return __dbk.fromPreset(p); }); S.proj.layout = undefined; };
   var JUNK = ['', ' ', 'abc', '12,5', '-7', null, undefined, 0, -1, -500, 0.0001, 1e9, 1e308, NaN, Infinity, true, false, [], {}, [1, 2], { a: 1 }, '600', '1e5', '<b>', '„x“', function () {}];
   var rnd = function (n) { T.seed = (T.seed * 1103515245 + 12345) & 0x7fffffff; return T.seed % n; };
   var paths = function (o, pre, out, depth) { if (!o || typeof o !== 'object' || depth > 4) return out; Object.keys(o).forEach(function (k) { out.push([o, k]); paths(o[k], pre + k + '.', out, depth + 1); }); return out; };

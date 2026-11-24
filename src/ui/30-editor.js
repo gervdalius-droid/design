@@ -185,6 +185,7 @@ function nvePicture(c, inf) {
       else lay += '<details class="nve-add nve-add-empty' + edge + '" style="' + box(G.bnd[k2] + (k2 ? t_ / 2 : t_), G.bnd[k2 + 1] - (k2 === nC - 1 ? t_ : t_ / 2), t_, H - t_) + '"><summary aria-label="' + esc(L('Pridėti sekciją', 'Add a section')) + '"><b>+</b><span>' + L('Kas čia bus?', 'What goes here?') + '</span></summary>' + menu(k2) + '</details>';
     }
   }
+  ((r.visual && r.visual.rails) || []).forEach(function (q) { lay += '<span class="nve-hrail" style="left:' + X(q.x0 + 6) + ';width:' + Wd(q.x1 - q.x0 - 12) + ';top:' + Y(q.z) + '" title="' + esc(L('Pakabos vamzdis', 'Hanging rail')) + '"></span>'; });
   /* ---- the fronts' outer edges: four orange grips to drag (left, right, top, bottom gap) */
   if (!c.kind && !c.dishwasher && r.fgaps) { var fe = fgFronts(r);
     if (fe) { var mx = (fe.x0 + fe.x1) / 2, mz = (fe.z0 + fe.z1) / 2, tipT = esc(t('fgDragT'));
@@ -478,11 +479,13 @@ function nveSecEditor(c, s, i, z, zoneHtml0) {
       (nd >= 2 && !stack ? '' : segF(t('hside'), b + 'hingeSide', s.hingeSide || 'auto', [['auto', t('hsAuto')], ['left', t('hsL')], ['right', t('hsR')]])) +   // a pair side by side opens from the outer sides
       (s.hinge === 'BE FURNITŪROS' ? '' : segF(t('hingeN'), b + 'hingeN', +s.hingeN >= 2 ? String(Math.round(+s.hingeN)) : 'auto', [['auto', t('hsAuto') + ' (' + E.hingesPerDoor(stack ? secH / Math.max(1, nd || 1) - g : secH - g) + ')'], ['2', '2'], ['3', '3'], ['4', '4'], ['5', '5']], true)) +
       nveStep(t('shelves'), b + 'shelves', s.shelves) + (num(s.shelves) > 0 ? segF(L('Lentynos', 'Shelves are'), b + 'shelfAdj', s.shelfAdj !== false, [['true', t('adj')], ['false', t('fixed')]]) : '') +
-      (under && under.kind === 'open' ? fN(L('Durys žemiau, ant nišos, mm', 'Doors lower, over the niche, mm'), b + 'frontDrop', s.frontDrop || 0) : '');
+      (under && under.kind === 'open' ? fN(L('Durys žemiau, ant nišos, mm', 'Doors lower, over the niche, mm'), b + 'frontDrop', s.frontDrop || 0) : '') +
+      (c.type === 'ŪKINĖ' || c.robe || num(s.hang) > 0 ? nveStep(L('Pakabos vamzdžių', 'Hanging rails'), b + 'hang', s.hang || 0, L('po viršutine lentyna', 'under the top shelf')) : '');
   } else if (kk === 'open') {
     f += nveStep(t('shelves'), b + 'shelves', s.shelves) + (num(s.shelves) > 0 ? segF(L('Lentynos', 'Shelves are'), b + 'shelfAdj', s.shelfAdj !== false, [['true', t('adj')], ['false', t('fixed')]]) : '') +
       (c.sections.some(function (q) { return colOf(c, q) === col && (q.kind === 'drawers' || q.kind === 'doors' || q.kind === 'cargo') && !q.fridge; }) ?
-        '<div class="nve-wide">' + chk(b + 'divider', !!s.divider, L('Skiriamoji lentyna tarp nišos ir fasadų — fasadai ją uždengia', 'Dividing shelf between the niche and the fronts — the fronts cover it')) + '</div>' : '');
+        '<div class="nve-wide">' + chk(b + 'divider', !!s.divider, L('Skiriamoji lentyna tarp nišos ir fasadų — fasadai ją uždengia', 'Dividing shelf between the niche and the fronts — the fronts cover it')) + '</div>' : '') +
+      (c.type === 'ŪKINĖ' || c.robe || num(s.hang) > 0 ? nveStep(L('Pakabos vamzdžių', 'Hanging rails'), b + 'hang', s.hang || 0, L('po viršutine lentyna', 'under the top shelf')) : '');
   } else {
     f += fS(t('sup'), b + 'shelves', Math.min(2, num(s.shelves)), [[0, L('0 — be atramų', '0 — none')], [1, '1 — ' + L('apačioje', 'below')], [2, '2 — ' + L('apačioje ir viršuje', 'below and above')]]) +
       '<p class="nv-hint nve-wide">' + L('Orkaitės nišai fasadas nedaromas. Įprastas nišos aukštis — 595 mm.', 'No front is made for the oven niche. The usual niche height is 595 mm.') + '</p>';
@@ -499,6 +502,7 @@ function nveInside(c, inf) {
   var b = 'c.', nC = colsOf(c), cw = colWidths(c), ac = activeCol(c), si = NV.secSel, s = si != null ? c.sections[si] : null, h = '';
   var zone = function (k) { return '<div class="nve-zonewrap" data-live="ezone" data-live-arg="' + k + '">' + nveZone(c, k) + '</div>'; };
   if (s) return nveSecEditor(c, s, si, zoneInfo(c, colOf(c, s)), zone(colOf(c, s)));   // the zone bar right under the height it answers to
+  if (typeof nvwPanel === 'function') h += nvwPanel(c);
   h += '<section class="nv-grp"><h4>' + t('parts2') + ' <small>' + L('vertikalios — dalija spintelę į kolonas', 'vertical — they split the cabinet into columns') + '</small></h4>' +
     seg(b + 'cols', nC, [[1, t('part0')], [2, t('part1')], [3, t('part2')]]) +
     (nC > 1 ? '<div class="nv-fields nve-colw">' + cw.slice(0, nC - 1).map(function (w, k) { return fN(colName(nC, k) + ', mm', b + 'colW.' + k, fmt(w), 's'); }).join('') +

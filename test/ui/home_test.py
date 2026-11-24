@@ -113,19 +113,19 @@ def desktop():
         ok(js(c, "!!document.querySelector('.nvh-pick') && __nv.S.proj.cabinets.length === 0"), 'a new project opens on the chooser')
         ok(js(c, "document.querySelector('.nvh-pick h1').textContent") == 'Pirmoji spintelė — kokią kuriame?', 'first cabinet: its own question')
         n_pre = js(c, "__dbk.PRESETS.length")
-        ok(js(c, "document.querySelectorAll('.nvh-pre[data-nv=nvhPreset]').length") == n_pre == 10, 'all ten presets are offered')
-        ok(js(c, "document.querySelectorAll('.nvh-pre .nvh-pic svg').length") == 8 and js(c, "document.querySelectorAll('.nvh-pre .nvh-pre-ico svg').length") == 2,
-           'eight real front pictures, an icon for the panel and the 3-D construction')
+        ok(js(c, "document.querySelectorAll('.nvh-pre[data-nv=nvhPreset]').length") == n_pre == 14, 'all presets are offered: the ten of the live app and four wardrobes')
+        ok(js(c, "document.querySelectorAll('.nvh-pre .nvh-pic svg').length") == 12 and js(c, "document.querySelectorAll('.nvh-pre .nvh-pre-ico svg').length") == 2,
+           'twelve real front pictures, an icon for the panel and the 3-D construction')
         ok(js(c, "[].every.call(document.querySelectorAll('.nvh-pre .nvh-pic'), function (e) { var r = e.getBoundingClientRect(); return r.width > 20 && r.height > 60; })"), 'the pictures have a size')
-        ok(js(c, "[].slice.call(document.querySelectorAll('.nvh-grp h3 b')).map(function (e) { return e.textContent; }).join('|')") == 'Apatinės|Viršutinės|Aukštos|Kita', 'grouped Apatinės / Viršutinės / Aukštos / Kita')
+        ok(js(c, "[].slice.call(document.querySelectorAll('.nvh-grp h3 b')).map(function (e) { return e.textContent; }).join('|')") == 'Apatinės|Viršutinės|Aukštos|Spintos|Kita', 'grouped Apatinės / Viršutinės / Aukštos / Spintos / Kita')
         ok(js(c, "!document.querySelector('.nvh-pick [data-act=unpick]')"), 'no Cancel while the project has no cabinet')
         ok(js(c, "!document.querySelector('.nvh-lib') && !!document.querySelector('.nvh-libnone')"), 'empty library: one line about it')
         ok(js(c, "!document.querySelector('.nvh-pick [data-nv] [data-act], .nvh-pick [data-act] [data-nv]')"), 'no command nested in another command')
-        ok(js(c, "Math.max.apply(null, [].map.call(document.querySelectorAll('.nvh-pre'), function (e) { return e.getBoundingClientRect().bottom; })) <= 900"), 'at 1440×900 all ten are on one screen')
+        ok(js(c, "Math.max.apply(null, [].slice.call(document.querySelectorAll('.nvh-pre'), 0, 7).map(function (e) { return e.getBoundingClientRect().bottom; })) <= 900"), 'at 1440×900 the kitchen cabinets (base, wall, tall) are on the first screen')
         c.shot(os.path.join(SHOTS, 't-pick.png'))
 
         # ---- 5. every preset makes its cabinet and opens it on "Dydis", width selected
-        for i in range(n_pre):
+        for i in range(10):   # the live app's ten; the wardrobes have their own test (robe_test.py)
             if not js(c, "__nv.S.picking || !__nv.S.proj.cabinets.length"):
                 if js(c, "!!document.querySelector('[data-act=pick]')"):
                     c.click('[data-act=pick]')
@@ -152,7 +152,7 @@ def desktop():
                 ok(got['topic'] == 'size', tag + 'opens on the topic "Dydis"')
             if not want['kind'] and not want['dish'] and got['hasW']:
                 ok(got['focus'] == 'f-c-W' and got['selAll'], tag + 'the width field has the caret, its number selected')
-        ok(js(c, "__nv.S.proj.cabinets.length") == n_pre, 'ten presets → ten cabinets')
+        ok(js(c, "__nv.S.proj.cabinets.length") == 10, 'ten presets → ten cabinets')
 
         # ---- 6. the library: shown when it has something, adds through nvhLibAdd
         js(c, "__nv.S.picking = true; __nv.render(); true")
@@ -306,7 +306,7 @@ def phone():
         c.click('.nvh-new [data-act=psample]')
         c.wait("!__nv.S.home")
         js(c, "__nv.S.picking = true; __nv.render(); true")
-        ok(js(c, "document.documentElement.scrollWidth <= window.innerWidth") and js(c, "document.querySelectorAll('.nvh-pre').length") == 10, 'phone: the chooser does not scroll sideways')
+        ok(js(c, "document.documentElement.scrollWidth <= window.innerWidth") and js(c, "document.querySelectorAll('.nvh-pre').length") == 14, 'phone: the chooser does not scroll sideways')
         c.shot(os.path.join(SHOTS, 't-phone-pick.png'))
         js(c, "__nv.S.picking = false; __nv.render(); true")
         go_home(c)

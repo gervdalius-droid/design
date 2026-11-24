@@ -1,0 +1,5 @@
+/* wardrobes */
+.nvw-chips{display:flex;flex-wrap:wrap;gap:6px}
+.nvw-warn{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:8px;padding:8px 10px;color:var(--ink)}
+.nve-hrail{position:absolute;height:5px;margin-top:-2px;border-radius:3px;background:#8b949a;box-shadow:0 0 0 1px rgba(255,255,255,.75);opacity:.9;pointer-events:none}
+.nve-hrail::after{content:"";position:absolute;left:50%;top:5px;width:1px;height:9px;background:#8b949a}

@@ -297,6 +297,7 @@ function nv3Build() {
     if (E.sidePanels) E.sidePanels(c).forEach(function (q) { root.add(nv3Box([q.x0, q.y0, q.z0], [q.x1 - q.x0, q.y1 - q.y0, q.z1 - q.z0], MC(q.mat, '#d5cbbd'))); });
   }
   if (jx) nv3Screws(r, root, expOff); else if (NV3.hw && !focus) nv3Screws(r, root);
+  if (!jx && !focus) ((r.visual && r.visual.rails) || []).forEach(function (q) { root.add(nv3Rod([q.x0, q.y, q.z], [q.x1, q.y, q.z], 12.5, '#b4bcc1')); });   // hanging rails of a wardrobe (35-robe.js)
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
   var fronts = jm ? [] : (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
