@@ -7,7 +7,7 @@
    Cabinet axes: x right, y from the front to the back, z up → the whole model sits in a group turned −90° about x. */
 var NV3 = { T: null, OC: null, loading: false, failed: false, R: null, scene: null, cam: null, ctl: null, root: null, env: null,
   open: 0.65, mode: 'assembly', edges: false, focus: null, dims: true, handles: false, hw: true, full: false,
-  pick: [], labels: [], hover: null, cabId: null, raf: 0, down: null, mats: {} };
+  pick: [], labels: [], links: [], hover: null, cabId: null, raf: 0, down: null, mats: {} };
 function nv3Load() {
   if (NV3.T || NV3.loading || NV3.failed) return;
   NV3.loading = true;
@@ -128,12 +128,54 @@ function nv3Rod(a, b, rad, color, opt) {
   var m = new T.Mesh(new T.CylinderGeometry(rad, rad, len, 20), nv3Mat(color, opt || { metalness: 0.85, roughness: 0.32 }));
   m.position.copy(A).addScaledVector(d, 0.5); m.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), d.normalize()); return m;
 }
+/* a fitting from the maker's own model (Blum STEP files, src/lib/fittings.js): its triangles mapped into the cabinet by
+   map(x, y, z) → [X, Y, Z]; mirrored for the right-hand side. Flat-shaded, so the pressed-steel edges stay crisp. */
+function nv3Fit(name, part, map, color, mirrored) {
+  var T = NV3.T, F = window.DBFit, ms = F && F.mesh(name, part); if (!ms) return null;
+  var v = ms.v, t = ms.t, P = new Float32Array(t.length * 3), q;
+  for (var i = 0; i < t.length; i += 3) { var idx = [t[i], mirrored ? t[i + 2] : t[i + 1], mirrored ? t[i + 1] : t[i + 2]];
+    for (var k = 0; k < 3; k++) { q = map(v[3 * idx[k]], v[3 * idx[k] + 1], v[3 * idx[k] + 2]); P[(i + k) * 3] = q[0]; P[(i + k) * 3 + 1] = q[1]; P[(i + k) * 3 + 2] = q[2]; } }
+  var g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(P, 3)); g.computeVertexNormals();
+  return new T.Mesh(g, nv3Mat(color, { metalness: 0.82, roughness: 0.36, flatShading: true, side: T.DoubleSide }));
+}
+/* the inner faces of the boards left and right of a point — where a drawer's runners are screwed on */
+function nv3Opening(r, xc, zc) {
+  var Lf = null, Rf = null;
+  (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || /^(DURYS|FASADAS)$/.test(p.role)) return;
+    var q = p.place, e = [[1e9, -1e9], [1e9, -1e9], [1e9, -1e9]];
+    [0, p.L].forEach(function (a) { [0, p.W].forEach(function (b) { [0, p.T].forEach(function (d) { for (var k = 0; k < 3; k++) { var w = q.o[k] + a * q.u[k] + b * q.v[k] - d * q.n[k]; if (w < e[k][0]) e[k][0] = w; if (w > e[k][1]) e[k][1] = w; } }); }); });
+    if (e[0][1] - e[0][0] >= Math.min(e[1][1] - e[1][0], e[2][1] - e[2][0])) return;   // not an upright board
+    if (zc < e[2][0] || zc > e[2][1] || e[1][1] < 100 || e[1][0] > 100) return;
+    if (e[0][1] <= xc + 1 && (Lf == null || e[0][1] > Lf)) Lf = e[0][1]; if (e[0][0] >= xc - 1 && (Rf == null || e[0][0] < Rf)) Rf = e[0][0]; });
+  return Lf != null && Rf != null && Rf - Lf > 60 ? [Lf, Rf] : null;
+}
+/* a TANDEMBOX / TANDEM drawer from Blum's models: runners on the sides at their hole line (the middle member half way
+   out), the antaro sides / the wooden box moving with the front. Returns false when the models do not cover it. */
+function nv3BlumDrawer(c, r, m, sec, x, z, w, h, inner, root, rail) {
+  var F = window.DBFit, hw = sec.hw || m.hw, tb = hw === 'BLUM TANDEMBOX'; if (!F || !(tb || hw === 'BLUM TANDEM') || !F.has(tb ? 'tbSide' : 'tdRunner')) return false;
+  var op = m.ox0 != null && m.ox1 != null ? [m.ox0, m.ox1] : nv3Opening(r, x + w / 2, z + Math.min(h / 2, 60)); if (!op) return false;
+  var T = NV3.T, L0 = op[0], R0 = op[1], rt = (E.R.runner || {})[hw] || {}, up = +rt.up || (tb ? 33 : 37), t0 = num(c.thick) || 18, ax = Math.max(t0 + up, z + up), nl = Math.max(250, +sec.rail || 500);
+  var carc = window.DBFront.matColor((c.mat || {}).carc, '#e5e2da'), Y = function (sz) { return F.FRONT_Z - F.zmap(sz, nl); }, add = function (g, o) { if (o) g.add(o); };
+  var half = new T.Group(); root.add(half); NV3.moving.push({ g: half, door: false, travel: rail * 0.4 });
+  [false, true].forEach(function (rgt) { var X = function (sx) { return rgt ? R0 - sx : L0 + sx; }, mapR = function (sx, sy, sz) { return [X(sx), Y(sz), ax + sy]; };
+    if (tb) { var top = F.sideTop(h >= 170 ? 115.5 : h >= 125 ? 83 : 68.5), mapS = function (sx, sy, sz) { return [X(sx), Y(sz), ax + F.ymap(sy, top)]; };
+      if (NV3.hw) { add(root, nv3Fit('tbRunner', 0, mapR, '#8f989d', rgt)); add(half, nv3Fit('tbRunner', 0, mapR, '#a9b1b5', rgt)); }
+      add(inner, nv3Fit('tbSide', 0, mapS, '#c3c8ca', rgt)); add(inner, nv3Fit('tbFix', 0, mapS, '#8d969b', rgt)); }
+    else if (NV3.hw) { add(root, nv3Fit('tdRunner', 0, mapR, '#8f989d', rgt)); add(half, nv3Fit('tdRunner', 0, mapR, '#a9b1b5', rgt)); add(inner, nv3Fit('tdRunner', 1, mapR, '#c4cacc', rgt)); } });
+  if (tb) { var top2 = F.sideTop(h >= 170 ? 115.5 : h >= 125 ? 83 : 68.5), gal = h >= 250, backTop = gal ? Math.min(ax + 180, z + h - 40) : ax + top2 - 4, bx0 = L0 + 36.9, bw = R0 - L0 - 73.8;
+    inner.add(nv3Box([bx0, 2, ax - 24], [bw, nl - 14, 16], carc)); inner.add(nv3Box([bx0, nl - 28, ax - 8], [bw, 16, Math.max(10, backTop - (ax - 8))], carc));
+    if (gal) [L0 + 14, R0 - 14].forEach(function (gx) { inner.add(nv3Rod([gx, 6, backTop - 8], [gx, nl - 24, backTop - 8], 4, '#c9cdce')); }); }
+  else { var bt = 16, zb = ax - 22.7, sH = Math.max(60, Math.min(250, h - 45)), len = nl - 10, iw = R0 - L0 - 10 - 2 * bt;
+    inner.add(nv3Box([L0 + 5, 2, zb], [bt, len, sH], carc)); inner.add(nv3Box([R0 - 5 - bt, 2, zb], [bt, len, sH], carc));
+    inner.add(nv3Box([L0 + 5 + bt, 2, zb + 13], [iw, len, 16], carc)); inner.add(nv3Box([L0 + 5 + bt, len - 14, zb + 29], [iw, bt, Math.max(10, sH - 29)], carc)); inner.add(nv3Box([L0 + 5 + bt, 2, zb + 29], [iw, bt, Math.max(10, sH - 29)], carc)); }
+  return true;
+}
 function nv3Clear(g) { g.traverse(function (o) { if (o.geometry) o.geometry.dispose(); }); while (g.children.length) g.remove(g.children[0]); }
 function nv3Build() {
   if (!NV3.R || !document.getElementById('nv3-stage')) return;
   var T = NV3.T, c = cur(), inf = S._info && S._info[S.sel]; if (!c || !inf || !inf.r) return;
   var r = inf.r, root = NV3.root, st = document.getElementById('nv3-stage'), MC = function (name, d) { return window.DBFront && window.DBFront.matColor ? window.DBFront.matColor(name, d) : d; };
-  nv3Clear(root); NV3.pick = []; NV3.moving = []; NV3.hover = null;
+  nv3Clear(root); NV3.pick = []; NV3.moving = []; NV3.links = []; NV3.hover = null;
   NV3.labels.forEach(function (l) { l.el.remove(); }); NV3.labels = [];
   var isFront = function (p) { return p.role === 'FASADAS' || p.role === 'DURYS'; }, focus = NV3.edges ? NV3.focus : null, metal = { metalness: 0.85, roughness: 0.3 };
   var D = num(c.D) || 560, W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, ext = [W, D, H], mid = [W / 2, D / 2, H / 2];
@@ -172,17 +214,25 @@ function nv3Build() {
     if (door && !m.cargo) {
       var hx = m.hingeLeft ? x : x + w; g.position.set(hx, 0, 0); inner.position.set(-hx, 0, 0);
       NV3.moving.push({ g: g, door: true, sign: m.hingeLeft ? -1 : 1, hinged: m.hinged !== false });
-      if (NV3.hw && m.hinged !== false && !m.inset) (m.ys || []).forEach(function (yy) {   // cup on the door, plate on the side
-        var hz = z + yy, cxp = m.hingeLeft ? x + 22.5 : x + w - 22.5, sx = m.hingeLeft ? x + 16 : x + w - 16;
-        if (showF) { var cup = new T.Mesh(new T.CylinderGeometry(17.5, 17.5, 5, 28), nv3Mat('#b9c1c6', metal)); cup.position.set(cxp, 2.5, hz); inner.add(cup);
-          inner.add(nv3Box([cxp - 9, 0, hz - 24], [18, 4, 48], '#c3cace', Object.assign({ noLine: true }, metal)));
-          inner.add(nv3Box([Math.min(cxp, sx) - 2, 3, hz - 7], [Math.abs(cxp - sx) + 4, 9, 14], '#aab3b8', Object.assign({ noLine: true }, metal))); }
-        root.add(nv3Box([sx + (m.hingeLeft ? 0 : -4), 22, hz - 24], [4, 34, 48], '#a6afb4', Object.assign({ noLine: true }, metal)));
+      if (NV3.hw && m.hinged !== false && !m.inset) (m.ys || []).forEach(function (yy) {
+        var hz = z + yy, F = window.DBFit, cupE = +((E.R.hinge || {}).cupFromEdge) || 22.5, right = !m.hingeLeft, cxp = right ? x + w - cupE : x + cupE;
+        if (F && F.has('hinge')) {   // Blum CLIP top from its model: the arm on the side, the cup and its links on the door
+          var HG = F.HINGE, mapH = function (sx, sy, sz) { return [right ? cxp + (sx - HG.cupX) : cxp - (sx - HG.cupX), -(sz - HG.doorZ), hz + sy]; };
+          var arm = nv3Fit('hinge', 0, mapH, '#a3adb2', !right); if (arm) root.add(arm);
+          if (showF) { var cupM = nv3Fit('hinge', 1, mapH, '#c6cdd1', !right); if (cupM) inner.add(cupM); }
+          if (showF) { var l1 = nv3Rod([0, 0, 0], [0, 1, 0], 5, '#9aa4aa'), l2 = nv3Rod([0, 0, 0], [0, 1, 0], 5.5, '#b9c1c6'); root.add(l1); root.add(l2);
+            NV3.links.push({ a: [right ? x + w - 22 : x + 22, 30, hz], cup: [cxp, 8, hz], inner: inner, l1: l1, l2: l2 }); }
+        } else {
+          var sx0 = m.hingeLeft ? x + 16 : x + w - 16;
+          if (showF) { var cup = new T.Mesh(new T.CylinderGeometry(17.5, 17.5, 5, 28), nv3Mat('#b9c1c6', metal)); cup.position.set(cxp, 2.5, hz); inner.add(cup); }
+          root.add(nv3Box([sx0 + (m.hingeLeft ? 0 : -4), 22, hz - 24], [4, 34, 48], '#a6afb4', Object.assign({ noLine: true }, metal)));
+        }
       });
     } else {
       var rail = Math.min(+sec.rail || 500, D - 45); NV3.moving.push({ g: g, door: false, travel: rail * 0.8 });
       var own = (r.panels || []).filter(function (q) { return q.drawerOf === p.name && q.place; });
       if (own.length) own.forEach(function (q) { inner.add(nv3Board(q, MC(q.mat, '#e5e2da'))); });
+      else if (!m.cargo && !door && nv3BlumDrawer(c, r, m, sec, x, z, w, h, inner, root, rail)) { /* drawn from Blum's models */ }
       else if (!m.cargo && !door) {   // a metal-sided box (TANDEMBOX and the like): sides, bottom, back
         var bw = w - 36, bx = x + 18, sh = Math.max(60, Math.min(h - 45, 170)), bz = z + 22, dep = rail - 10, grey = Object.assign({ noLine: false }, { metalness: 0.75, roughness: 0.38 });
         inner.add(nv3Box([bx, 0, bz], [13, dep, sh], '#c9cfd3', grey)); inner.add(nv3Box([bx + bw - 13, 0, bz], [13, dep, sh], '#c9cfd3', grey));
@@ -210,6 +260,14 @@ function nv3Build() {
 }
 function nv3Pose() {   // doors and drawers at the opening of the slider
   (NV3.moving || []).forEach(function (m) { if (m.door) m.g.rotation.z = m.hinged ? m.sign * NV3.open * Math.PI * 0.55 : 0; else m.g.position.y = -m.travel * NV3.open; });
+  if (!NV3.links || !NV3.links.length) return;
+  var T = NV3.T, up = new T.Vector3(0, 1, 0); NV3.root.updateMatrixWorld(true);
+  var set = function (mesh, A, B) { var d = B.clone().sub(A), len = d.length(); mesh.visible = len > 6; if (!mesh.visible) return; mesh.position.copy(A).addScaledVector(d, 0.5); mesh.scale.set(1, len, 1); mesh.quaternion.setFromUnitVectors(up, d.normalize()); };
+  NV3.links.forEach(function (k) {   // the hinge's links between the arm on the side and the cup on the door, wherever the door is
+    var A = new T.Vector3().fromArray(k.a), C = NV3.root.worldToLocal(k.inner.localToWorld(new T.Vector3().fromArray(k.cup)));
+    var gap = C.distanceTo(A), M = A.clone().add(C).multiplyScalar(0.5); M.y -= Math.min(14, gap * 0.25);
+    var show = gap > 22; k.l1.visible = k.l2.visible = show; if (show) { set(k.l1, A, M); set(k.l2, M, C); }
+  });
 }
 function nv3View(kind) {
   var T = NV3.T, c = cur(); if (!c || !NV3.cam) return;
