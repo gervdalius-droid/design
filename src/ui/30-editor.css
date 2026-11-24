@@ -1,0 +1,306 @@
+/* 30-editor.css — the cabinet workspace: strip · canvas (the picture) · inspector (rail, topic, footer).
+   From 1100 px up the workspace is exactly one screen high: the picture stays put, the strip and the topic scroll
+   inside. Below that the three parts stack and the page scrolls. */
+.nv-tab-cab .nv-main{padding-bottom:16px}
+.nve-ws{display:grid;grid-template-columns:224px minmax(0,1fr) minmax(430px,500px);gap:16px;height:calc(100vh - var(--nv-top) - 36px);min-height:540px}
+
+/* ---- state mark: shape + colour */
+.nve-mark{flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font:700 11.5px/1 var(--f-body);color:#fff;background:var(--line2)}
+.nve-mark.error{background:var(--bad)}
+.nve-mark.todo{background:var(--accent)}
+.nve-mark.warn{background:#d79a12}
+.nve-mark.ok{background:none;color:var(--ok);font-size:13px}
+
+/* ---- strip */
+.nve-strip{display:flex;flex-direction:column;min-height:0;gap:8px}
+.nve-strip-h{display:flex;align-items:center;gap:8px;padding:2px 4px 0;font:600 12px/1.2 var(--f-display);letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.nve-strip-h b{font-weight:600;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:1px 7px;letter-spacing:0}
+.nve-cards{flex:0 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:6px;padding:2px;margin:-2px;scrollbar-width:thin}
+.nve-card{flex:none;display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:8px 10px 8px 8px;border:1px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;color:var(--ink);min-height:66px}
+.nve-card:hover{border-color:var(--line2);box-shadow:var(--nv-shadow)}
+.nve-card.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset;background:var(--accent-soft)}
+.nve-mini{flex:none;width:46px;height:50px;border-radius:7px;background:var(--sunk);display:grid;place-items:center;padding:4px;overflow:hidden}
+.nve-card.on .nve-mini{background:var(--panel)}
+.nve-mini svg{width:100%;height:100%;filter:none;display:block}
+.nve-ci{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nve-cn{display:flex;align-items:baseline;gap:6px;min-width:0}
+.nve-cn i{font-style:normal;font:700 12px var(--f-body);color:var(--muted);flex:none}
+.nve-card.on .nve-cn i{color:var(--accent)}
+.nve-cn b{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nve-ci small{font-size:12px;color:var(--muted);white-space:nowrap}
+.nve-new{flex:none;min-height:44px;border:1.5px dashed var(--line2);border-radius:12px;background:none;color:var(--ink);font-weight:600;font-size:14px;cursor:pointer}
+.nve-new:hover{border-color:var(--ink);border-style:solid;background:var(--panel)}
+
+/* ---- canvas */
+.nve-canvas{padding:0;display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+.nve-chead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px 10px 18px;flex:none}
+.nve-ctitle{display:flex;align-items:baseline;gap:12px;min-width:0}
+.nve-ctitle b{font:700 17px/1.2 var(--f-display);letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nve-ctitle b i{font-style:normal;color:var(--muted);font-weight:600;margin-right:8px}
+.nve-ctitle span{color:var(--muted);font-size:13px;white-space:nowrap}
+.nv-app .nve-view{flex:none}
+.nve-stage{flex:1;min-height:0;display:grid;place-items:center;padding:48px 104px 48px 104px;container-type:size;background:var(--sunk);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.nve-pic{position:relative;width:min(100cqw,calc(100cqh * var(--a,1)));aspect-ratio:var(--a,1)}
+.nve-pic>svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:hidden}   /* fronts of an overfull column run past the top: cut at the picture */
+.nve-tip{margin:0;padding:7px 18px 0;font-size:12px;color:var(--muted);text-align:center;flex:none}
+.nve-nopic{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;border:1.5px dashed var(--line2);border-radius:12px;color:var(--muted);padding:16px}
+.nve-nopic b{color:var(--ink);font-size:15px}
+.nve-nopic .nv-btn{margin-top:6px}
+
+/* the button layer: per cent of the picture's viewBox */
+.nve-colhit,.nve-hit{position:absolute;margin:0;padding:0;border:0;background:none;border-radius:3px;cursor:pointer;font:inherit;color:inherit}
+.nve-colhit{cursor:default}
+.nve-colhit.on{box-shadow:0 -3px 0 0 var(--accent)}
+.nve-colhit.warn{box-shadow:inset 0 0 0 2px #d79a12}
+.nve-colhit.error{box-shadow:inset 0 0 0 2px var(--bad)}
+.nve-hit{transition:box-shadow .1s,background .1s}
+.nve-hit:hover{box-shadow:inset 0 0 0 2px rgba(28,33,30,.7);background:rgba(255,255,255,.16)}
+.nve-hit.warn{box-shadow:inset 0 0 0 2px #d79a12}
+.nve-hit.error{box-shadow:inset 0 0 0 2px var(--bad);background:rgba(179,38,30,.08)}
+.nve-hit.on,.nve-hit.on:hover{box-shadow:inset 0 0 0 2.5px var(--accent),0 0 0 3px rgba(42,85,217,.22);background:rgba(42,85,217,.10)}
+.nve-hit.on.error{box-shadow:inset 0 0 0 2.5px var(--accent),0 0 0 3px rgba(179,38,30,.55)}
+.nve-chip{position:absolute;left:6px;top:6px;display:none;padding:2px 9px;border-radius:999px;background:var(--ink);color:#fff;font:600 12px/1.5 var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.nve-hit:hover .nve-chip,.nve-hit:focus-visible .nve-chip{display:block}
+.nve-hit.on .nve-chip{display:block;background:var(--accent)}
+.nve-flag{position:absolute;right:6px;top:6px;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;background:#d79a12;color:#fff;font:700 12px/1 var(--f-body);pointer-events:none}
+.nve-hit.error .nve-flag{background:var(--bad)}
+
+/* "+" above a column (or the whole of an empty column), with the menu of kinds */
+.nve-add{position:absolute;top:-38px;width:28px;margin-left:-14px;z-index:2}
+.nve-add[open]{z-index:6}
+.nve-add>summary{list-style:none;box-sizing:border-box;padding:0;width:28px;height:28px;border-radius:50%;border:1px solid var(--line2);background:var(--panel);color:var(--ink);display:grid;place-items:center;font:600 19px/1 var(--f-body);cursor:pointer;box-shadow:var(--nv-shadow);user-select:none}
+.nve-add>summary::-webkit-details-marker{display:none}
+.nve-add>summary:hover,.nve-add[open]>summary{background:var(--ink);border-color:var(--ink);color:#fff}
+.nve-add-menu{position:absolute;top:34px;left:50%;transform:translateX(-50%);min-width:176px;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--nv-shadow-lg);display:flex;flex-direction:column;gap:1px}
+.nve-add.l .nve-add-menu{left:-6px;transform:none}
+.nve-add.r .nve-add-menu{left:auto;right:-6px;transform:none}
+.nve-add-t{padding:4px 10px 5px;font-size:11.5px;font-weight:600;color:var(--muted);white-space:nowrap}
+.nve-add-menu button{display:flex;align-items:center;gap:10px;min-height:36px;padding:5px 10px;border:0;border-radius:8px;background:none;cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink);text-align:left;white-space:nowrap}
+.nve-add-menu button:hover{background:var(--sunk)}
+.nve-add-menu svg{width:22px;height:22px;flex:none;color:var(--muted)}
+.nve-add-empty{margin-left:0;width:auto;z-index:3;container-type:size}
+@container (max-width:96px){.nve-add-empty>summary span{display:none}}
+.nve-add-empty>summary{position:absolute;inset:4px;width:auto;height:auto;border-radius:8px;border:1.5px dashed rgba(28,33,30,.45);background:rgba(255,255,255,.72);box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font:600 12.5px/1.2 var(--f-body);text-align:center;padding:4px;overflow:hidden}
+.nve-add-empty>summary b{font:500 24px/1 var(--f-body)}
+.nve-add-empty>summary span{float:none;background:none;padding:0;border-radius:0}
+.nve-add-empty>summary:hover,.nve-add-empty[open]>summary{background:var(--panel);border-color:var(--ink);border-style:solid;color:var(--ink)}
+.nve-add-empty .nve-add-menu{top:50%;transform:translate(-50%,-50%)}
+.nve-add-empty.l .nve-add-menu{left:4px;transform:translateY(-50%)}
+.nve-add-empty.r .nve-add-menu{right:4px;transform:translateY(-50%)}
+
+/* the outer sizes: a thin dimension line with the number on it; the number is the button */
+.nve-dim{position:absolute;margin:0;padding:0;border:0;background:none;cursor:pointer;font:inherit;color:var(--ink)}
+.nve-dim i{position:absolute;background:#b9b4a6}
+.nve-dim b{position:absolute;padding:2px 10px;border-radius:999px;border:1px solid var(--line2);background:var(--panel);font:600 13px/1.45 var(--f-body);font-variant-numeric:tabular-nums;white-space:nowrap;box-shadow:0 1px 2px rgba(28,33,30,.06)}
+.nve-dim b small{font-weight:500;font-size:11.5px;color:var(--muted)}
+.nve-dim:hover b,.nve-dim:focus-visible b{border-color:var(--ink);background:var(--ink);color:#fff}
+.nve-dim:hover b small,.nve-dim:focus-visible b small{color:rgba(255,255,255,.75)}
+.nve-dim-w{top:calc(100% + 10px);height:26px}
+.nve-dim-w i{left:0;right:0;top:12px;height:1px}
+.nve-dim-w::before,.nve-dim-w::after{content:'';position:absolute;top:7px;width:1px;height:11px;background:#b9b4a6}
+.nve-dim-w::before{left:0}.nve-dim-w::after{right:0}
+.nve-dim-w b{left:50%;top:0;transform:translateX(-50%)}
+.nve-dim-h{right:calc(100% + 12px);width:26px}
+.nve-dim-h i{top:0;bottom:0;left:12px;width:1px}
+.nve-dim-h::before,.nve-dim-h::after{content:'';position:absolute;left:7px;height:1px;width:11px;background:#b9b4a6}
+.nve-dim-h::before{top:0}.nve-dim-h::after{bottom:0}
+.nve-dim-h b{top:50%;left:50%;transform:translate(-50%,-50%)}
+.nve-dim-d{width:0;height:0}
+.nve-dim-d i{left:5px;top:-4px;width:26px;height:1px;transform-origin:0 50%;transform:rotate(-38deg)}
+.nve-dim-d b{left:24px;bottom:16px}
+
+/* the 3-D view (the live widget, mounted by the core) */
+.nve-3d{flex:1;min-height:0;overflow:auto;border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;flex-direction:column}
+.nve-3d #assembly-preview{flex:1;min-height:0;display:flex;flex-direction:column}
+.nve-3d .av:not(.full){flex:1;min-height:0;display:flex;flex-direction:column;border:0;border-radius:0;box-shadow:none}
+.nve-3d .av:not(.full) .av-stage{flex:1;height:auto;min-height:280px}
+.nve-3d .av:not(.full) .av-head{display:none}   /* the canvas header already names the cabinet */
+.nve-3d .av:not(.full) .av-tools{padding-top:12px}
+
+/* this cabinet's open issues */
+.nve-iss{flex:none;padding:8px 14px 12px;display:flex;flex-direction:column;gap:5px;max-height:38%;overflow:auto}
+.nve-ir{display:flex;align-items:center;gap:10px;padding:4px 5px 4px 10px;border-radius:10px;border:1px solid var(--line);background:var(--panel);min-height:38px}
+.nve-ir.error{border-color:var(--bad-line);background:var(--bad-bg)}
+.nve-ir.warn{border-color:var(--warn-line);background:var(--warn-bg)}
+.nve-ir.todo{border-color:#b9c8f6;background:var(--accent-soft)}
+.nve-ir.ok{border-color:transparent;background:none;color:var(--muted);min-height:30px;padding-left:4px}
+.nve-im{flex:1;min-width:0;font-size:12.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.nve-ir .nv-btn{flex:none;background:var(--panel)}
+.nve-more{align-self:flex-start;border:0;background:none;padding:2px 4px;font:600 13px var(--f-body);color:var(--muted);cursor:pointer}
+button.nve-more:hover{color:var(--ink);text-decoration:underline}
+
+/* ---- inspector */
+.nve-insp{padding:0;display:grid;grid-template-columns:78px minmax(0,1fr);min-height:0;overflow:hidden}
+.nve-rail{display:flex;flex-direction:column;gap:2px;padding:8px 6px;background:var(--sunk);border-right:1px solid var(--line);overflow:auto;scrollbar-width:none}
+.nve-tab{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;border:0;border-radius:10px;background:none;cursor:pointer;color:var(--muted);font:600 11.5px/1.2 var(--f-body)}
+.nve-tab:hover{background:rgba(28,33,30,.06);color:var(--ink)}
+.nve-tab.on{background:var(--panel);color:var(--ink);box-shadow:0 0 0 1px var(--line),0 1px 3px rgba(28,33,30,.08)}
+.nve-tab-ic{width:26px;height:26px;display:grid;place-items:center;font-size:17px;line-height:1}
+.nve-tab-ic svg{width:24px;height:24px}
+.nve-tab-ic em{font-style:normal;width:22px;height:22px;border-radius:50%;border:1.5px solid currentColor;display:grid;place-items:center;font-size:12px;font-weight:700}
+.nve-tab-l{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nve-tab .nve-mark{position:absolute;top:4px;right:8px;width:15px;height:15px;font-size:10px;box-shadow:0 0 0 2px var(--sunk)}
+.nve-tab.on .nve-mark{box-shadow:0 0 0 2px var(--panel)}
+.nve-tab .nve-mark.ok{box-shadow:none;font-size:11px;opacity:.75}
+.nve-pane{display:flex;flex-direction:column;min-height:0;min-width:0}
+.nve-phead{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 12px;border-bottom:1px solid var(--line)}
+.nve-phead .nv-h2{margin:0;font-size:19px}
+.nve-body{flex:1;min-height:0;overflow:auto;padding:16px 18px 20px;overscroll-behavior:contain;scrollbar-width:thin}
+.nve-foot{flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--line);background:var(--panel)}
+.nve-foot .pri{min-width:0;max-width:calc(100% - 96px)}
+.nve-foot .pri span{overflow:hidden;text-overflow:ellipsis}
+
+/* fields inside the inspector: the live helpers in a ~400 px column */
+.nve-body .nv-grp>h4 small{font-weight:500}
+.nve-body .f.grow{flex:1 1 100%}
+.nve-body .f select{width:100%;font-weight:600}
+.nve-body .nv-fields .f:not(.n){flex:1 1 150px}
+.nve-body .nv-adv>summary small{margin-left:auto;font-weight:500;font-size:12px;color:var(--muted)}
+.nve-body .nv-adv[open]>summary small{display:none}
+.nve-body .nv-adv>.nv-fields,.nve-body .nv-adv>.nv-hint{margin-bottom:4px}
+.nve-namegrp input{font-weight:600;font-size:15px}
+.nve-dims{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.nve-dims .f>span{display:flex;align-items:center;gap:5px;font-size:12.5px}
+.nve-dims .f>span svg{width:18px;height:18px;flex:none;color:var(--ink)}
+.nv-app .nve-dims .f.n input{width:100%;min-height:56px;text-align:center;font:700 24px/1 var(--f-body);font-variant-numeric:tabular-nums;letter-spacing:-.4px;border-radius:12px;padding:6px 4px}
+.nve-acts .nv-row{gap:8px}
+.nve-acts .nve-libon{color:var(--accent);border-color:#b9c8f6;background:var(--accent-soft)}
+.nve-acts .danger{margin-left:auto}
+.nve-acts .danger.sure{background:var(--bad);border-color:var(--bad);color:#fff}
+.nve-ebs{margin-top:12px}
+.nve-ebs .ebs{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.nve-ebs .ebx{font:500 13px var(--f-body);color:var(--ink);gap:6px}
+.nve-ebs .ebx input{width:17px;height:17px;accent-color:var(--ink)}
+.nve-wt .wtblk .lbl{margin-top:0!important;font:700 14px/1.2 var(--f-display);margin-bottom:10px}
+
+/* inside: partitions, the zone bar, the list */
+.nve-colw{margin-top:12px}
+.nve-colw .colrest{font:600 15px var(--f-body);font-variant-numeric:tabular-nums;padding:8px 0;min-height:38px;display:flex;align-items:center}
+.nve-cols{display:flex;gap:4px;padding:3px;border-radius:12px;background:var(--sunk);border:1px solid var(--line);margin-bottom:10px}
+.nve-cols button{min-width:92px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 10px;border:0;border-radius:9px;background:none;cursor:pointer;color:var(--muted);text-align:left;overflow:hidden}
+.nve-cols button b{font-size:13.5px;font-weight:600;color:inherit}
+.nve-cols button span{font-size:11.5px;white-space:nowrap}
+.nve-cols button:hover{color:var(--ink)}
+.nve-cols button.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.nve-cols button.over b::after{content:' !';color:var(--bad);font-weight:700}
+.nve-zone{padding:10px 12px;border-radius:10px;background:var(--sunk);border:1px solid var(--line)}
+.nve-zbar{position:relative;display:flex;gap:2px;height:10px;border-radius:5px;background:var(--panel);box-shadow:inset 0 0 0 1px var(--line2);overflow:hidden}
+.nve-zbar i{min-width:2px;background:var(--ink)}
+.nve-zbar i.fill{background:repeating-linear-gradient(135deg,#8d958f 0 4px,#a9b0aa 4px 8px)}
+.nve-zbar i.on{background:var(--accent)}
+.nve-zbar i.free{background:none}
+.nve-zbar u{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--bad)}
+.nve-ztxt{margin-top:7px;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.nve-ztxt b{color:var(--ink);font-weight:600}
+.nve-ztxt .gapw{color:var(--warn)}
+.nve-znote{margin:4px 0 0;font-size:12.5px;line-height:1.4;color:var(--warn)}
+.nve-zone.gap{border-color:var(--warn-line);background:var(--warn-bg)}
+.nve-zone.over{border-color:var(--bad-line);background:var(--bad-bg)}
+.nve-zone.over .nve-zbar i{background:var(--bad)}
+.nve-zone.over .nve-zbar u{background:var(--ink)}
+.nve-zone.over .nve-ztxt b,.nve-zone.over .nve-znote{color:var(--bad)}
+.nve-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.nve-row{display:flex;align-items:stretch;border:1px solid var(--line);border-radius:10px;background:var(--panel);overflow:hidden}
+.nve-row:hover{border-color:var(--line2)}
+.nve-row-m{flex:1;min-width:0;display:flex;align-items:center;gap:10px;padding:8px 6px 8px 10px;border:0;background:none;cursor:pointer;text-align:left;color:var(--ink);min-height:50px}
+.nve-row-m:hover{background:var(--sunk)}
+.nve-row-m svg{width:26px;height:26px;flex:none;color:var(--muted)}
+.nve-row-t{flex:1;min-width:0;display:flex;flex-direction:column}
+.nve-row-t b{font-size:14px;font-weight:600}
+.nve-row-t small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nve-row-h{flex:none;font-weight:600;font-size:13.5px;text-align:right;display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
+.nve-row-h small{font-weight:500;font-size:11px;color:var(--muted)}
+.nve-row-x,.nve-sectools{flex:none;display:flex;align-items:center;gap:2px;padding:0 6px 0 2px}
+.nve-row-x button,.nve-sectools button{min-width:30px;height:34px;border:1px solid transparent;border-radius:8px;background:none;cursor:pointer;color:var(--muted);font-size:12px;padding:0 6px}
+.nve-row-x button:hover:not(:disabled),.nve-sectools button:hover:not(:disabled){background:var(--sunk);border-color:var(--line);color:var(--ink)}
+.nve-row-x button:disabled,.nve-sectools button:disabled{opacity:.25;cursor:default}
+.nve-row-x button.x:hover,.nve-sectools button.x:hover{color:var(--bad);border-color:var(--bad-line);background:var(--bad-bg)}
+.nve-none{padding:18px 14px;font-size:13px}
+.nve-addrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.nve-addl{flex-basis:100%;font-size:12px;font-weight:600;color:var(--muted)}
+.nve-addk{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 11px 4px 7px;border:1px solid var(--line2);border-radius:999px;background:var(--panel);cursor:pointer;font-weight:600;font-size:13px;color:var(--ink)}
+.nve-addk::before{content:'+';font-weight:600;color:var(--muted);margin-left:2px}
+.nve-addk svg{width:20px;height:20px;color:var(--muted)}
+.nve-addk:hover{border-color:var(--ink)}
+
+/* inside: the selected section */
+.nve-sechead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-6px -6px 10px -8px}
+.nve-sectools{padding:0}
+.nve-sectools button.x{font-size:12.5px;font-weight:600;padding:0 9px}
+.nve-sec{border:1.5px solid var(--accent);border-radius:12px;padding:14px;background:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
+.nve-sectitle{display:flex;align-items:center;gap:12px}
+.nve-sectitle svg{width:38px;height:38px;flex:none;color:var(--accent)}
+.nve-sectitle b{display:block;font:700 20px/1.15 var(--f-display);letter-spacing:-.3px}
+.nve-sectitle small{color:var(--muted);font-size:12.5px}
+.nve-kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:14px}
+.nve-kinds button{display:flex;align-items:center;gap:7px;min-height:36px;padding:4px 8px;border:1px solid var(--line);border-radius:9px;background:var(--panel);cursor:pointer;color:var(--muted);font:600 12.5px/1.2 var(--f-body);min-width:0}
+.nve-kinds button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nve-kinds button svg{width:22px;height:22px;flex:none}
+.nve-kinds button:hover{border-color:var(--line2);color:var(--ink);background:var(--sunk)}
+.nve-kinds button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.nve-hrow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:14px;padding:9px 12px;border-radius:10px;background:var(--sunk);min-height:58px}
+.nve-hrow .nve-sw{flex:1 1 auto;min-width:0}
+.nve-hrow .f.n{display:contents}   /* label, field and the field's message become parts of the row: the message gets its own line */
+.nve-hrow .f.n>span{order:3;font-size:13px;font-weight:600;color:var(--muted)}
+.nv-app .nve-hrow .f.n input{order:2;width:92px;flex:none}
+.nve-hrow .nv-fmsg{order:4;margin-top:0}
+.nve-hval{font:700 17px/1.3 var(--f-body);white-space:nowrap}
+/* the "takes the remaining height" switch: the live checkbox, drawn as a switch */
+.nve-sw .chk{gap:10px;font-weight:600;font-size:13.5px}
+.nv-app .nve-sw .chk input{appearance:none;-webkit-appearance:none;flex:none;width:38px;height:22px;border-radius:11px;background:var(--line2);position:relative;cursor:pointer;transition:background .15s;margin:0}
+.nve-sw .chk input::after{content:'';position:absolute;left:2px;top:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.nve-sw .chk input:checked{background:var(--ink)}
+.nve-sw .chk input:checked::after{transform:translateX(16px)}
+.nve-secf{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:flex-start;margin-top:14px}
+.nve-secf>.f{flex:1 1 150px}
+.nve-secf>.f.nve-wide{flex:1 1 100%}
+.nve-secf>.f.n{flex:0 1 auto}
+.nve-secf>.f.nve-stepf{flex:0 0 auto}
+.nve-secf>.nve-wide{flex:1 1 100%;margin:0}
+.nve-secf .seg{align-self:flex-start}
+.nve-stepf .nv-step{align-self:flex-start}
+.nve-fh{font-size:12px;color:var(--muted)}
+.nve-sec .fronts{margin-top:14px;padding-top:12px}
+.nve-sec .fh-head .unit{font:500 12px var(--f-body)}
+.nve-sec .fh input{border-radius:8px;font:600 14px var(--f-body);font-variant-numeric:tabular-nums}
+.nve-sec .fh-no,.nve-sec .fh-real{font-family:var(--f-body);font-variant-numeric:tabular-nums}
+.nve-sec>.nv-hint{margin-top:12px}
+.nve-sec .nve-zonewrap{margin-top:8px}
+.nve-sec .nve-zone{padding:8px 12px}
+.nve-body .fgblk .lbl,.nve-body .shfront .f>span{font-weight:700;font-size:13px;color:var(--ink);margin-bottom:6px}
+.nve-body .shfront{border-top:1px dashed var(--line2)}
+
+@media (max-width:1320px) and (min-width:1100px){
+  .nve-ws{grid-template-columns:200px minmax(0,1fr) minmax(400px,440px);gap:12px}
+  .nve-stage{padding:48px 96px}
+}
+/* ---- stacked: strip as a row of cards, then the picture, then the inspector */
+@media (max-width:1099px){
+  .nve-ws{display:flex;flex-direction:column;height:auto;min-height:0;gap:12px}
+  .nve-strip{flex-direction:row;align-items:stretch;gap:8px}
+  .nve-strip-h{display:none}
+  .nve-cards{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:2px;scroll-snap-type:x proximity}
+  .nve-card{width:auto;min-width:168px;max-width:220px;scroll-snap-align:start}
+  .nve-new{flex:none;padding:0 14px;white-space:nowrap}
+  .nve-stage{flex:none;height:min(58vh,520px);min-height:300px;padding:46px 92px 46px 68px}
+  .nve-3d{flex:none}
+  .nve-iss{max-height:none}
+  .nve-insp{grid-template-columns:minmax(0,1fr);overflow:visible}
+  .nve-rail{flex-direction:row;border-right:0;border-bottom:1px solid var(--line);padding:6px;border-radius:12px 12px 0 0}
+  .nve-tab{min-width:70px;padding:7px 8px 6px}
+  .nve-tab .nve-mark{right:14px}
+  .nve-body{overflow:visible}
+  .nve-foot{position:sticky;bottom:0;border-radius:0 0 12px 12px;box-shadow:0 -6px 14px rgba(28,33,30,.06)}
+}
+@media (max-width:560px){
+  .nve-new{font-size:0;padding:0 16px}
+  .nve-new::before{content:'+';font-size:22px;font-weight:500}
+  .nve-chead{padding:10px 10px 8px 14px}
+  .nve-ctitle{flex-direction:column;gap:0}
+  .nve-stage{padding:44px 84px 44px 56px;height:min(52vh,430px)}
+  .nve-tip{display:none}
+  .nve-body{padding:14px 14px 18px}
+  .nve-phead{padding:12px 14px 10px}
+  .nve-kinds{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media print{.nve-strip,.nve-insp,.nve-add{display:none}}

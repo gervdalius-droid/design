@@ -1,0 +1,99 @@
+/* 50-check.css — stage "Patikra": one readable column; state colours only on what carries state */
+.nvk{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+
+/* the one big state */
+.nvk-head{display:flex;align-items:center;gap:18px;padding:22px 24px;flex-wrap:wrap;border-left-width:5px}
+.nvk-head.st-blocked{border-left-color:var(--bad)}
+.nvk-head.st-warn{border-left-color:#d79a12}
+.nvk-head.st-ok{border-left-color:var(--ok)}
+.nvk-head.st-none{border-left-color:var(--line2)}
+.nvk-head.st-none .nvk-ico{background:var(--sunk);color:var(--muted);border:1.5px solid var(--line2)}
+.nvk-ico{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;flex:none;font:700 24px/1 var(--f-display);color:#fff;background:var(--ok)}
+.nvk-head.st-blocked .nvk-ico{background:var(--bad)}
+.nvk-head.st-warn .nvk-ico{background:var(--warn-bg);color:var(--warn);border:1.5px solid var(--warn-line)}
+.nvk-ht{flex:1 1 320px;min-width:0}
+.nvk-hb{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.nvk-hb .nv-badge{font-size:13px;padding:4px 11px}
+
+/* filter chips */
+.nvk-filter{display:flex;gap:6px;flex-wrap:wrap}
+.nvk-chip{display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:5px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--panel);color:var(--muted);font-weight:600;font-size:13px;cursor:pointer}
+.nvk-chip:hover{border-color:var(--ink);color:var(--ink)}
+.nvk-chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.nvk-chip i{font-style:normal;font-size:11px;font-variant-numeric:tabular-nums;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--sunk);color:var(--muted);text-align:center}
+.nvk-chip i.bad{background:var(--bad);color:#fff}
+.nvk-chip i.warn{background:var(--warn-bg);color:var(--warn);box-shadow:inset 0 0 0 1px var(--warn-line)}
+.nvk-chip.on i:not(.bad):not(.warn){background:rgba(255,255,255,.18);color:#fff}
+
+/* groups: the project, then every cabinet */
+.nvk-groups{display:flex;flex-direction:column;gap:10px}
+.nvk-grp{padding:14px 16px 16px}
+.nvk-gh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.nvk-pic{width:48px;height:48px;flex:none;border-radius:9px;background:var(--sunk);border:1px solid var(--line);display:grid;place-items:center;color:var(--muted);overflow:hidden}
+.nvk-pic svg{width:40px;height:40px;display:block}
+.nvk-gt{display:flex;flex-direction:column;min-width:0;flex:1 1 180px;line-height:1.3}
+.nvk-gt b{font:700 16px/1.25 var(--f-display);letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis}
+.nvk-gt span{font-size:12.5px}
+.nvk-gb{display:flex;gap:5px;flex-wrap:wrap}
+
+/* a row: mark · sentence + hint · actions */
+.nvk-row{align-items:center;padding:10px 12px 10px 12px}
+.nvk-mark{width:22px;height:22px;border-radius:50%;flex:none;display:grid;place-items:center;font:700 12px/1 var(--f-body);color:#fff;background:var(--muted)}
+.nvk-mark.error{background:var(--bad)}
+.nvk-mark.todo{background:var(--panel);border:2px solid var(--accent)}
+.nvk-mark.warn{background:#e9b53a;color:#3d2a00}
+.nvk-mark.ok{background:var(--ok)}
+.nvk-mark.info{background:var(--line2);color:var(--ink);font-style:italic;font-family:Georgia,serif}
+.nvk-tx{flex:1;min-width:0}
+.nvk-msg{font-weight:500;line-height:1.4;overflow-wrap:anywhere}
+.nvk-tx .nv-hint{margin:2px 0 0}
+.nvk-cabn{font-weight:700}
+.nvk-acts{display:flex;gap:6px;align-items:center;flex:none;flex-wrap:wrap;justify-content:flex-end}
+.nvk-row .nv-btn.ghost{background:rgba(255,255,255,.6);border-color:var(--line2)}
+.nvk-row .nv-btn.ghost:hover{background:var(--panel);border-color:var(--ink)}
+.nvk-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* a cabinet with nothing open: one quiet line */
+.nvk-ok{display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:10px;border:1px solid var(--ok-line);background:var(--ok-bg);color:var(--ink);font-size:13.5px}
+details.nvk-ok{display:block;padding:0}
+details.nvk-ok>summary{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;list-style:none}
+details.nvk-ok>summary::-webkit-details-marker{display:none}
+details.nvk-ok>summary::after{content:'›';margin-left:auto;font-size:16px;color:var(--muted);transition:transform .15s}
+details.nvk-ok[open]>summary::after{transform:rotate(90deg)}
+.nvk-okn{font-size:12.5px}
+.nvk-notelist{margin:0;padding:2px 16px 12px 46px;display:flex;flex-direction:column;gap:5px;font-size:13px;line-height:1.45;color:var(--ink)}
+.nvk-notelist li{overflow-wrap:anywhere}
+
+/* workshop notes, closed */
+.nvk-notes{padding:0}
+.nvk-notes>summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:13px 16px;cursor:pointer;list-style:none}
+.nvk-notes>summary::-webkit-details-marker{display:none}
+.nvk-notes>summary::before{content:'›';font-size:17px;line-height:1;color:var(--muted);transition:transform .15s}
+.nvk-notes[open]>summary::before{transform:rotate(90deg)}
+.nvk-notes>summary .nv-muted{font-size:12.5px}
+.nvk-notes .nvk-notelist{padding:0 18px 16px 40px}
+.nvk-none{padding:22px}
+
+/* footer: always in reach */
+.nvk-foot{position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:6px;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border:1px solid var(--line);box-shadow:var(--nv-shadow-lg)}
+.nvk-foot .nv-grow{flex:1}
+.nvk-why{font-size:13px;font-weight:600;color:var(--bad)}
+.nvk-why.ok{color:var(--muted);font-weight:500}
+
+@media (max-width:760px){
+  .nvk-head{padding:16px;gap:12px}
+  .nvk-ico{width:40px;height:40px;font-size:19px}
+  .nvk-head .nv-h1{font-size:21px}
+  .nvk-hb{justify-content:flex-start;width:100%}
+  .nvk-row{flex-wrap:wrap}
+  .nvk-tx{flex:1 1 calc(100% - 40px)}
+  .nvk-acts{width:100%;justify-content:flex-start;padding-left:32px}
+  .nvk-gh .nv-btn{margin-left:auto}
+  .nvk-foot{bottom:8px;padding:8px}
+  .nvk-foot .nv-btn.ghost{order:2}
+  .nvk-foot .nv-grow{display:none}
+  .nvk-why{width:100%;order:0;text-align:center}
+  .nvk-foot .nv-btn.pri{order:3;flex:1}
+  .nvk-notelist{padding-left:30px}
+}
+@media print{.nvk-foot,.nvk-filter{display:none}}

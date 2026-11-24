@@ -1,0 +1,430 @@
+/* 40-skin.css — the live app's own widgets in the new look, and the frame of the layout and settings stages.
+
+   The live widgets (whole-furniture editor, 3-D view, joints / edges checks, versions, tables, drawings tab)
+   keep their markup and class names; here they only get the paper theme: tokens of 00-tokens.css, Inter instead
+   of the console's monospace labels, ink-black primary actions, blue for "selected", amber / red for state.
+   Rules: no class starting with nv- is restyled (nvr- is this file's own), the drawing sheets (.paper, the
+   drawing strokes of the views) keep their print-like colours. Widgets that live outside #app (versions dialog,
+   toast, the realistic-picture window, the drag card) are styled without the .nv-app prefix. */
+
+/* ================================================================== 1. frames: Išdėstymas, Nustatymai */
+.nvr-room,.nvr-set{display:flex;flex-direction:column;gap:14px}
+.nvr-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap}
+.nvr-head-t{min-width:0;flex:1 1 420px}
+.nvr-head .nv-lead{max-width:86ch}
+.nvr-chkline{display:inline-flex;align-items:center;gap:9px;min-height:38px;padding:7px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);font-size:13.5px;cursor:pointer;white-space:nowrap;max-width:100%}
+.nvr-chkline:hover{border-color:var(--ink)}
+.nvr-chkline b{font-weight:600}
+.nvr-chk-d{color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.nvr-arrow{font-weight:600}
+.nvr-issues{display:flex;flex-direction:column;gap:6px}
+.nvr-issues .nvr-issue{margin-top:0;padding:8px 10px 8px 12px;align-items:center}
+.nvr-issue .nv-state{margin-top:0}
+.nvr-is-t{flex:1;min-width:0;font-size:13.5px;line-height:1.4}
+.nvr-is-t small{display:block;color:var(--muted);font-size:12.5px}
+.nvr-all{align-self:flex-start}
+.nvr-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px}
+
+.nvr-set{max-width:1140px;margin:0 auto;width:100%}
+.nvr-set-head{align-items:center}
+.nvr-set-body{display:grid;grid-template-columns:232px minmax(0,860px);gap:28px;align-items:start}
+.nvr-set-nav{position:sticky;top:calc(var(--nv-top) + 16px);max-height:calc(100vh - var(--nv-top) - 32px);overflow:auto;display:flex;flex-direction:column;gap:14px;padding:2px 2px 8px}
+.nvr-nav-g{display:flex;flex-direction:column;gap:1px}
+.nvr-nav-gt{font:600 11px/1.2 var(--f-body);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding:0 10px 5px}
+.nvr-nav-a{display:flex;align-items:center;justify-content:space-between;gap:8px;text-align:left;border:0;background:none;border-radius:8px;padding:7px 10px;min-height:34px;font-size:13.5px;line-height:1.3;color:var(--ink);cursor:pointer}
+.nvr-nav-a:hover{background:var(--panel)}
+.nvr-nav-a[aria-current="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nvr-set-col{display:flex;flex-direction:column;gap:26px;min-width:0}
+.nvr-set-grp{display:flex;flex-direction:column;gap:12px}
+.nvr-set-gt{margin:0}
+.nvr-set-ver{margin:0;color:var(--muted);font-size:12px}
+.nv-app .nvr-card{padding:20px 22px;scroll-margin-top:calc(var(--nv-top) + 14px)}
+.nvr-card .nvr-h{font:700 17px/1.25 var(--f-display);letter-spacing:-.2px;margin:0 0 4px;scroll-margin-top:calc(var(--nv-top) + 24px)}
+.nvr-card .nvr-h~.nvr-h{margin-top:18px}
+.nvr-card>.row:first-child{margin-bottom:6px}
+.nvr-card>.row:first-child .nvr-h{margin:0}
+.nv-app .nvr-card p.note{margin:0 0 12px;max-width:72ch;font-size:13px;line-height:1.5}
+.nv-app .nvr-card div+p.note{margin-top:12px}
+.nv-app .nvr-card p.note:last-child{margin-bottom:0}
+.nvr-more{margin:0 0 14px}
+.nvr-more:last-child{margin-bottom:0}
+.nv-app .nvr-card .nvr-more p.note{margin:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.nv-app .nvr-card .nvr-more.open p.note{display:block}
+.nvr-more-b{border:0;background:none;padding:2px 0;margin-top:2px;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px}
+.nvr-more-b:hover{text-decoration-color:var(--ink)}
+.nv-app .nvr-card div+.nvr-more{margin-top:12px}
+.nvr-lists{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.nvr-lists .nvr-h{margin:0 0 8px}
+.nvr-lists+p.note{margin:10px 0 0!important}
+
+/* the live settings controls */
+.nv-app .nvr-card textarea{display:block;width:100%;min-height:150px;border:1px solid var(--line2);border-radius:9px;padding:9px 10px;font:13px/1.5 var(--f-body);background:var(--panel);resize:vertical}
+.nv-app .nvr-card textarea:focus,.nv-app .kv input:focus,.nv-app .typecfg select:focus,.nv-app .sin:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nv-app .kv{gap:8px 14px}
+.nv-app .nvr-card>.kv{max-width:600px}   /* label and field stay within one glance */
+.nv-app .kv label{font-size:13.5px;line-height:1.35}
+.nv-app .kv input{border-radius:8px;min-height:34px;padding:6px 9px;font:600 13.5px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .kv input[type=text]:not([inputmode]){text-align:left;font-weight:500}
+.nv-app .sin{border-radius:8px;min-height:34px;font:600 13.5px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .typecfg{gap:8px 12px;font-size:13.5px}
+.nv-app .typecfg select{border-radius:8px;min-height:34px;padding:5px 8px}
+.nv-app .typecfg .th{font:600 11px var(--f-body);letter-spacing:.05em}
+.nv-app .nvr-card .sub{gap:10px}
+.nv-app .prgrid{gap:20px 28px}
+.nv-app .admincard{border-color:var(--warn-line)}
+/* admin pricing: the price card of a cabinet and the project totals (shown only in admin mode) */
+.nv-app .adminbadge{background:var(--warn-bg)!important;color:var(--warn)!important;border-color:var(--warn-line)!important}
+.nv-app .cabprice{color:var(--warn);font:600 11.5px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .pricecard{border-color:var(--warn-line);border-radius:var(--nv-r);background:var(--panel)}
+.nv-app .pricecard>summary b{font:700 17px var(--f-body);font-variant-numeric:tabular-nums;color:var(--warn)}
+.nv-app .pricecard>summary small{font-size:11px}
+.nv-app .pr-r{border-bottom-color:var(--line);font-size:12.5px}
+.nv-app .pr-r b{font:600 12.5px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .pr-r.pt{border-top-color:var(--line2)}
+.nv-app .pr-r.pg{background:var(--ink);color:var(--panel);border-radius:9px}
+.nv-app .pr-r.pb{color:var(--bad)}
+.nv-app .pr-def{color:var(--warn)}
+.nv-app .pr-miss{background:var(--warn-bg);border:1px solid var(--warn-line);border-radius:9px;font-size:12px}
+.nv-app .pricing .pr-tot>div{border-radius:10px}
+.nv-app .pricing .pr-tot span{font-size:12px}
+.nv-app .pricing .pr-tot b{font:700 17px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .pricing .pr-tot .g{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.nv-app .pricing .pr-tot .g span{color:var(--line2)}
+.nv-app .prkv{max-height:320px;scrollbar-width:thin}
+
+/* ================================================================== 2. shared live pieces */
+.nv-app .unit{font:12px var(--f-body);font-variant-numeric:tabular-nums;color:var(--muted)}
+.nv-app .lbl{font:600 12px var(--f-body);color:var(--muted);letter-spacing:0}
+.nv-app .note{font-size:12.5px;line-height:1.5;max-width:72ch}
+.nv-app .note.bad{color:var(--bad)}.nv-app .note.ok{color:var(--ok)}.nv-app .note.warn{color:var(--warn)}
+.nv-app .badge,#verdlg .badge{font:600 11px/1.3 var(--f-body);letter-spacing:.01em;text-transform:none;border-radius:999px;padding:2px 9px;border:1px solid var(--line);background:var(--sunk);color:var(--muted)}
+.nv-app .badge.ok,#verdlg .badge.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+.nv-app .badge.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+.nv-app .btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+.nv-app .btn.ghost:hover:not(:disabled){color:var(--ink);background:var(--sunk);border-color:var(--line)}
+.nv-app .btn.danger{color:var(--bad)}
+.nv-app .btn.danger:hover:not(:disabled){border-color:var(--bad);background:var(--bad-bg)}
+.nv-app .btn.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.nv-app .xbtn{border-radius:8px;border-color:var(--line2)!important;background:var(--panel)!important;color:var(--muted)!important}
+.nv-app .xbtn:hover{border-color:var(--bad)!important;background:var(--bad-bg)!important;color:var(--bad)!important}
+.nv-app .empty{color:var(--muted)}
+/* the old shell's catch-all for <summary> (a count floated right on a grey chip) must not reach the new views */
+:where(.nv-app details:not(.preview-warnings,.technical-preview,.pricecard))>summary{padding:0;font-size:inherit;font-weight:inherit}
+:where(.nv-app details:not(.preview-warnings,.technical-preview,.pricecard)>summary) span{float:none;background:none;border-radius:0;padding:0}
+
+/* tables: the parts list, hardware, the cutting plan */
+.nv-app .tablewrap{border-radius:var(--nv-r);box-shadow:var(--nv-shadow);border-color:var(--line)}
+.nv-app th{font:600 11px var(--f-body);letter-spacing:.05em;padding:10px 12px;background:var(--sunk)}
+.nv-app td{padding:8px 12px}
+.nv-app td.n,.nv-app th.n{font-family:var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app td.mono{font-size:12px}
+.nv-app tr.grp td{font:700 11.5px var(--f-body);letter-spacing:.05em;padding:12px 12px 7px;background:var(--sunk);color:var(--ink)}
+.nv-app tbody tr:last-child td{border-bottom:0}
+.nv-app tbody tr.part.on td{background:var(--accent-soft);box-shadow:inset 0 1px 0 var(--accent-soft)}
+.nv-app tbody tr.part.on td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.nv-app .prog{font:600 11px var(--f-body);border-radius:6px;padding:3px 7px}
+.nv-app .stat b{font:700 26px/1.05 var(--f-display);letter-spacing:-.5px}
+.nv-app .pview{top:calc(var(--nv-top) + 12px)}
+.nv-app .legend{font:11.5px var(--f-body);color:var(--muted)}
+.nv-app pre.code{border-radius:10px}
+.nv-app .ready{border-width:1px}
+.nv-app .ready-h b{font:700 16px var(--f-display)}
+/* cutting plan */
+.nv-app .nestcard h2{font:700 20px/1.2 var(--f-display);letter-spacing:-.3px;margin:0 0 4px}
+.nv-app .nesttab th{background:none;font:600 11px var(--f-body);letter-spacing:.05em;text-transform:uppercase}
+.nv-app .nesttab .nestn{font-weight:700}
+.nv-app .nestbd input{border-radius:8px;min-height:32px;padding:4px 8px;font-variant-numeric:tabular-nums}
+.nv-app .nestmat h3{font:700 15px var(--f-display);letter-spacing:-.1px}
+.nv-app .nestsheet{border-radius:var(--nv-r)}
+/* drawings tab */
+.nv-app .drwhead h2{font:700 20px/1.2 var(--f-display);letter-spacing:-.3px}
+.nv-app .drwctl select{border-radius:9px;min-height:38px}
+.nv-app .drwctl .f>div{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line2);border-radius:10px;background:var(--sunk)}
+.nv-app .drwctl .f>div .btn{border:0;background:none;min-height:30px;padding:5px 12px;border-radius:7px;color:var(--muted)}
+.nv-app .drwctl .f>div .btn.on{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.nv-app .drwcard{border-radius:var(--nv-r);box-shadow:var(--nv-shadow)}
+.nv-app .drwthumb{background:var(--sunk)}
+
+/* ================================================================== 3. the whole-furniture editor (room.js) */
+.nv-app .room{margin-top:0}
+.nv-app .rm-bar{margin-bottom:12px;gap:8px 12px}
+.nv-app .rm-bar .unit{font-size:12.5px}
+.nv-app .rm-render{border-color:var(--line2);color:var(--ink)}
+.nv-app .rm-render:hover{border-color:var(--ink)}
+.nv-app .rm-main{grid-template-columns:212px minmax(0,1fr) 304px;gap:14px}
+.nv-app .rm-pal,.nv-app .rm-ins{border-radius:var(--nv-r);box-shadow:var(--nv-shadow);padding:12px;scrollbar-width:thin}
+.nv-app .rm-stage{border-radius:var(--nv-r);border-color:var(--line);box-shadow:var(--nv-shadow)}
+.nv-app .rm-stage:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.nv-app .rm-zoom{right:10px;bottom:10px;gap:5px}
+.nv-app .rm-zoom button{width:34px;height:34px;border-radius:9px;opacity:1;box-shadow:var(--nv-shadow)}
+.nv-app .rm-zoom button:hover{border-color:var(--ink);color:var(--ink)}
+/* palette: compact rows; a pane of its own, so every chip stays within reach beside the drawing */
+.nv-app .rm-pal{gap:6px}
+.nv-app .rm-pal .lbl{margin:6px 0 0}
+.nv-app .rm-pal .lbl:first-child{margin-top:0}
+.nv-app .rm-pre{gap:4px}
+.nv-app .rm-chip{grid-template-columns:30px minmax(0,1fr);gap:9px;border-color:var(--line);border-radius:9px;padding:4px 8px;min-height:40px}
+.nv-app .rm-chip:hover{border-color:var(--ink);box-shadow:none;background:var(--sunk)}
+.nv-app .rm-chip svg{width:30px;height:30px}
+.nv-app .rm-chip b{font-size:12.5px;font-weight:600}
+.nv-app .rm-chip small{font:11px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .rm-opchip{min-height:34px}
+.nv-app .rm-opchip svg{width:26px;height:26px;justify-self:center}
+.nv-app .rm-unrow{border-radius:8px;border-color:var(--line2)}
+.nv-app .rm-unrow small{font:11px var(--f-body)}
+@media (min-width:1181px){
+  .nv-app .rm-pal,.nv-app .rm-ins{position:sticky;top:calc(var(--nv-top) + 12px);max-height:calc(100vh - var(--nv-top) - 24px);overflow-y:auto;overscroll-behavior:contain}
+}
+/* inspector */
+.nv-app .rm-ins{gap:10px}
+.nv-app .rm-ih b{font:700 17px/1.2 var(--f-display);letter-spacing:-.2px}
+.nv-app .rm-ih .btn{min-width:34px;justify-content:center;padding:0 8px}
+.nv-app .rm-f{gap:7px 10px}
+.nv-app .rm-f label{font-size:13px}
+.nv-app .rm-f input[type=text],.nv-app .rm-wrow input,.nv-app .lk-mm input{border-radius:8px;min-height:32px;padding:5px 9px;font:600 13.5px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .rm-f input[type=text]:focus,.nv-app .rm-wrow input:focus,.nv-app .rm-f select:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nv-app .rm-f select{border-radius:8px;min-height:32px;padding:5px 8px}
+.nv-app .rm-f input[type=checkbox]{width:18px;height:18px;accent-color:var(--ink)}
+.nv-app .rm-toph{font-size:12px}
+.nv-app .rm-wrow small{font:11.5px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .rm-ins .note{font-size:12.5px;line-height:1.45}
+.nv-app .rm-ins .btn{min-height:34px;padding:6px 11px;font-size:13px;white-space:normal;text-align:left}
+.nv-app .rm-fill{border-color:var(--line2);color:var(--ink)}
+.nv-app .rm-sided,.nv-app .rm-look,.nv-app .rm-visd{border-top:1px solid var(--line);padding-top:10px}
+.nv-app .rm-visd{display:flex;flex-direction:column;gap:6px}
+.nv-app .rm-visd .note{margin:0}
+.nv-app .rm-visd .seg{align-self:flex-start}
+.nv-app .rm-sided .seg.rm-sidefit button{font-size:12px;padding:5px 4px}
+.nv-app .rm-acts{border-top:1px solid var(--line);padding-top:10px}
+.nv-app .rm-sidechip{border-radius:8px}
+.nv-app .rm-sidechip small,.nv-app .rm-ledi{font-family:var(--f-body)}
+.nv-app .rm-prob{border-color:var(--bad-line);border-radius:9px;padding:7px 10px;font-size:13px;line-height:1.35}
+.nv-app .rm-prob:hover{border-color:var(--bad)}
+.nv-app .look{border-color:var(--line);border-radius:9px}
+.nv-app .lk-sw{border-radius:7px}
+.nv-app .lk-acts .btn.sm{min-height:28px;padding:3px 8px;font-size:12px}
+.nv-app .lk-acts .btn.sm.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+/* the drawing keeps its paper and pencil; only "selected" and "wrong" follow the product's blue and red */
+.nv-app .rm-cab.sel .rm-body,.nv-app .rm-pcab.sel polygon,.nv-app .rm-cab.sel .rm-body.art,.nv-app .rm-op.sel .rm-opfr,.nv-app .rm-cab.sel .rm-side,.nv-app .rm-pcab.sel polygon.rm-pside,.nv-app .rm3-sel{stroke:var(--accent)}
+.nv-app .rm-cab.sel .rm-no,.nv-app .rm3-num.sel .rm-no{fill:var(--accent)}
+.nv-app .rm-cab.bad .rm-body,.nv-app .rm-pcab.bad polygon,.nv-app .rm-cab.bad .rm-body.art,.nv-app .rm-op.bad .rm-opfr,.nv-app .rm-cab.bad .rm-side,.nv-app .rm3-sel.bad{stroke:var(--bad)}
+.nv-app .rm-ghost,.nv-app .rm-op.ghost .rm-opfr,.nv-app .rm-guide,.nv-app .rm-grip,.nv-app .rm-visside{stroke:var(--accent)}
+.nv-app .rm-ghost.bad{stroke:var(--bad)}
+.nv-app .rm-flip circle{stroke:var(--accent)}.nv-app .rm-flip path{stroke:var(--accent)}
+.nv-app .rm-flip:hover circle{fill:var(--accent)}.nv-app .rm-flip:hover path{stroke:var(--panel)}
+.nv-app .rm-pt .rm-ptring,.nv-app .rm-pop.sel .rm-opgap,.nv-app .rm-pop.ghost .rm-opgap{stroke:var(--accent)}
+.nv-app .rm-pt.bad .rm-ptring,.nv-app .rm-pop.bad .rm-opgap{stroke:var(--bad)}
+.nv-app .rm-no{fill:var(--ink)}
+.nv-app .rm-wt,.nv-app .rm-dt,.nv-app .rm-opt,.nv-app .rm-legend,.nv-app .rm-pn,.nv-app .rm-not{font-family:var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .rm-tip rect{fill:var(--ink)}
+.nv-app .rm-tip.bad rect{fill:var(--bad)}
+.nv-app .rm3-wrap{background:var(--paper);border-radius:0}
+.rm-ghostcard{border:1.5px solid var(--accent);border-radius:10px;box-shadow:var(--nv-shadow-lg);font:600 13px var(--f-body)}
+@media (max-width:1180px){
+  .nv-app .rm-main{grid-template-columns:200px minmax(0,1fr)}
+}
+@media (max-width:760px){
+  .nv-app .rm-main{grid-template-columns:minmax(0,1fr)}
+  /* phone: the chosen thing's fields right under the drawing; the palette is one row that scrolls sideways */
+  .nv-app .rm-ins{order:2}
+  .nv-app .rm-pal{order:3;flex-direction:row;align-items:stretch;overflow-x:auto;padding:10px;gap:8px;scrollbar-width:none}
+  .nv-app .rm-pal .lbl{display:none}
+  .nv-app .rm-pre{display:flex;gap:6px;flex:none}
+  .nv-app .rm-chip{flex:none;width:auto;max-width:190px;min-height:44px}
+  .nv-app .rm-chip b{white-space:nowrap}
+  .nv-app .rm-un{flex:none;flex-direction:row}
+  .nv-app .rm-bar .seg{flex:1 1 100%}
+  .nv-app .rm-bar .seg button{flex:1}
+  .nv-app .rm-bar .btn{margin-left:0;flex:1;justify-content:center}
+  .nv-app .rm-bar .unit{flex-basis:100%;order:5}
+}
+
+/* ================================================================== 4. the 3-D assembly view (assembly.js) */
+.nv-app .av{border-radius:var(--nv-r);box-shadow:var(--nv-shadow);border-color:var(--line)}
+.nv-app .av-head{padding:14px 16px 10px}
+.nv-app .av-head b{font:700 15px/1.2 var(--f-display);letter-spacing:-.2px}
+.nv-app .av-head small{font:12px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .av-live{font-size:11px;font-weight:600;color:var(--muted);background:var(--sunk);border:1px solid var(--line);padding:3px 9px}
+.nv-app .av-tools{padding:0 16px 12px;gap:6px}
+.nv-app .av button{border-color:var(--line2);border-radius:9px;font-size:13px;font-weight:600;color:var(--ink);padding:6px 11px}
+.nv-app .av button:hover:not(:disabled){border-color:var(--ink)}
+.nv-app .av button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.nv-app .av.connector-mode .av-tools [data-mode][aria-pressed=true]{background:var(--panel);color:var(--muted);border-color:var(--line2)}
+.nv-app .av button.danger{color:var(--bad)}
+.nv-app .av-stage{background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.nv-app .av-hint{font-size:11.5px;color:var(--muted)}
+.nv-app .av-camera button{width:34px;height:34px;padding:0;font-size:16px;background:var(--panel);color:var(--ink);border-color:var(--line2);box-shadow:var(--nv-shadow)}
+.nv-app .av-footer{padding:14px 16px;gap:12px}
+.nv-app .av-range{font-size:13px}
+.nv-app .av-range input,.nv-app .av-settings input{accent-color:var(--ink)}
+.nv-app .av-range output{font:600 12px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .av-settings{font-size:13px;gap:6px 18px}
+.nv-app .av-settings label{gap:7px;cursor:pointer}
+.nv-app .av-settings input{width:17px;height:17px}
+.nv-app .av-note{font-size:12px;line-height:1.5}
+/* the "what to do now" bar of the connector mode: its text and its ground come from the same palette, so it reads in any theme */
+.nv-app .av-quickbar{background:var(--info-bg);border-top:1px solid var(--line);border-bottom:0;color:var(--ink);padding:10px 16px;gap:10px}
+.nv-app .av-quickbar b{font-size:13.5px;font-weight:700;color:var(--ink)}
+.nv-app .av-quickbar small{font-size:12.5px;color:var(--info);margin-top:2px}
+.nv-app .av-quickbar button{background:var(--panel);border-color:var(--line2);border-radius:9px;font-size:13px;font-weight:600;color:var(--ink)}
+.nv-app .av-quickbar button[data-quick-add]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.nv-app .av-explode-tools{padding:8px 16px;border-top:1px solid var(--line);border-bottom:0;gap:6px}
+.nv-app .av-explode-tools button{background:var(--panel);border-color:var(--line2);border-radius:9px}
+.nv-app .av-explode-tools button[aria-pressed=true]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.nv-app .av .av-photo-label{border-top:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 16px}
+.nv-app .av-photo-label small{color:var(--muted)}
+/* connector editor under the picture */
+.nv-app .av-j-heading b{font:700 15px var(--f-display)}
+.nv-app .av-j-help{font-size:12.5px;line-height:1.5;margin:6px 0 10px;max-width:72ch}
+.nv-app .av-j-select{font-size:13px}
+.nv-app .av-connectors select,.nv-app .av-connectors input,.nv-app .av-bx-fields input,.nv-app .av-bx-fields select{border-radius:8px;min-height:34px;padding:6px 9px;font-size:13px;font-family:var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .av-connectors select:focus,.nv-app .av-connectors input:focus,.nv-app .av-bx-fields input:focus,.nv-app .av-bx-fields select:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nv-app .av-j-overview{gap:6px;max-height:116px}
+.nv-app .av-j-overview button{font-size:12.5px;min-height:32px;padding:5px 10px}
+.nv-app .av-j-overview b{font:700 11px var(--f-body);font-variant-numeric:tabular-nums;color:var(--muted);margin-left:6px}
+.nv-app .av-j-overview button[aria-pressed=true] b{color:inherit}
+.nv-app .av-j-overview .empty-joint{border-color:var(--warn-line);background:var(--warn-bg);color:var(--warn)}
+.nv-app .av .av-j-fill{background:var(--warn-bg)!important;border-color:var(--warn-line);color:var(--warn)!important}
+.nv-app .av-j-actions label,.nv-app .av-bx-fields label{font-size:12.5px;color:var(--muted)}
+.nv-app .av-j-types button[aria-pressed=true]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent);background:var(--accent-soft);color:var(--ink)}
+.nv-app .av-choice-photo{border-radius:7px}
+.nv-app .av-j-row{border-radius:8px;font-size:12.5px}
+.nv-app .av-j-row.selected{border-color:var(--accent);background:var(--accent-soft)}
+.nv-app .av-j-status{font-size:12.5px;color:var(--info)}
+.nv-app .av-hw-card{border-radius:10px}
+.nv-app .av-hw-card small{font-size:12px}
+.nv-app .av-bx-sel{border-radius:10px}
+.nv-app .av-bx-sel small{font:12px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .av-bx-seg{border-color:var(--line2);border-radius:9px}
+.nv-app .av-bx-ghost{fill:var(--accent);fill-opacity:.05;stroke:var(--accent)}
+.nv-app .av-bx-selline{stroke:var(--accent)}
+.nv-app .av-bx-chip rect{fill:var(--panel);stroke:var(--accent)}
+.nv-app .av-bx-chip text{fill:var(--ink)}
+.nv-app .av-bx-chip:hover rect,.nv-app .av-bx-chip:focus rect{fill:var(--accent-soft)}
+.nv-app .av-bx-flip circle{stroke:var(--line2)}
+.nv-app .av-bx-flip text{fill:var(--ink)}
+.nv-app .av-bx-flip.mine circle{stroke:var(--accent);fill:var(--accent-soft)}
+.nv-app .av-bx-flip:hover circle,.nv-app .av-bx-flip:focus circle{fill:var(--accent-soft)}
+.nv-app .av.full{box-shadow:0 0 0 40px color-mix(in srgb,var(--ink) 55%,transparent)}
+@media (max-width:760px){
+  .nv-app .av-head{padding:12px 12px 8px}
+  .nv-app .av-tools{padding:0 12px 10px}   /* the buttons wrap: a one-line scroller here would widen the whole page (its min-content counts) */
+  .nv-app .av-footer{padding:12px}
+  .nv-app .av-quickbar,.nv-app .av-explode-tools{padding-left:12px;padding-right:12px}
+  .nv-app .av-j-types{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* ================================================================== 5. windows over the page: joints check, edges check, big drawing, versions */
+.drwover{background:color-mix(in srgb,var(--ink) 48%,transparent);padding:20px}
+.drwbox{border:1px solid var(--line);border-radius:14px;box-shadow:var(--nv-shadow-lg)}
+.drwbar{padding:14px 14px 14px 20px;font-size:13.5px;border-bottom:1px solid var(--line);flex-wrap:nowrap;align-items:center}
+.drwbar>b{font:700 17px/1.25 var(--f-display);letter-spacing:-.2px;min-width:0}
+.drwbar .btn.ghost{min-width:36px;min-height:36px;justify-content:center;padding:0 8px;font-size:15px;border-radius:9px;flex:none}
+.nv-app .drwbig{background:var(--sunk)}
+.nv-app .jcbody{padding:16px 20px 20px}
+.nv-app .jcbody>.note:first-child,.nv-app .jcbody>p.note{max-width:86ch;font-size:13px}
+.nv-app .jcfoot{padding:12px 20px;background:var(--sunk);border-top:1px solid var(--line);flex-wrap:wrap}
+.nv-app .jcfoot .btn.pri{min-height:42px;padding:9px 18px;font-size:14.5px;margin-left:auto}
+.nv-app .jc-cols,.nv-app .ec-cols{gap:16px}
+.nv-app .jc-view,.nv-app .ec-model{border-radius:var(--nv-r);border-color:var(--line);background:var(--paper)}
+.nv-app .jc-rows{gap:10px}
+.nv-app .jc-row,.nv-app .ec-card{border-radius:var(--nv-r);border-color:var(--line);padding:12px 14px}
+.nv-app .jc-row.custom,.nv-app .ec-card.custom{background:var(--panel);border-color:var(--accent)}
+.nv-app .jc-row.sel{outline:2px solid var(--accent);outline-offset:-1px}
+.nv-app .jc-h b{font:700 15px var(--f-display)}
+.nv-app .jc-pick{border-radius:8px;min-width:32px;min-height:32px}
+.nv-app .jc-ctl{gap:10px 18px;margin-top:8px}
+.nv-app .jc-n .btn{min-width:36px;min-height:36px}
+.nv-app .jc-n b{font:700 16px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .jc-e input{border:1px solid var(--line2);background:var(--panel);border-radius:8px;min-height:34px;font:600 13.5px var(--f-body);font-variant-numeric:tabular-nums;text-align:right}
+.nv-app .jc-e input:focus,.nv-app .jnums input:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nv-app .jnums input{border-radius:8px;font:600 13px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .jc-warn{border-radius:9px;background:var(--warn-bg);border:1px solid var(--warn-line);color:var(--warn)}
+.nv-app .jreset{min-height:30px}
+.nv-app .jcneed{border:1px solid var(--warn-line);background:var(--warn-bg);color:var(--ink);border-radius:10px}
+.nv-app .jcneed span{background:var(--ink);color:var(--panel);border-radius:8px}
+.nv-app .jcneed.ok{border-color:var(--line);background:none;color:var(--ok)}
+.nv-app .jcneed.ok span{background:none;color:var(--muted)}
+.nv-app .jrows{border-radius:var(--nv-r)}
+.nv-app .jrow.custom{background:var(--accent-soft)}
+.nv-app .ec-tools{padding:10px;gap:6px}
+.nv-app .ec-tools .btn{min-height:32px;padding:4px 11px;font-size:13px}
+.nv-app .ec-ctl .btn{min-height:30px}
+.nv-app .ec-h b{font:700 14px var(--f-display)}
+/* the connector picture inside the joints check (iso.js) */
+.nv-app .iso-stage{background:var(--paper)}
+.nv-app .iso-view{gap:5px}
+.nv-app .iso-view .btn{min-height:34px;padding:5px 10px;font-size:13px;background:var(--panel)}
+@media (max-width:640px){
+  .drwover{padding:0}
+  .drwbox,.drwbox.jcbox,.drwbox.verbox{border-radius:0;border:0;max-height:100%;height:100%;max-width:100%}
+  .drwbar{padding:10px 10px 10px 14px}
+  .drwbar>b{font-size:15px}
+  .nv-app .jcbody{padding:12px}
+  .nv-app .jcfoot{padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px))}
+  .nv-app .jcfoot .btn.pri{flex:1;justify-content:center;margin-left:0}
+  .nv-app .jc-view,.nv-app .ec-model{position:static}
+  .nv-app .ec-msvg{height:min(46vh,380px)}
+  .nv-app .jc-ctl .seg{width:100%}
+  .nv-app .jc-ctl .seg button{flex:1;padding:6px 6px}
+}
+
+/* versions (appended to <body> by the live app) */
+#verdlg .verbody{padding:16px 20px 20px}
+#verdlg .btn,.rr-ov .btn{border-radius:10px;min-height:36px;border-color:var(--line2);font-weight:600}
+#verdlg .btn.pri{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+#verdlg .btn.ghost,.rr-ov .btn.ghost{border-color:transparent;background:none;color:var(--muted)}
+#verdlg .btn.ghost:hover,.rr-ov .btn.ghost:hover{color:var(--ink);background:var(--sunk);border-color:var(--line)}
+#verdlg .btn.danger{color:var(--bad);border-color:var(--bad);background:var(--bad-bg)}
+#verdlg .f>span{font-size:12px;font-weight:600;color:var(--muted)}
+#verdlg .f input{border:1px solid var(--line2);background:var(--panel);border-radius:9px;min-height:38px;padding:7px 10px}
+#verdlg .f input:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+#verdlg .note{font-size:12.5px;line-height:1.5;color:var(--muted);max-width:none}
+#verdlg .unit{font:12px var(--f-body);color:var(--muted)}
+#verdlg .verday{font:600 11px var(--f-body);letter-spacing:.05em;text-transform:uppercase;margin:14px 0 6px}
+#verdlg .verrow{border-radius:10px;padding:7px 8px 7px 12px}
+#verdlg .verrow:hover{background:var(--sunk)}
+#verdlg .verrow.cur{border-color:var(--ok-line);background:var(--ok-bg)}
+#verdlg .verrow .vt{font:600 13px var(--f-body);font-variant-numeric:tabular-nums}
+#verdlg .verrow .btn{min-height:32px;padding:4px 10px;font-size:13px}
+
+/* the realistic picture (realistic.js, also on <body>) */
+.rr-ov{background:color-mix(in srgb,var(--ink) 55%,transparent)}
+.rr-box{border-radius:14px;box-shadow:var(--nv-shadow-lg)}
+.rr-head{padding:12px 14px 12px 20px;border-bottom:1px solid var(--line)}
+.rr-head b{font:700 17px var(--f-display);letter-spacing:-.2px}
+.rr-st{font:12.5px var(--f-body);color:var(--muted)}
+.rr-head .btn.on{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.rr-pick{border-radius:var(--nv-r);border-color:var(--line);box-shadow:var(--nv-shadow-lg)}
+.rr-hint{border-top:1px solid var(--line)}
+@media (max-width:640px){.rr-box{border-radius:0}}
+
+/* toast (a sibling of #app) */
+.toast{left:50%;border-radius:12px;padding:11px 18px;font:600 14px/1.35 var(--f-body);box-shadow:var(--nv-shadow-lg);background:var(--ink);color:var(--panel);max-width:min(92vw,560px)}
+.toast.err{background:var(--bad)}
+.toast-act{border-radius:8px;padding:4px 10px;border-color:color-mix(in srgb,var(--panel) 55%,transparent)}
+.toast-act:hover{background:var(--panel);color:var(--ink)}
+
+/* ================================================================== 6. small screens: the frames */
+@media (max-width:980px){
+  .nvr-set-body{grid-template-columns:minmax(0,1fr);gap:14px}
+  /* the section list becomes one row of chips that scrolls sideways */
+  .nvr-set-nav{position:static;max-height:none;flex-direction:row;gap:6px;overflow-x:auto;padding:0 0 4px;scrollbar-width:none}
+  .nvr-nav-g{flex-direction:row;gap:6px;flex:none}
+  .nvr-nav-gt{display:none}
+  .nvr-nav-a{flex:none;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:6px 12px;white-space:nowrap}
+  .nvr-nav-a[aria-current="true"]{border-color:var(--accent)}
+}
+@media (max-width:760px){
+  .nvr-head{align-items:stretch}
+  .nvr-head-t{flex-basis:100%}
+  .nvr-head .nv-h1{font-size:22px}
+  .nvr-chkline{justify-content:flex-start}
+  .nvr-chk-d{flex:1}
+  .nvr-foot .nv-btn{flex:1}
+  .nv-app .nvr-card{padding:16px 14px}
+  .nvr-lists{grid-template-columns:minmax(0,1fr)}
+  .nv-app .nvr-card textarea{min-height:110px}
+  .nv-app .prgrid{grid-template-columns:minmax(0,1fr)}
+  .nv-app .typecfg{grid-template-columns:minmax(92px,1.1fr) repeat(3,minmax(70px,1fr));gap:6px}
+}
