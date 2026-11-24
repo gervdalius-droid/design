@@ -18281,7 +18281,8 @@ function nveSecEditor(c, s, i, z, zoneHtml0) {
   h += '<div class="nve-secf">' + f + '</div>';
   var nStack = kk === 'drawers' ? num(s.nDrawers) : (kk === 'doors' && s.doorSplit === 'h') || kk === 'fridge' ? num(s.nDoors) : 0;
   if (nStack > 1) h += frontsEditor(s, i, secH, Math.round(nStack));
-  if ((kk === 'doors' || kk === 'open') && num(s.shelves) > 0) h += shelfPosEditor(c, s, i);
+  if ((kk === 'doors' || kk === 'open') && num(s.shelves) > 0) h += '<section class="nv-grp nve-shelf"><h4>' + L('Lentynos: aukštis ir gylis', 'Shelves: height and depth') + '</h4>' + shelfPosEditor(c, s, i) + shelfFront(c) +
+    '<p class="nv-hint">' + L('Atitraukimas — kiek lentynos priekis giliau už korpuso priekį; galioja visoms šios spintelės lentynoms.', 'Setback — how far the shelf front sits behind the carcass front; it applies to all shelves of this cabinet.') + '</p></section>';
   if (kk === 'fridge') h += '<p class="nv-hint">' + esc(t('fridgeNote').replace('{v}', E.R.fridgeVent)) + '</p>';
   return h + '</div>';
 }
@@ -18300,7 +18301,8 @@ function nveInside(c, inf) {
   if (fg) h += '<section class="nv-grp nve-fg"><h4>' + L('Fasadų dydis ir tarpai', 'Front size and gaps') + ' <small>mm</small></h4>' +
     '<p class="nv-hint" style="margin:0 0 8px">' + L('Tempkite oranžines rankenėles paveiksle arba įrašykite tarpus čia. Tuščias laukas — pagal dirbtuvės taisyklę.', 'Drag the orange handles on the picture, or type the gaps here. An empty field follows the workshop rule.') + '</p>' +
     fg.replace(/<div class="lbl">[^<]*<\/div>/, '') + '</section>';
-  if (sf) h += '<details class="nv-adv" data-nve-adv="inside"' + (nveAdvOpen('inside', /^f-c-shelfSb$/) ? ' open' : '') + '><summary>' + L('Daugiau nustatymų', 'More settings') + '<small>' + L('lentynų atitraukimas', 'shelf setback') + '</small></summary>' + sf + '</details>';
+  if (sf) h += '<section class="nv-grp nve-shelf"><h4>' + L('Lentynos: gylis', 'Shelves: depth') + ' <small>mm</small></h4>' + sf +
+    '<p class="nv-hint">' + L('Kiekvienos lentynos aukštį nustatysite spustelėję jos sekciją paveiksle arba sąraše aukščiau.', 'Set each shelf\'s height by clicking its section on the picture or in the list above.') + '</p></section>';
   return h;
 }
 nvTopic({ key: 'inside', order: 20, icon: NVE_ICON.inside, label: function () { return L('Vidus', 'Inside'); }, applies: function (c) { return !c.kind && !c.dishwasher; }, body: nveInside });
@@ -18308,18 +18310,32 @@ nvTopic({ key: 'inside', order: 20, icon: NVE_ICON.inside, label: function () { 
 /* dragging a front grip: the gap follows the pointer in millimetres (the picture's scale), snaps to the same places as
    in the live app (flush, the rule's value, half a board), and is written to c.cnc.fg on release */
 var nveFG = null;
+/* doors that stand right above an open niche at the bottom of their column: their lower edge is moved with the section's
+   own "doors lower, over the niche" (frontDrop), not with the cabinet's bottom gap — the live app's rule */
+function nveDropSecs(c) {
+  var out = [];
+  (c.sections || []).forEach(function (s, i) { if (s.kind !== 'doors' || s.fridge) return; var col = sameCol(c, i), k = col.indexOf(i), under = c.sections[col[k - 1]]; if (k === 1 && under && under.kind === 'open') out.push(i); });
+  return out;
+}
 document.addEventListener('pointerdown', function (ev) {
   var el = ev.target && ev.target.closest ? ev.target.closest('[data-nvfg]') : null; if (!el) return;
   var c = cur(), inf = S._info && S._info[S.sel], r = inf && inf.r, pic = el.closest('.nve-pic'), svg = pic && pic.querySelector('svg'); if (!c || !r || !r.fgaps || !svg) return;
   var e = fgFronts(r), vb = svg.viewBox.baseVal, rc = svg.getBoundingClientRect(); if (!e || !vb.width) return;
   ev.preventDefault(); ev.stopPropagation();
   nveFG = { el: el, k: el.getAttribute('data-nvfg'), r: r, e: e, pic: pic, mm: Math.max(vb.width / rc.width, vb.height / rc.height), x: ev.clientX, y: ev.clientY, l0: el.offsetLeft, t0: el.offsetTop, v: null, tip: pic.querySelector('.nve-fgtip') };
-  var g = r.fgaps, k = nveFG.k; nveFG.v0 = k === 'bot' ? e.z0 - g.hb : k === 'top' ? +r.dims.H - e.z1 : k === 'l' ? e.x0 : +r.dims.W - e.x1;
+  var g = r.fgaps, k = nveFG.k;
+  if (k === 'bot') { var dropS = nveDropSecs(c); if (dropS.length) { nveFG.drop = dropS; nveFG.v0 = Math.max(0, num(c.sections[dropS[0]].frontDrop) || 0); nveFG.max = nveFG.v0 + Math.max(0, e.z0 - g.hb - 20); el.classList.add('drag'); try { el.setPointerCapture(ev.pointerId); } catch (x2) {} return; } }
+  nveFG.v0 = k === 'bot' ? e.z0 - g.hb : k === 'top' ? +r.dims.H - e.z1 : k === 'l' ? e.x0 : +r.dims.W - e.x1;
   el.classList.add('drag'); try { el.setPointerCapture(ev.pointerId); } catch (x) {}
 }, true);
 document.addEventListener('pointermove', function (ev) {
   var d = nveFG; if (!d) return;
   var r = d.r, g = r.fgaps, k = d.k, dx = (ev.clientX - d.x) * d.mm, dy = (ev.clientY - d.y) * d.mm, v, snaps, sn = null;
+  if (d.drop) { v = Math.max(0, Math.min(d.v0 + dy, d.max)); snaps = [[0, L('be nuleidimo', 'no drop')], [+r.dims.t, L('uždengia lentyną', 'covers the shelf')]];
+    snaps.forEach(function (s0) { if (sn == null && Math.abs(v - s0[0]) < Math.max(1.5, 6 * d.mm)) { v = s0[0]; sn = s0[1]; } });
+    v = Math.round(v); d.v = v; d.el.style.top = (d.t0 + (v - d.v0) / d.mm) + 'px';
+    if (d.tip) { d.tip.hidden = false; d.tip.textContent = L('Durys žemiau, ant nišos', 'Doors lower, over the niche') + ': ' + fmt(v) + ' mm' + (sn ? ' — ' + sn : ''); d.tip.style.left = d.l0 + 'px'; d.tip.style.top = d.el.style.top; }
+    return; }
   if (k === 'bot') { v = d.v0 - dy; snaps = [[0, t('fgSnapBot')], [g.botMin, t('fgSnapSide')]]; v = Math.max(g.botLow != null ? g.botLow : g.botMin, Math.min(v, d.e.z1 - g.hb - 120)); }
   else if (k === 'top') { v = d.v0 + dy; snaps = [[0, t('fgSnapTop')], [g.mid, ''], [g.top, '']]; v = Math.max(0, Math.min(v, 80)); }
   else if (k === 'l') { v = d.v0 + dx; snaps = [[0, t('fgSnapOut')], [3, ''], [+r.dims.t / 2, '']]; v = Math.max(0, Math.min(v, 40)); }
@@ -18334,6 +18350,7 @@ document.addEventListener('pointermove', function (ev) {
 document.addEventListener('pointerup', function () {
   var d = nveFG; if (!d) return; nveFG = null; d.el.classList.remove('drag');
   var c = cur(); if (d.v == null || !c) return;
+  if (d.drop) { d.drop.forEach(function (i) { if (c.sections[i]) c.sections[i].frontDrop = d.v; }); save(); render(); return; }
   c.cnc.fg = Object.assign({}, c.cnc.fg || {}); c.cnc.fg[d.k] = d.v; save(); render();
 });
 
