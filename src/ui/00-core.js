@@ -36,8 +36,23 @@ function L(lt, en) { return S.lang === 'en' && en != null ? en : lt; }
 
 /* ----------------------------------------------------------------- issues (computed in 10-checks.js) */
 function nvIssues() {
-  if (!NV.issues) { try { NV.issues = nvComputeIssues(S.proj, S._info || []) || []; } catch (e) { if (window.console) console.error(e); NV.issues = []; } }
+  if (!NV.issues) { try { NV.issues = nvAckApply(nvComputeIssues(S.proj, S._info || []) || []); } catch (e) { if (window.console) console.error(e); NV.issues = []; } }
   return NV.issues;
+}
+/* "I confirm — it stays like this": a warning about a deliberate choice (a 691 mm door) can be confirmed on its cabinet.
+   The confirmation is kept in the cabinet (c.nvAck[key] = the numbers of the message), so it holds only while the
+   warned values stay the same; a confirmed warning becomes a note and no longer asks at export. Errors cannot be confirmed. */
+function nvAckKey(x) { return x.id + '|' + (x.sec != null ? x.sec : '') + '|' + (x.col != null ? x.col : ''); }
+function nvAckSig(x) { return String(x.raw || x.msg || '').replace(/[^0-9.,]+/g, ' ').trim() || '-'; }
+function nvAckApply(list) {
+  list.forEach(function (x) {
+    if (x.sev !== 'warn' || !(x.cab >= 0)) return;
+    var c = S.proj.cabinets[x.cab]; if (!c) return;
+    var key = nvAckKey(x);
+    if (c.nvAck && c.nvAck[key] === nvAckSig(x)) { x.sev = 'info'; x.acked = true; x.msg = L('Patvirtinta: ', 'Confirmed: ') + x.msg; x.act = { label: L('Atšaukti patvirtinimą', 'Withdraw'), nv: 'unack', v: key, i: x.cab }; }
+    else if (!x.act) x.act = { label: L('Patvirtinu — taip ir turi būti', 'I confirm — keep it'), nv: 'ack', v: key, i: x.cab };
+  });
+  return list;
 }
 function nvIssuesFor(i) { return nvIssues().filter(function (x) { return x.cab === i; }); }
 /* { error, todo, warn, info, block } — block = what stops production: errors and open confirmations */
@@ -259,6 +274,11 @@ document.addEventListener('keydown', function (e) {   // Ctrl/Cmd+Z, Ctrl+Shift+
   e.preventDefault(); e.stopImmediatePropagation();
   if (k === 'y' || e.shiftKey) nvRedo(); else nvUndo();
 }, true);
+NVA.ack = function (el, v, i) {
+  var c = S.proj.cabinets[i], x = nvIssues().filter(function (y) { return y.cab === i && nvAckKey(y) === v; })[0]; if (!c || !x) return;
+  c.nvAck = c.nvAck || {}; c.nvAck[v] = nvAckSig(x); save(); toast(L('Patvirtinta — įspėjimas nebestabdys', 'Confirmed — this warning will not ask again'));
+};
+NVA.unack = function (el, v, i) { var c = S.proj.cabinets[i]; if (c && c.nvAck) { delete c.nvAck[v]; save(); } };
 NVA.undo = function () { nvUndo(); return false; };
 NVA.redo = function () { nvRedo(); return false; };
 /* <button data-nv="go" data-tab data-sel data-topic data-sec data-col data-field> — used by every "fix" link */

@@ -2498,6 +2498,16 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 
 </style>
 <style>
+/* src/ui/45-edges.css */
+.nv-app .nv-ecm{background:#fbfaf7}
+.nv-app .nv-ecm .ec-msvg{background:#fbfaf7}
+.nv-app .nv-ecf{cursor:pointer}
+.nv-app .nv-ecf:not(.on):hover{fill:#e8b90c;fill-opacity:.55;stroke:#e8b90c}
+.nv-app .nv-ecf.on{fill-opacity:.9}
+.nv-app .nv-ecf.on:hover{fill:#e8b90c;stroke:#e8b90c}
+
+</style>
+<style>
 /* src/ui/50-check.css */
 /* 50-check.css — stage "Patikra": one readable column; state colours only on what carries state */
 .nvk{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -15801,8 +15811,23 @@ function L(lt, en) { return S.lang === 'en' && en != null ? en : lt; }
 
 /* ----------------------------------------------------------------- issues (computed in 10-checks.js) */
 function nvIssues() {
-  if (!NV.issues) { try { NV.issues = nvComputeIssues(S.proj, S._info || []) || []; } catch (e) { if (window.console) console.error(e); NV.issues = []; } }
+  if (!NV.issues) { try { NV.issues = nvAckApply(nvComputeIssues(S.proj, S._info || []) || []); } catch (e) { if (window.console) console.error(e); NV.issues = []; } }
   return NV.issues;
+}
+/* "I confirm — it stays like this": a warning about a deliberate choice (a 691 mm door) can be confirmed on its cabinet.
+   The confirmation is kept in the cabinet (c.nvAck[key] = the numbers of the message), so it holds only while the
+   warned values stay the same; a confirmed warning becomes a note and no longer asks at export. Errors cannot be confirmed. */
+function nvAckKey(x) { return x.id + '|' + (x.sec != null ? x.sec : '') + '|' + (x.col != null ? x.col : ''); }
+function nvAckSig(x) { return String(x.raw || x.msg || '').replace(/[^0-9.,]+/g, ' ').trim() || '-'; }
+function nvAckApply(list) {
+  list.forEach(function (x) {
+    if (x.sev !== 'warn' || !(x.cab >= 0)) return;
+    var c = S.proj.cabinets[x.cab]; if (!c) return;
+    var key = nvAckKey(x);
+    if (c.nvAck && c.nvAck[key] === nvAckSig(x)) { x.sev = 'info'; x.acked = true; x.msg = L('Patvirtinta: ', 'Confirmed: ') + x.msg; x.act = { label: L('Atšaukti patvirtinimą', 'Withdraw'), nv: 'unack', v: key, i: x.cab }; }
+    else if (!x.act) x.act = { label: L('Patvirtinu — taip ir turi būti', 'I confirm — keep it'), nv: 'ack', v: key, i: x.cab };
+  });
+  return list;
 }
 function nvIssuesFor(i) { return nvIssues().filter(function (x) { return x.cab === i; }); }
 /* { error, todo, warn, info, block } — block = what stops production: errors and open confirmations */
@@ -16024,6 +16049,11 @@ document.addEventListener('keydown', function (e) {   // Ctrl/Cmd+Z, Ctrl+Shift+
   e.preventDefault(); e.stopImmediatePropagation();
   if (k === 'y' || e.shiftKey) nvRedo(); else nvUndo();
 }, true);
+NVA.ack = function (el, v, i) {
+  var c = S.proj.cabinets[i], x = nvIssues().filter(function (y) { return y.cab === i && nvAckKey(y) === v; })[0]; if (!c || !x) return;
+  c.nvAck = c.nvAck || {}; c.nvAck[v] = nvAckSig(x); save(); toast(L('Patvirtinta — įspėjimas nebestabdys', 'Confirmed — this warning will not ask again'));
+};
+NVA.unack = function (el, v, i) { var c = S.proj.cabinets[i]; if (c && c.nvAck) { delete c.nvAck[v]; save(); } };
 NVA.undo = function () { nvUndo(); return false; };
 NVA.redo = function () { nvRedo(); return false; };
 /* <button data-nv="go" data-tab data-sel data-topic data-sec data-col data-field> — used by every "fix" link */
@@ -17296,7 +17326,7 @@ function nveIssues() {
   var at = function (x) {
     var a = '';
     if (x.act && (x.act.act || x.act.nv)) a = '<button type="button" class="nv-btn sm" ' + (x.act.act ? 'data-act="' + esc(x.act.act) + '"' : 'data-nv="' + esc(x.act.nv) + '"') + (x.act.v != null ? ' data-v="' + esc(x.act.v) + '"' : '') + (x.act.i != null ? ' data-i="' + esc(x.act.i) + '"' : '') + '>' + esc(x.act.label || L('Taisyti', 'Fix')) + '</button>';
-    else if (x.topic || x.field || x.tab) a = '<button type="button" class="nv-btn sm" data-nv="go"' + (x.tab ? ' data-tab="' + esc(x.tab) + '"' : '') + (x.topic ? ' data-topic="' + esc(x.topic) + '"' : '') + (x.field ? ' data-field="' + esc(x.field) + '"' : '') + (x.sec != null ? ' data-sec="' + x.sec + '"' : '') + (x.col != null ? ' data-col="' + x.col + '"' : '') + '>' + L('Taisyti →', 'Fix →') + '</button>';
+    if ((!a || (x.act && x.act.nv === 'ack')) && (x.topic || x.field || x.tab)) a += '<button type="button" class="nv-btn sm" data-nv="go"' + (x.tab ? ' data-tab="' + esc(x.tab) + '"' : '') + (x.topic ? ' data-topic="' + esc(x.topic) + '"' : '') + (x.field ? ' data-field="' + esc(x.field) + '"' : '') + (x.sec != null ? ' data-sec="' + x.sec + '"' : '') + (x.col != null ? ' data-col="' + x.col + '"' : '') + '>' + L('Taisyti →', 'Fix →') + '</button>';
     return a;
   };
   var h = all.slice(0, 3).map(function (x) { return '<div class="nve-ir ' + x.sev + '">' + nveMark(x.sev) + '<span class="nve-im" title="' + esc(x.hint || '') + '">' + esc(x.msg) + '</span>' + at(x) + '</div>'; }).join('');
@@ -17751,8 +17781,6 @@ function nvtBody(c, inf) {
   var hasJ = inf && inf.r && inf.r.joints && inf.r.joints.length;
   return '<div class="nvt nvt-body">' +
     '<p class="nvt-sum" data-live="nvtsum">' + nvtSum(c) + '</p>' +
-    nvtGrp(t('supL'), L('ant ko stovi spintelė', 'what the cabinet stands on'),
-      nvtSegF('', 'c.cnc.support', sup, [['legs', t('supLegs')], ['feet', t('supFeet')], ['none', t('supNone')]]) + (o.legs ? nvtLegs(c, inf) : '') + nvtPlinth(c)) +
     nvtGrp(t('botMount'), '', nvtBottom(c)) +
     nvtGrp(t('top'), L('juostos — dvi siauros lentos vietoj pilno viršaus', 'rails — two narrow boards instead of a full top'), nvtTop(c, inf)) +
     nvtGrp(t('backOf'), '', '<div class="nvt-back">' + backBlock(c).replace(/^<div class="lbl"[^>]*>[^<]*<\/div>/, '') + '</div>') +   // the live block, without its own heading
@@ -17760,6 +17788,8 @@ function nvtBody(c, inf) {
     nvtGrp(L('Jungimas', 'Joinery'), '',
       '<div class="choices nvt-choices">' + choice('c.cnc.joinery', o.joinery, 'confirmat', artOf('confirmat'), t('jConf'), t('jConfD')) + choice('c.cnc.joinery', o.joinery, 'cam', artOf('cam'), t('jCam'), t('jCamD')) + '</div>' +
       '<p class="nv-hint">' + t('jMainL') + (hasJ ? ' ' + L('Atskirą jungtį galima pakeisti', 'A single joint can be changed in') + ' <button type="button" class="nvt-link" data-act="jcopen">' + L('sujungimų peržiūroje', 'the joints review') + '</button>.' : '') + '</p>') +
+    nvtGrp(t('supL'), L('ant ko stovi spintelė', 'what the cabinet stands on'),
+      nvtSegF('', 'c.cnc.support', sup, [['legs', t('supLegs')], ['feet', t('supFeet')], ['none', t('supNone')]]) + (o.legs ? nvtLegs(c, inf) : '') + nvtPlinth(c)) +
     '</div>';
 }
 
@@ -18174,6 +18204,44 @@ NVAFTER.push(function () {
   if (!S.home && S.tab !== 'set') NV.rBack = S.tab;   // where "Grįžti į projektą" leads
   nvrSetSpy();
 });
+
+
+/* ======== src/ui/45-edges.js ======== */
+/* 45-edges.js — the cabinet in the edge-banding check, drawn like the joints view: a see-through wire model on paper
+   (every board as thin outlines), with only the edges carrying information — a banded edge is a coloured face, an
+   unbanded one is an invisible click target that lights up under the pointer. Replaces the live ecModel(); the live
+   turning / zoom handlers and the 'ebk' / 'ecview' commands work on it unchanged. */
+function ecModel(c, r) {
+  var lt = S.lang === 'lt', V = S.ecView = S.ecView || { th:0.62, ph:0.42, zoom:1, exp:false, fronts:false }, fe = c.edge.facade || 'PAGAL FASADA';
+  var ps = r.panels.filter(function (p) { return p.place && (V.fronts || (p.role !== 'FASADAS' && p.role !== 'DURYS')); }); if (!ps.length) return '';
+  var boxes = ps.map(function (p) { var q = p.place, pt = function (a, b, d) { return [0, 1, 2].map(function (i) { return q.o[i] + a * q.u[i] + b * q.v[i] - d * q.n[i]; }); };
+    var cn = function (a, b, d) { return pt(a ? p.L : 0, b ? p.W : 0, d ? p.T : 0); };
+    return { p:p, cen:pt(p.L / 2, p.W / 2, p.T / 2), faces:[
+      { k:'A', v:[cn(0,0,0), cn(1,0,0), cn(1,1,0), cn(0,1,0)] }, { k:'B', v:[cn(0,0,1), cn(1,0,1), cn(1,1,1), cn(0,1,1)] },
+      { k:'y0', v:[cn(0,0,0), cn(1,0,0), cn(1,0,1), cn(0,0,1)] }, { k:'y1', v:[cn(0,1,0), cn(1,1,0), cn(1,1,1), cn(0,1,1)] },
+      { k:'x0', v:[cn(0,0,0), cn(0,1,0), cn(0,1,1), cn(0,0,1)] }, { k:'x1', v:[cn(1,0,0), cn(1,1,0), cn(1,1,1), cn(1,0,1)] }] }; });
+  var mid = [0, 1, 2].map(function (i) { var a = boxes.map(function (b) { return b.cen[i]; }); return (Math.min.apply(null, a) + Math.max.apply(null, a)) / 2; });
+  boxes.forEach(function (b) { var off = V.exp ? [0, 1, 2].map(function (i) { return (b.cen[i] - mid[i]) * 0.5; }) : [0, 0, 0];
+    b.faces.forEach(function (f) { f.w = f.v.map(function (w) { return [w[0] + off[0] - mid[0], w[1] + off[1] - mid[1], w[2] + off[2] - mid[2]]; }); }); });
+  if (V.th == null) { V.th = 0.62; V.ph = 0.42; }
+  var ct = Math.cos(V.th), st2 = Math.sin(V.th), cp = Math.cos(V.ph), sp = Math.sin(V.ph), rr = [ct, -st2, 0], uu = [st2 * sp, ct * sp, cp], dv = [st2 * cp, ct * cp, -sp];
+  var pr = function (w) { return [Math.round((w[0] * rr[0] + w[1] * rr[1]) * 10) / 10, Math.round(-(w[0] * uu[0] + w[1] * uu[1] + w[2] * uu[2]) * 10) / 10]; };
+  var dep = function (f) { var d = 0; f.w.forEach(function (w) { d += w[0] * dv[0] + w[1] * dv[1] + w[2] * dv[2]; }); return d / 4; };
+  var rad = 0; boxes.forEach(function (b) { b.faces.forEach(function (f) { f.w.forEach(function (w) { rad = Math.max(rad, Math.hypot(w[0], w[1], w[2])); }); }); });
+  var half = rad * 1.08 / (V.zoom || 1), sw = half / 140;
+  var wires = '', edges = [];
+  boxes.forEach(function (b) { var p = b.p; b.faces.forEach(function (f) {
+    var pts = f.w.map(function (w) { return pr(w).join(','); }).join(' ');
+    if (f.k === 'A' || f.k === 'B') { wires += '<polygon points="' + pts + '" fill="#8d968f" fill-opacity=".035" stroke="#8d968f" stroke-width="' + sw * 0.55 + '" stroke-linejoin="round" pointer-events="none"/>'; return; }
+    var e = f.k, st = ecState(p, e, fe), len = e === 'y0' || e === 'y1' ? p.L : p.W;
+    edges.push({ d:dep(f), st:st, h:'<polygon class="ec-f nv-ecf' + (st ? ' on' : '') + '" points="' + pts + '"' + (st ? ' fill="' + EC_COL[st] + '" stroke="' + EC_COL[st] + '" stroke-width="' + sw * 1.6 + '"' : ' fill="transparent" stroke="transparent" stroke-width="' + sw * 4 + '"') + ' stroke-linejoin="round" data-act="ebk" data-v="' + esc(p.key) + '" data-i="' + e + '" role="button"><title>' + esc((p.short || p.role) + ' — ' + fmt(Math.round(len)) + ' mm: ' + (st ? p.eb[e] : (lt ? 'nelaminuojama' : 'not banded'))) + '</title></polygon>' });
+  }); });
+  edges.sort(function (a, b) { return (a.st ? 1 : 0) - (b.st ? 1 : 0) || b.d - a.d; });   // unbanded targets under the banded faces; the far ones first
+  var tb = function (act, lab, on, tip) { return '<button type="button" class="btn' + (on ? ' on' : '') + '" data-act="ecview" data-v="' + act + '"' + (on != null ? ' aria-pressed="' + !!on + '"' : '') + (tip ? ' title="' + esc(tip) + '"' : '') + '>' + lab + '</button>'; };
+  return '<div class="ec-model nv-ecm"><div class="ec-tools">' + tb('front', lt ? 'Priekis' : 'Front') + tb('backv', lt ? 'Galas' : 'Back') + tb('under', lt ? 'Iš apačios' : 'From below') + tb('exp', lt ? 'Išskleisti' : 'Pull apart', V.exp) + tb('fronts', lt ? 'Fasadai' : 'Fronts', V.fronts) + tb('zin', '＋') + tb('zout', '−') + '</div>' +
+    '<svg class="ec-msvg" viewBox="' + (-half) + ' ' + (-half) + ' ' + (2 * half) + ' ' + (2 * half) + '" preserveAspectRatio="xMidYMid meet">' + wires + edges.map(function (x) { return x.h; }).join('') + '</svg>' +
+    '<p class="note" style="margin:6px 10px 8px">' + (lt ? 'Tempkite — sukite modelį, ratuku — artinkite. Spustelėkite kraštą: nelaminuojama → karkaso kraštas → pagal fasadą.' : 'Drag to turn the model, wheel to zoom. Click an edge: not banded → carcass edge → as the fronts.') + '</p></div>';
+}
 
 
 /* ======== src/ui/50-check.js ======== */

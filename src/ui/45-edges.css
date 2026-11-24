@@ -1,0 +1,6 @@
+.nv-app .nv-ecm{background:#fbfaf7}
+.nv-app .nv-ecm .ec-msvg{background:#fbfaf7}
+.nv-app .nv-ecf{cursor:pointer}
+.nv-app .nv-ecf:not(.on):hover{fill:#e8b90c;fill-opacity:.55;stroke:#e8b90c}
+.nv-app .nv-ecf.on{fill-opacity:.9}
+.nv-app .nv-ecf.on:hover{fill:#e8b90c;stroke:#e8b90c}

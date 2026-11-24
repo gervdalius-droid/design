@@ -230,7 +230,7 @@ function nveIssues() {
   var at = function (x) {
     var a = '';
     if (x.act && (x.act.act || x.act.nv)) a = '<button type="button" class="nv-btn sm" ' + (x.act.act ? 'data-act="' + esc(x.act.act) + '"' : 'data-nv="' + esc(x.act.nv) + '"') + (x.act.v != null ? ' data-v="' + esc(x.act.v) + '"' : '') + (x.act.i != null ? ' data-i="' + esc(x.act.i) + '"' : '') + '>' + esc(x.act.label || L('Taisyti', 'Fix')) + '</button>';
-    else if (x.topic || x.field || x.tab) a = '<button type="button" class="nv-btn sm" data-nv="go"' + (x.tab ? ' data-tab="' + esc(x.tab) + '"' : '') + (x.topic ? ' data-topic="' + esc(x.topic) + '"' : '') + (x.field ? ' data-field="' + esc(x.field) + '"' : '') + (x.sec != null ? ' data-sec="' + x.sec + '"' : '') + (x.col != null ? ' data-col="' + x.col + '"' : '') + '>' + L('Taisyti →', 'Fix →') + '</button>';
+    if ((!a || (x.act && x.act.nv === 'ack')) && (x.topic || x.field || x.tab)) a += '<button type="button" class="nv-btn sm" data-nv="go"' + (x.tab ? ' data-tab="' + esc(x.tab) + '"' : '') + (x.topic ? ' data-topic="' + esc(x.topic) + '"' : '') + (x.field ? ' data-field="' + esc(x.field) + '"' : '') + (x.sec != null ? ' data-sec="' + x.sec + '"' : '') + (x.col != null ? ' data-col="' + x.col + '"' : '') + '>' + L('Taisyti →', 'Fix →') + '</button>';
     return a;
   };
   var h = all.slice(0, 3).map(function (x) { return '<div class="nve-ir ' + x.sev + '">' + nveMark(x.sev) + '<span class="nve-im" title="' + esc(x.hint || '') + '">' + esc(x.msg) + '</span>' + at(x) + '</div>'; }).join('');

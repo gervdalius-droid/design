@@ -175,8 +175,6 @@ function nvtBody(c, inf) {
   var hasJ = inf && inf.r && inf.r.joints && inf.r.joints.length;
   return '<div class="nvt nvt-body">' +
     '<p class="nvt-sum" data-live="nvtsum">' + nvtSum(c) + '</p>' +
-    nvtGrp(t('supL'), L('ant ko stovi spintelė', 'what the cabinet stands on'),
-      nvtSegF('', 'c.cnc.support', sup, [['legs', t('supLegs')], ['feet', t('supFeet')], ['none', t('supNone')]]) + (o.legs ? nvtLegs(c, inf) : '') + nvtPlinth(c)) +
     nvtGrp(t('botMount'), '', nvtBottom(c)) +
     nvtGrp(t('top'), L('juostos — dvi siauros lentos vietoj pilno viršaus', 'rails — two narrow boards instead of a full top'), nvtTop(c, inf)) +
     nvtGrp(t('backOf'), '', '<div class="nvt-back">' + backBlock(c).replace(/^<div class="lbl"[^>]*>[^<]*<\/div>/, '') + '</div>') +   // the live block, without its own heading
@@ -184,6 +182,8 @@ function nvtBody(c, inf) {
     nvtGrp(L('Jungimas', 'Joinery'), '',
       '<div class="choices nvt-choices">' + choice('c.cnc.joinery', o.joinery, 'confirmat', artOf('confirmat'), t('jConf'), t('jConfD')) + choice('c.cnc.joinery', o.joinery, 'cam', artOf('cam'), t('jCam'), t('jCamD')) + '</div>' +
       '<p class="nv-hint">' + t('jMainL') + (hasJ ? ' ' + L('Atskirą jungtį galima pakeisti', 'A single joint can be changed in') + ' <button type="button" class="nvt-link" data-act="jcopen">' + L('sujungimų peržiūroje', 'the joints review') + '</button>.' : '') + '</p>') +
+    nvtGrp(t('supL'), L('ant ko stovi spintelė', 'what the cabinet stands on'),
+      nvtSegF('', 'c.cnc.support', sup, [['legs', t('supLegs')], ['feet', t('supFeet')], ['none', t('supNone')]]) + (o.legs ? nvtLegs(c, inf) : '') + nvtPlinth(c)) +
     '</div>';
 }
 
