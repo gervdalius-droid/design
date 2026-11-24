@@ -1,0 +1,22 @@
+/* 00-tokens.css — the look of the new interface: warm paper, ink-black actions, one blue for "selected",
+   and green / amber / red used ONLY for state (fine / look at this / stops production).
+   The names are the live app's variables, so its embedded widgets follow the same palette. */
+:root, :root[data-theme="light"]{
+  color-scheme:light;
+  --bg:#f4f2ed; --panel:#ffffff; --sunk:#f8f7f3; --ink:#1c211e; --muted:#69726c; --line:#e4e1d8; --line2:#d0ccc0;
+  --accent:#2a55d9; --accent-ink:#ffffff; --accent-soft:#e7edfd;
+  --warn:#8a5a00; --warn-bg:#fff5d9; --warn-line:#ecc968;
+  --bad:#b3261e; --bad-bg:#fdecea; --bad-line:#f3b8b2;
+  --ok:#1b7a48; --ok-bg:#e2f4e9; --ok-line:#a9dcbd;
+  --info:#3d5a73; --info-bg:#e8f0f7;
+  --paper:#fbfaf7; --paper-line:#e0dcd2;
+  --f-display:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --r:10px;
+  /* new */
+  --nv-r:12px; --nv-r-sm:8px; --nv-top:58px;
+  --nv-shadow:0 1px 2px rgba(28,33,30,.05),0 4px 14px rgba(28,33,30,.05);
+  --nv-shadow-lg:0 12px 40px rgba(28,33,30,.16);
+  --nv-s1:4px; --nv-s2:8px; --nv-s3:12px; --nv-s4:16px; --nv-s5:24px; --nv-s6:32px;
+}

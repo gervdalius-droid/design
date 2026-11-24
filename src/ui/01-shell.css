@@ -1,0 +1,129 @@
+/* 01-shell.css — the frame of the new interface and the shared building blocks every view uses.
+   Classes: nv-* are new; the live app's own form classes (.f .seg .chk .btn .card .note) are restyled here so
+   that a live block placed inside a new view looks like part of it. */
+html,body{background:var(--bg)}
+body{font:14px/1.5 var(--f-body);color:var(--ink);-webkit-font-smoothing:antialiased}
+.nv-app{min-height:100vh;display:flex;flex-direction:column}
+.nv-app :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nv-app input,.nv-app select,.nv-app textarea,.nv-app button{font-family:inherit}
+
+/* ---- top bar: project · the road (stages) · state and tools */
+.nv-top{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.nv-top-in{display:flex;align-items:center;gap:14px;min-height:var(--nv-top);padding:6px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px));max-width:1880px;margin:0 auto}
+.nv-grow{flex:1}
+.nv-brand{display:inline-flex;align-items:center;gap:9px;border:0;background:none;padding:4px 8px 4px 4px;border-radius:10px;cursor:pointer;color:var(--ink);font-weight:600;white-space:nowrap}
+button.nv-brand:hover{background:var(--sunk)}
+.nv-brand .logo{width:34px;height:34px;border-radius:9px;background:var(--ink);color:#fff;display:grid;place-items:center;flex:none}
+.nv-brand-t{font-size:13px;color:var(--muted)}
+.nv-top-home .nv-brand-t{font-size:16px;color:var(--ink);letter-spacing:-.2px}
+.nv-proj{display:flex;align-items:center;gap:8px;min-width:120px;flex:0 1 260px;position:relative}
+.nv-proj input{width:100%;border:1px solid transparent;background:transparent;border-radius:8px;padding:7px 9px;font:600 15px var(--f-body);letter-spacing:-.1px;text-overflow:ellipsis}
+.nv-proj input:hover{border-color:var(--line2);background:var(--panel)}
+.nv-proj input:focus{border-color:var(--accent);background:var(--panel);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nv-proj input[aria-invalid="true"]{border-color:var(--bad);background:var(--bad-bg)}
+.nv-app .saved{display:inline;font:500 11px var(--f-body);color:var(--ok);opacity:0;white-space:nowrap;transition:opacity .2s}
+.nv-app .saved.flash{animation:nvSaved 1.6s ease-out}
+.nv-app .saved.fail{opacity:1;color:var(--bad)}
+@keyframes nvSaved{0%{opacity:0}12%{opacity:1}75%{opacity:1}100%{opacity:0}}
+
+.nv-stages{display:flex;align-items:center;gap:2px;margin:0 auto;padding:0 6px}
+.nv-stage{display:inline-flex;align-items:center;gap:8px;border:0;background:none;padding:7px 12px;border-radius:999px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13.5px;white-space:nowrap}
+.nv-stage:hover{background:var(--sunk);color:var(--ink)}
+.nv-stage-n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--sunk);border:1px solid var(--line2);color:var(--muted)}
+.nv-stage.on{background:var(--ink);color:#fff}
+.nv-stage.on .nv-stage-n{background:#fff;border-color:#fff;color:var(--ink)}
+.nv-stage-sep{width:18px;height:1px;background:var(--line2);flex:none}
+.nv-sb{font-style:normal;font:600 11px var(--f-body);font-variant-numeric:tabular-nums;min-width:20px;padding:1px 6px;border-radius:999px;background:var(--sunk);color:var(--muted);border:1px solid var(--line);display:inline-block;text-align:center}
+.nv-stage.on .nv-sb{background:rgba(255,255,255,.16);border-color:transparent;color:#fff}
+.nv-sb.bad,.nv-stage.on .nv-sb.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.nv-sb.warn,.nv-stage.on .nv-sb.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+.nv-sb.ok,.nv-stage.on .nv-sb.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+
+.nv-tools{display:flex;align-items:center;gap:6px;flex:none}
+.nv-status{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:6px 12px 6px 10px;font-weight:600;font-size:13px;cursor:pointer;white-space:nowrap}
+.nv-status:hover{border-color:var(--ink)}
+.nv-st-dot{width:9px;height:9px;border-radius:50%;background:var(--ok);flex:none}
+.nv-st-dot.bad{background:var(--bad)}.nv-st-dot.todo{background:var(--accent)}.nv-st-dot.warn{background:#d79a12}
+.nv-ic{width:34px;height:34px;border-radius:9px;border:1px solid transparent;background:none;cursor:pointer;font-size:16px;line-height:1;display:inline-grid;place-items:center;color:var(--ink)}
+.nv-ic:hover:not(:disabled){background:var(--sunk);border-color:var(--line)}
+.nv-ic:disabled{opacity:.28;cursor:default}
+.nv-ic.on{background:var(--ink);color:#fff}
+.nv-ur{display:inline-flex}
+.nv-admin{color:#80500e;font-weight:700}
+.nv-app .lang{display:inline-flex;margin-left:4px}
+.nv-app .lang button{border:1px solid var(--line2);background:var(--panel);padding:5px 8px;font:600 11px var(--f-body);cursor:pointer;color:var(--muted)}
+.nv-app .lang button:first-child{border-radius:8px 0 0 8px}.nv-app .lang button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.nv-app .lang button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+
+.nv-main{flex:1;width:100%;max-width:1880px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-right,0px)) 60px max(16px,env(safe-area-inset-left,0px))}
+
+/* ---- building blocks */
+.nv-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--nv-r);box-shadow:var(--nv-shadow);padding:18px}
+.nv-h1{font:700 26px/1.15 var(--f-display);letter-spacing:-.6px;margin:0}
+.nv-h2{font:700 18px/1.2 var(--f-display);letter-spacing:-.3px;margin:0 0 10px}
+.nv-h3{font:600 13px/1.2 var(--f-display);letter-spacing:.02em;margin:0 0 8px;color:var(--muted);text-transform:uppercase}
+.nv-lead{color:var(--muted);margin:4px 0 0;max-width:70ch}
+.nv-muted{color:var(--muted)}
+.nv-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.nv-col{display:flex;flex-direction:column;gap:10px}
+.nv-num{font-variant-numeric:tabular-nums}
+.nv-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:8px 14px;border-radius:10px;border:1px solid var(--line2);background:var(--panel);color:var(--ink);font-weight:600;font-size:14px;cursor:pointer;white-space:nowrap;text-decoration:none}
+.nv-btn:hover:not(:disabled){border-color:var(--ink)}
+.nv-btn:disabled,.nv-btn[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.nv-btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.nv-btn.pri:hover:not(:disabled){background:#000}
+.nv-btn.ghost{border-color:transparent;background:none}
+.nv-btn.ghost:hover:not(:disabled){background:var(--sunk);border-color:var(--line)}
+.nv-btn.danger{color:var(--bad)}
+.nv-btn.danger:hover:not(:disabled){border-color:var(--bad);background:var(--bad-bg)}
+.nv-btn.sm{min-height:30px;padding:4px 10px;font-size:13px;border-radius:8px}
+.nv-btn.lg{min-height:46px;padding:10px 20px;font-size:15px;border-radius:12px}
+.nv-badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600;border:1px solid var(--line);background:var(--sunk);color:var(--muted);white-space:nowrap}
+.nv-badge.ok{background:var(--ok-bg);border-color:var(--ok-line);color:var(--ok)}
+.nv-badge.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+.nv-badge.error,.nv-badge.bad{background:var(--bad-bg);border-color:var(--bad-line);color:var(--bad)}
+.nv-badge.todo{background:var(--accent-soft);border-color:#b9c8f6;color:var(--accent)}
+.nv-empty{border:1.5px dashed var(--line2);border-radius:var(--nv-r);padding:28px;text-align:center;color:var(--muted)}
+.nv-issue{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);margin-top:8px}
+.nv-issue.error{border-color:var(--bad-line);background:var(--bad-bg)}
+.nv-issue.warn{border-color:var(--warn-line);background:var(--warn-bg)}
+.nv-issue.todo{border-color:#b9c8f6;background:var(--accent-soft)}
+.nv-issue.info{background:var(--sunk)}
+.nv-crash pre{white-space:pre-wrap;font:12px var(--f-mono);color:var(--bad)}
+
+/* a field with an issue; a field the "fix" link just jumped to */
+.nv-f-error input,.nv-f-error select,.nv-f-error textarea{border-color:var(--bad)!important;background:var(--bad-bg)!important}
+.nv-f-warn input,.nv-f-warn select,.nv-f-warn textarea{border-color:#d79a12!important;background:var(--warn-bg)!important}
+.nv-fmsg{display:block;flex-basis:100%;margin-top:4px;font-size:12px;line-height:1.35;font-weight:500}
+.nv-fmsg.error{color:var(--bad)}.nv-fmsg.warn{color:var(--warn)}
+.nv-flash{animation:nvFlash 1.8s ease-out;border-radius:10px}
+@keyframes nvFlash{0%,35%{box-shadow:0 0 0 4px rgba(42,85,217,.35)}100%{box-shadow:0 0 0 4px rgba(42,85,217,0)}}
+
+/* ---- the live app's form pieces, in the new look */
+.nv-app .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--nv-r);box-shadow:var(--nv-shadow)}
+.nv-app .btn{border-radius:10px;min-height:36px;border-color:var(--line2);font-weight:600}
+.nv-app .btn.pri,.nv-app .btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.nv-app .f>span{font-size:12px;font-weight:600;color:var(--muted)}
+.nv-app .f input,.nv-app .f select{border:1px solid var(--line2);background:var(--panel);border-radius:9px;min-height:38px;padding:7px 10px}
+.nv-app .f input:focus,.nv-app .f select:focus{border-color:var(--accent);outline:0;box-shadow:0 0 0 3px var(--accent-soft)}
+.nv-app .f.n input{font:600 15px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-app .seg{border:1px solid var(--line2);border-radius:10px;background:var(--sunk);padding:3px;gap:2px;display:inline-flex;flex-wrap:wrap;overflow:visible}
+.nv-app .seg button{border:0;border-radius:7px;padding:6px 12px;min-height:30px;color:var(--muted);font-weight:600}
+.nv-app .seg button.on,.nv-app .seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+.nv-app .chk input{accent-color:var(--ink)}
+.nv-app .note{color:var(--muted)}
+.nv-app .toast{border-radius:12px;box-shadow:var(--nv-shadow-lg);padding:11px 18px}
+
+@media (max-width:1100px){
+  .nv-brand-t{display:none}
+  .nv-stage-l{display:none}.nv-stage.on .nv-stage-l{display:inline}
+  .nv-stage-sep{width:8px}
+}
+@media (max-width:760px){
+  .nv-top-in{flex-wrap:wrap;gap:8px}
+  .nv-proj{flex:1 1 120px}
+  .nv-stages{order:3;width:100%;justify-content:space-between;margin:0;padding:0}
+  .nv-status span:last-child{display:none}
+  .nv-main{padding:12px 12px 60px}
+}
+@media print{.nv-top{display:none}}
