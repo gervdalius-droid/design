@@ -1,6 +1,11 @@
-.nv-app .nv-ecm{background:#fbfaf7}
-.nv-app .nv-ecm .ec-msvg{background:#fbfaf7}
+.nv-app .nv-ecm{background:#faf9f5}
+.nv-app .nv-ecm .ec-msvg{background:#faf9f5}
 .nv-app .nv-ecf{cursor:pointer}
 .nv-app .nv-ecf:not(.on):hover{fill:#e8b90c;fill-opacity:.55;stroke:#e8b90c}
-.nv-app .nv-ecf.on{fill-opacity:.9}
+.nv-app .nv-ecf.on{fill-opacity:.55}
 .nv-app .nv-ecf.on:hover{fill:#e8b90c;stroke:#e8b90c}
+
+/* joints mode inside the cabinet workspace: the model keeps a proper size and the editor scrolls below it
+   (before, the editor panels squeezed the picture down to its 280 px minimum) */
+.nve-3d .av.connector-mode:not(.full){flex:none;overflow:visible}
+.nve-3d .av.connector-mode:not(.full) .av-stage{flex:none;height:min(58vh,560px);min-height:380px}
