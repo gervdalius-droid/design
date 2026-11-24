@@ -6378,7 +6378,7 @@ function mount(el,c,r,lang,hooks={}){
  const cupE=+((window.DBEngine.R.hinge||{}).cupFromEdge)||22.5,HG=window.DBFit.HINGE,right=!m.hingeLeft,cx=right?x+w-cupE:x+cupE;
  (m.ys||[]).forEach(yy=>{const hz=z+yy,mapH=(sx,sy,sz)=>[right?cx+(sx-HG.cupX):cx-(sx-HG.cupX),-(sz-HG.doorZ),hz+sy];
   meshFaces('hinge',0,mapH,'#a7b0b5',null,!right);
-  if(V.mode==='assembly')meshFaces('hinge',1,mapH,'#c6cdd1',tf,!right);
+  if(V.mode==='assembly')meshFaces('hinge',1,mapH,'#c6cdd1',tf,!right);if(V.mode==='assembly'&&angle>.06){const nvA=[right?x+w-20:x+20,34,hz],nvC=tf([cx,7,hz]),nvM=[(nvA[0]+nvC[0])*.5,(nvA[1]+nvC[1])*.5-10,hz];rod(nvA,nvM,5.5,'#9aa4aa');rod(nvM,nvC,6.5,'#c3cbd0');}
  });
  } else if(V.hardware && m.hinged!==false){
  (m.ys||[]).forEach(yy=>{let hz=z+yy,edge=m.hingeLeft?1:-1,sx=m.hingeLeft?x+16:x+w-16,cx=m.hingeLeft?x+22.5:x+w-22.5;
@@ -18440,6 +18440,21 @@ document.addEventListener('pointerup', function (e) {
 }, true);
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && nvpS.el) nvpClose(); });
 window.addEventListener('scroll', function () { if (nvpS.el) nvpClose(); }, { passive: true });
+
+
+/* ======== src/ui/47-avtools.js ======== */
+/* 47-avtools.js — "Kraštai" in the 3-D view's own toolbar (beside Surinkta / Be fasadų / Jungtys): opens the edge-banding
+   check of this cabinet. The live widget rebuilds its toolbar on every mount, so the button is put back by an observer. */
+function nvaAvBtn() {
+  [].forEach.call(document.querySelectorAll('#app .av .av-tools'), function (tb) {
+    if (tb.querySelector('[data-nv="ecall"]')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.setAttribute('data-nv', 'ecall'); b.className = 'nva-ec';
+    b.textContent = '▭ ' + L('Kraštai', 'Edges'); b.title = L('Kraštų laminavimas: kurie kraštai klijuojami', 'Edge banding: which edges are banded');
+    var ref = tb.querySelector('[data-connectors]'); if (ref && ref.nextSibling) tb.insertBefore(b, ref.nextSibling); else tb.appendChild(b);
+  });
+}
+NVA.ecall = function () { NV.ecFocus = null; S.echeck = true; S.jcheck = false; };
+new MutationObserver(nvaAvBtn).observe(app, { childList: true, subtree: true });
 
 
 /* ======== src/ui/50-check.js ======== */

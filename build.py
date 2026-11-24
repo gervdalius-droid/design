@@ -39,6 +39,12 @@ PATCHES = [
      "const faceName=confirmat?(h.face==='B'?'A':'B'):(h.face||'A'),",
      "const nvAx=[0,1,2].reduce((m,i)=>Math.abs(pl.n[i])>Math.abs(pl.n[m])?i:m,0),nvSg=pl.n[nvAx]>0?1:-1,nvA=pl.o[nvAx],nvAll=(r.panels||[]).filter(q=>q.place&&!q.drawerOf&&q.role!=='FASADAS'&&q.role!=='DURYS').reduce((acc,q)=>{[0,q.L].forEach(a=>[0,q.W].forEach(b=>[0,q.T].forEach(d=>acc.push(q.place.o[nvAx]+a*q.place.u[nvAx]+b*q.place.v[nvAx]-d*q.place.n[nvAx]))));return acc;},[]),nvOut=nvSg>0?Math.max(...nvAll):Math.min(...nvAll),"
      "faceName=confirmat?(Math.abs(nvA-nvOut)<.5?'A':(h.face==='B'?'A':'B')):(h.face||'A'),"),
+    # 3-D view: with the door open the hinge's arm stayed on the side and its cup went with the door, nothing between
+    # them — the hinge looked like a loose piece on the side panel. Two links now join arm and cup at any opening.
+    ('assembly',
+     "if(V.mode==='assembly')meshFaces('hinge',1,mapH,'#c6cdd1',tf,!right);",
+     "if(V.mode==='assembly')meshFaces('hinge',1,mapH,'#c6cdd1',tf,!right);"
+     "if(V.mode==='assembly'&&angle>.06){const nvA=[right?x+w-20:x+20,34,hz],nvC=tf([cx,7,hz]),nvM=[(nvA[0]+nvC[0])*.5,(nvA[1]+nvC[1])*.5-10,hz];rod(nvA,nvM,5.5,'#9aa4aa');rod(nvM,nvC,6.5,'#c3cbd0');}"),
 ]
 
 def arg(name):
