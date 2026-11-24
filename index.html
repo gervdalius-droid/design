@@ -1881,6 +1881,13 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 }
 @media print{.nve-strip,.nve-insp,.nve-add{display:none}}
 
+/* the fronts' drag grips on the picture */
+.nve-fgh{position:absolute;z-index:6;transform:translate(-50%,-50%);background:#e8820c;border:2px solid #fff;border-radius:999px;box-shadow:0 1px 4px rgba(0,0,0,.3);touch-action:none;opacity:.9}
+.nve-fgh.h{width:54px;height:10px;cursor:ns-resize}.nve-fgh.v{width:10px;height:54px;cursor:ew-resize}
+.nve-fgh:hover,.nve-fgh.drag{opacity:1;background:#c96a00}
+.nve-fgtip{position:absolute;z-index:7;transform:translate(-50%,-190%);background:#1c211e;color:#fff;font:600 12px var(--f-body);padding:4px 9px;border-radius:8px;white-space:nowrap;pointer-events:none}
+.nve-fg .fgblk .row{gap:10px}
+
 </style>
 <style>
 /* src/ui/31-topics.css */
@@ -17340,6 +17347,11 @@ function nvePicture(c, inf) {
       else lay += '<details class="nve-add nve-add-empty' + edge + '" style="' + box(G.bnd[k2] + (k2 ? t_ / 2 : t_), G.bnd[k2 + 1] - (k2 === nC - 1 ? t_ : t_ / 2), t_, H - t_) + '"><summary aria-label="' + esc(L('Pridėti sekciją', 'Add a section')) + '"><b>+</b><span>' + L('Kas čia bus?', 'What goes here?') + '</span></summary>' + menu(k2) + '</details>';
     }
   }
+  /* ---- the fronts' outer edges: four orange grips to drag (left, right, top, bottom gap) */
+  if (!c.kind && !c.dishwasher && r.fgaps) { var fe = fgFronts(r);
+    if (fe) { var mx = (fe.x0 + fe.x1) / 2, mz = (fe.z0 + fe.z1) / 2, tipT = esc(t('fgDragT'));
+      lay += '<span class="nve-fgh h" data-nvfg="top" style="left:' + X(mx) + ';top:' + Y(fe.z1) + '" title="' + tipT + '"></span><span class="nve-fgh h" data-nvfg="bot" style="left:' + X(mx) + ';top:' + Y(fe.z0) + '" title="' + tipT + '"></span>' +
+        '<span class="nve-fgh v" data-nvfg="l" style="left:' + X(fe.x0) + ';top:' + Y(mz) + '" title="' + tipT + '"></span><span class="nve-fgh v" data-nvfg="r" style="left:' + X(fe.x1) + ';top:' + Y(mz) + '" title="' + tipT + '"></span><span class="nve-fgtip" hidden></span>'; } }
   /* ---- the three outer sizes: labels that are buttons */
   var go = function (cls, style, field, title, txt) { return '<button type="button" class="nve-dim ' + cls + '" style="' + style + '" data-nv="go" data-topic="size" data-field="' + field + '" title="' + esc(title + ' — ' + L('keisti', 'change')) + '"><i></i><b>' + txt + '</b></button>'; };
   lay += (panel ? go('nve-dim-w', 'left:' + X(0) + ';width:' + Wd(W), 'f-c-D', t('D'), fmt(c.D)) : go('nve-dim-w', 'left:' + X(0) + ';width:' + Wd(W), c.dishwasher ? 'f-c-dishWidth' : 'f-c-W', c.dishwasher ? t('dishW') : t('W'), fmt(c.dishwasher ? c.dishWidth : c.W))) +
@@ -17656,10 +17668,45 @@ function nveInside(c, inf) {
     (nC > 1 ? '<div class="nve-cols" role="tablist" aria-label="' + esc(t('colEdit')) + '" data-live="ecols">' + nveColTabs(c) + '</div>' : '') +
     zone(ac) + '<div class="nve-list" data-live="elist" data-live-arg="' + ac + '">' + nveList(c, ac) + '</div>' + nveAddRow(ac, c.sections.some(function (q) { return colOf(c, q) === ac; })) + '</section>';
   var fg = fgBlock(c), sf = c.sections.some(function (q) { return (q.kind === 'doors' || q.kind === 'open') && num(q.shelves) > 0; }) ? shelfFront(c) : '';
-  if (fg || sf) h += '<details class="nv-adv" data-nve-adv="inside"' + (nveAdvOpen('inside', /^f-(fg-|c-shelfSb$)/) ? ' open' : '') + '><summary>' + L('Daugiau nustatymų', 'More settings') + '<small>' + [fg ? L('fasadų tarpai', 'front gaps') : '', sf ? L('lentynų atitraukimas', 'shelf setback') : ''].filter(Boolean).join(', ') + '</small></summary>' + fg + sf + '</details>';
+  if (fg) h += '<section class="nv-grp nve-fg"><h4>' + L('Fasadų dydis ir tarpai', 'Front size and gaps') + ' <small>mm</small></h4>' +
+    '<p class="nv-hint" style="margin:0 0 8px">' + L('Tempkite oranžines rankenėles paveiksle arba įrašykite tarpus čia. Tuščias laukas — pagal dirbtuvės taisyklę.', 'Drag the orange handles on the picture, or type the gaps here. An empty field follows the workshop rule.') + '</p>' +
+    fg.replace(/<div class="lbl">[^<]*<\/div>/, '') + '</section>';
+  if (sf) h += '<details class="nv-adv" data-nve-adv="inside"' + (nveAdvOpen('inside', /^f-c-shelfSb$/) ? ' open' : '') + '><summary>' + L('Daugiau nustatymų', 'More settings') + '<small>' + L('lentynų atitraukimas', 'shelf setback') + '</small></summary>' + sf + '</details>';
   return h;
 }
 nvTopic({ key: 'inside', order: 20, icon: NVE_ICON.inside, label: function () { return L('Vidus', 'Inside'); }, applies: function (c) { return !c.kind && !c.dishwasher; }, body: nveInside });
+
+/* dragging a front grip: the gap follows the pointer in millimetres (the picture's scale), snaps to the same places as
+   in the live app (flush, the rule's value, half a board), and is written to c.cnc.fg on release */
+var nveFG = null;
+document.addEventListener('pointerdown', function (ev) {
+  var el = ev.target && ev.target.closest ? ev.target.closest('[data-nvfg]') : null; if (!el) return;
+  var c = cur(), inf = S._info && S._info[S.sel], r = inf && inf.r, pic = el.closest('.nve-pic'), svg = pic && pic.querySelector('svg'); if (!c || !r || !r.fgaps || !svg) return;
+  var e = fgFronts(r), vb = svg.viewBox.baseVal, rc = svg.getBoundingClientRect(); if (!e || !vb.width) return;
+  ev.preventDefault(); ev.stopPropagation();
+  nveFG = { el: el, k: el.getAttribute('data-nvfg'), r: r, e: e, pic: pic, mm: Math.max(vb.width / rc.width, vb.height / rc.height), x: ev.clientX, y: ev.clientY, l0: el.offsetLeft, t0: el.offsetTop, v: null, tip: pic.querySelector('.nve-fgtip') };
+  var g = r.fgaps, k = nveFG.k; nveFG.v0 = k === 'bot' ? e.z0 - g.hb : k === 'top' ? +r.dims.H - e.z1 : k === 'l' ? e.x0 : +r.dims.W - e.x1;
+  el.classList.add('drag'); try { el.setPointerCapture(ev.pointerId); } catch (x) {}
+}, true);
+document.addEventListener('pointermove', function (ev) {
+  var d = nveFG; if (!d) return;
+  var r = d.r, g = r.fgaps, k = d.k, dx = (ev.clientX - d.x) * d.mm, dy = (ev.clientY - d.y) * d.mm, v, snaps, sn = null;
+  if (k === 'bot') { v = d.v0 - dy; snaps = [[0, t('fgSnapBot')], [g.botMin, t('fgSnapSide')]]; v = Math.max(g.botLow != null ? g.botLow : g.botMin, Math.min(v, d.e.z1 - g.hb - 120)); }
+  else if (k === 'top') { v = d.v0 + dy; snaps = [[0, t('fgSnapTop')], [g.mid, ''], [g.top, '']]; v = Math.max(0, Math.min(v, 80)); }
+  else if (k === 'l') { v = d.v0 + dx; snaps = [[0, t('fgSnapOut')], [3, ''], [+r.dims.t / 2, '']]; v = Math.max(0, Math.min(v, 40)); }
+  else { v = d.v0 - dx; snaps = [[0, t('fgSnapOut')], [3, ''], [+r.dims.t / 2, '']]; v = Math.max(0, Math.min(v, 40)); }
+  snaps.forEach(function (s0) { if (sn == null && Math.abs(v - s0[0]) < Math.max(1.5, 6 * d.mm)) { v = s0[0]; sn = s0[1]; } });
+  v = Math.round(v * 2) / 2; d.v = v;
+  var px = (v - d.v0) / d.mm;   // where the grip is now
+  if (k === 'bot') d.el.style.top = (d.t0 - px) + 'px'; else if (k === 'top') d.el.style.top = (d.t0 + px) + 'px'; else if (k === 'l') d.el.style.left = (d.l0 + px) + 'px'; else d.el.style.left = (d.l0 - px) + 'px';
+  if (d.tip) { d.tip.hidden = false; d.tip.textContent = (k === 'bot' ? t('fgBot') : k === 'top' ? t('fgTop') : k === 'l' ? t('fgL') : t('fgR')) + ': ' + fmt(v) + ' mm' + (sn ? ' — ' + sn : '');
+    d.tip.style.left = d.el.style.left || d.l0 + 'px'; d.tip.style.top = d.el.style.top || d.t0 + 'px'; }
+});
+document.addEventListener('pointerup', function () {
+  var d = nveFG; if (!d) return; nveFG = null; d.el.classList.remove('drag');
+  var c = cur(); if (d.v == null || !c) return;
+  c.cnc.fg = Object.assign({}, c.cnc.fg || {}); c.cnc.fg[d.k] = d.v; save(); render();
+});
 
 
 /* ======== src/ui/31-topics.js ======== */
