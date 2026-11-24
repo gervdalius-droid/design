@@ -28,6 +28,7 @@ function nvpOpen(part, x, y) {
   if (part.kind === 'worktop') acts += b('wtoff', L('Pašalinti stalviršį', 'Remove the worktop'), 'danger');
   if (part.kind === 'plinth') acts += b('ploff', L('Pašalinti cokolį', 'Remove the plinth'), 'danger');
   if (p) acts += b('edges', L('Kraštų laminavimas', 'Edge banding'));
+  if (p && typeof nvsOpen === 'function') acts += b('sketch', L('Eskizas: išpjovos', 'Sketch: cutouts'));
   var topic = part.kind === 'worktop' ? 'addons' : /^(FASADAS|DURYS|LENTYNA|PERTVARA)/.test(role) ? 'inside' : 'body';
   acts += b('go:' + topic + (p && p.sec != null && /^DURYS/.test(role) ? ':' + p.sec : ''), L('Visi nustatymai →', 'All settings →'), 'ghost');
   var d = document.createElement('div'); d.className = 'nvp-card nv-card'; d.setAttribute('role', 'dialog');
@@ -45,6 +46,7 @@ function nvpDo(k) {
   var c = cur(), part = nvpS.part, role = (part && part.role) || ''; if (!c || !part) return nvpClose();
   nvpClose();
   if (k === 'close') return;
+  if (k === 'sketch') { nvsOpen(part); return; }
   if (k.indexOf('go:') === 0) { var a = k.split(':'); nvGo({ topic: a[1], sec: a[2] != null ? +a[2] : null }); return; }
   if (k === 'edges') {   // this board alone, pulled out of the cabinet, its edges clickable (45-edges.js)
     var inf = S._info && S._info[S.sel], pp = inf && inf.r ? inf.r.panels.filter(function (q) { return q.name === part.name; })[0] : null; if (!pp) return;

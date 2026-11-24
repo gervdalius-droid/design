@@ -2574,6 +2574,24 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 
 </style>
 <style>
+/* src/ui/49-sketch.css */
+.nvs{position:fixed;z-index:80;right:16px;top:74px;bottom:16px;width:min(470px,calc(100vw - 32px));overflow:auto;padding:16px;box-shadow:var(--nv-shadow-lg);font:14px/1.45 var(--f-body);color:var(--ink)}
+.nvs-h{display:flex;justify-content:space-between;gap:8px;margin-bottom:10px}.nvs-h b{display:block;font:700 16px var(--f-display)}.nvs-h small{color:var(--muted)}
+.nvs-tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.nvs-svg{display:block;width:100%;max-height:44vh;background:var(--paper);border:1px solid var(--line);border-radius:10px;touch-action:none;cursor:crosshair}
+.nvs-board{fill:#fff;stroke:#1c211e}.nvs-grid line{stroke:#d8d5cc}.nvs-holes circle{fill:#9aa39c;opacity:.7}
+.nvs-svg text{fill:#69726c;font-family:var(--f-body)}
+.nvs-c{fill:rgba(179,38,30,.16);stroke:#b3261e;cursor:move}.nvs-c.on{fill:rgba(42,85,217,.2);stroke:#2a55d9}
+.nvs-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.nvs-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border:1px solid var(--line);border-radius:10px}
+.nvs-row.on{border-color:var(--accent);background:var(--accent-soft)}
+.nvs-row b{width:18px;text-align:center;padding-bottom:8px}
+.nvs-row label{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}.nvs-row label span{font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
+.nvs-row input{width:100%;border:1px solid var(--line2);border-radius:8px;min-height:34px;padding:4px 8px;font:600 14px var(--f-body);font-variant-numeric:tabular-nums;text-align:right;background:var(--panel)}
+.nvs-f{display:flex;justify-content:space-between;margin-top:12px}
+
+</style>
+<style>
 /* src/ui/50-check.css */
 /* 50-check.css — stage "Patikra": one readable column; state colours only on what carries state */
 .nvk{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
@@ -18463,6 +18481,7 @@ function nvpOpen(part, x, y) {
   if (part.kind === 'worktop') acts += b('wtoff', L('Pašalinti stalviršį', 'Remove the worktop'), 'danger');
   if (part.kind === 'plinth') acts += b('ploff', L('Pašalinti cokolį', 'Remove the plinth'), 'danger');
   if (p) acts += b('edges', L('Kraštų laminavimas', 'Edge banding'));
+  if (p && typeof nvsOpen === 'function') acts += b('sketch', L('Eskizas: išpjovos', 'Sketch: cutouts'));
   var topic = part.kind === 'worktop' ? 'addons' : /^(FASADAS|DURYS|LENTYNA|PERTVARA)/.test(role) ? 'inside' : 'body';
   acts += b('go:' + topic + (p && p.sec != null && /^DURYS/.test(role) ? ':' + p.sec : ''), L('Visi nustatymai →', 'All settings →'), 'ghost');
   var d = document.createElement('div'); d.className = 'nvp-card nv-card'; d.setAttribute('role', 'dialog');
@@ -18480,6 +18499,7 @@ function nvpDo(k) {
   var c = cur(), part = nvpS.part, role = (part && part.role) || ''; if (!c || !part) return nvpClose();
   nvpClose();
   if (k === 'close') return;
+  if (k === 'sketch') { nvsOpen(part); return; }
   if (k.indexOf('go:') === 0) { var a = k.split(':'); nvGo({ topic: a[1], sec: a[2] != null ? +a[2] : null }); return; }
   if (k === 'edges') {   // this board alone, pulled out of the cabinet, its edges clickable (45-edges.js)
     var inf = S._info && S._info[S.sel], pp = inf && inf.r ? inf.r.panels.filter(function (q) { return q.name === part.name; })[0] : null; if (!pp) return;
@@ -18642,8 +18662,10 @@ function nv3Shade(hex, k) { var c = new NV3.T.Color(hex); c.multiplyScalar(k); r
 /* a board from its engine placement: local x = its length (u), y = its width (v), z = its thickness (against n).
    Box faces in three's order: +x −x +y −y +z −z  →  edges x1 x0 y1 y0, then the two big faces. */
 function nv3Board(p, color, opt) {
-  var T = NV3.T, q = p.place, g = new T.BoxGeometry(p.L, p.W, p.T), fe = (cur().edge.facade || 'PAGAL FASADA'), mats;
-  var dim = opt && opt.dim, edgeMode = NV3.edges && !dim && p.key;
+  var T = NV3.T, q = p.place, g = null, fe = (cur().edge.facade || 'PAGAL FASADA'), mats;
+  var dim = opt && opt.dim, edgeMode = NV3.edges && !dim && p.key, cuts = !edgeMode && p.key && (cur().nvCuts || {})[p.key];
+  if (cuts && cuts.length) { try { var shp = nv3CutShapes(p.L, p.W, cuts); if (shp.length) { g = new T.ExtrudeGeometry(shp, { depth: p.T, bevelEnabled: false, curveSegments: 28 }); g.translate(-p.L / 2, -p.W / 2, -p.T / 2); } } catch (e) { g = null; } }
+  if (!g) g = new T.BoxGeometry(p.L, p.W, p.T);
   if (edgeMode) { var em = function (e) { var st = ecState(p, e, fe); return new T.MeshStandardMaterial({ color: new T.Color(st === 1 ? '#1f5fbf' : st === 2 ? '#d9730d' : '#b9b4a8'), roughness: 0.6, emissive: new T.Color(st === 1 ? '#0b2a5c' : st === 2 ? '#6a3200' : '#000000'), emissiveIntensity: st ? 0.35 : 0 }); };
     var face = nv3Mat(color); mats = [em('x1'), em('x0'), em('y1'), em('y0'), face, face]; }
   else mats = dim ? nv3Mat(color, { transparent: true, opacity: 0.16, depthWrite: false }) : nv3Mat(color);
@@ -18652,10 +18674,51 @@ function nv3Board(p, color, opt) {
   m.matrixAutoUpdate = false;
   var cx = [0, 1, 2].map(function (i) { return q.o[i] + q.u[i] * p.L / 2 + q.v[i] * p.W / 2 - q.n[i] * p.T / 2; });
   m.matrix.makeBasis(u, v, z).setPosition(cx[0], cx[1], cx[2]); void n;
-  var ln = new T.LineSegments(new T.EdgesGeometry(g), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.12 : 0.28 })); m.add(ln);
+  var ln = new T.LineSegments(new T.EdgesGeometry(g, 25), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.12 : 0.28 })); m.add(ln);
+  if (!dim && typeof NVS !== 'undefined' && NVS.key === p.key && NVS.cab === cur().id) { m.material = new T.MeshStandardMaterial({ color: new T.Color(color), roughness: 0.62, emissive: new T.Color('#2a55d9'), emissiveIntensity: 0.22 }); }   // the board being sketched on
   m.userData = { part: { kind: 'panel', role: p.role, name: p.name }, key: p.key, cen: cx, edge: !!edgeMode };
   if (!dim) NV3.pick.push(m);
   return m;
+}
+/* the outline of a board after its cutouts (49-sketch.js): rectangles may cross the board's edges (notches), so the
+   kept area is found on the grid of all their edges and its border traced into loops; round holes are added inside. */
+function nv3CutShapes(L, W, cuts) {
+  var T = NV3.T, xs = [0, L], ys = [0, W], rects = cuts.filter(function (q) { return q.k === 'rect' && q.w > 0 && q.h > 0; });
+  rects.forEach(function (q) { [q.x, q.x + q.w].forEach(function (v) { if (v > 0 && v < L) xs.push(v); }); [q.y, q.y + q.h].forEach(function (v) { if (v > 0 && v < W) ys.push(v); }); });
+  var uq = function (a) { a.sort(function (p, q) { return p - q; }); return a.filter(function (v, i) { return !i || v - a[i - 1] > 0.01; }); }; xs = uq(xs); ys = uq(ys);
+  var nx = xs.length - 1, ny = ys.length - 1, keep = function (i, j) { if (i < 0 || j < 0 || i >= nx || j >= ny) return false; var cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2; return !rects.some(function (q) { return cx > q.x && cx < q.x + q.w && cy > q.y && cy < q.y + q.h; }); };
+  var next = {}, key = function (i, j) { return i + ',' + j; }, edge = function (a, b) { next[key(a[0], a[1])] = b; };
+  for (var i = 0; i < nx; i++) for (var j = 0; j < ny; j++) { if (!keep(i, j)) continue;   // counter-clockwise border edges of every kept cell that has no kept neighbour there
+    if (!keep(i, j - 1)) edge([i, j], [i + 1, j]); if (!keep(i + 1, j)) edge([i + 1, j], [i + 1, j + 1]); if (!keep(i, j + 1)) edge([i + 1, j + 1], [i, j + 1]); if (!keep(i - 1, j)) edge([i, j + 1], [i, j]); }
+  var loops = [], guard = 0;
+  Object.keys(next).forEach(function (k0) { if (!next[k0]) return; var pts = [], k = k0; while (next[k] && guard++ < 20000) { var p = k.split(',').map(Number), n = next[k]; next[k] = null; pts.push([xs[p[0]], ys[p[1]]]); k = key(n[0], n[1]); } if (pts.length > 2) loops.push(pts); });
+  var area = function (P) { var a = 0; for (var q = 0; q < P.length; q++) { var r2 = P[(q + 1) % P.length]; a += P[q][0] * r2[1] - r2[0] * P[q][1]; } return a / 2; };
+  var inside = function (pt, P) { var c = false; for (var q = 0, r3 = P.length - 1; q < P.length; r3 = q++) if ((P[q][1] > pt[1]) !== (P[r3][1] > pt[1]) && pt[0] < (P[r3][0] - P[q][0]) * (pt[1] - P[q][1]) / (P[r3][1] - P[q][1]) + P[q][0]) c = !c; return c; };
+  var outers = loops.filter(function (P) { return area(P) > 0; }), holes = loops.filter(function (P) { return area(P) < 0; });
+  return outers.map(function (P) { var sh = new T.Shape(P.map(function (q) { return new T.Vector2(q[0], q[1]); }));
+    holes.forEach(function (H) { if (inside(H[0], P)) sh.holes.push(new T.Path(H.map(function (q) { return new T.Vector2(q[0], q[1]); }))); });
+    cuts.forEach(function (q) { if (q.k !== 'circ' || !(q.d > 0)) return; var rr = q.d / 2; if (q.x - rr < 0.5 || q.y - rr < 0.5 || q.x + rr > L - 0.5 || q.y + rr > W - 0.5 || !inside([q.x, q.y], P)) return;
+      if (rects.some(function (r4) { return q.x + rr > r4.x && q.x - rr < r4.x + r4.w && q.y + rr > r4.y && q.y - rr < r4.y + r4.h; })) return;
+      var h = new T.Path(); h.absarc(q.x, q.y, rr, 0, Math.PI * 2, true); sh.holes.push(h); });
+    return sh; });
+}
+/* connectors as they sit in the boards, from the engine's real drillings: confirmat heads, cam housings, shelf pins */
+function nv3Screws(r, root) {
+  var T = NV3.T, steel = { metalness: 0.9, roughness: 0.3 }, gHead = NV3.gHead = NV3.gHead || new T.CylinderGeometry(5.2, 5.2, 1.6, 20), gHex = NV3.gHex = NV3.gHex || new T.CylinderGeometry(2.2, 2.2, 1.8, 6),
+    gCam = NV3.gCam = NV3.gCam || new T.CylinderGeometry(7.4, 7.4, 1.2, 28), gSlot = NV3.gSlot = NV3.gSlot || new T.BoxGeometry(9, 1.5, 1.4), gPin = NV3.gPin = NV3.gPin || new T.CylinderGeometry(2.5, 2.5, 7, 12), up = new T.Vector3(0, 1, 0);
+  var all = (r.panels || []).filter(function (q) { return q.place && !q.drawerOf && q.role !== 'FASADAS' && q.role !== 'DURYS'; });
+  all.forEach(function (p) { var pl = p.place, ax = 0; [1, 2].forEach(function (i) { if (Math.abs(pl.n[i]) > Math.abs(pl.n[ax])) ax = i; });
+    var ext = []; all.forEach(function (q) { [0, q.L].forEach(function (a) { [0, q.W].forEach(function (b) { [0, q.T].forEach(function (d) { ext.push(q.place.o[ax] + a * q.place.u[ax] + b * q.place.v[ax] - d * q.place.n[ax]); }); }); }); });
+    var outA = Math.abs(pl.o[ax] - (pl.n[ax] > 0 ? Math.max.apply(null, ext) : Math.min.apply(null, ext))) < 0.5;   // face A is the cabinet's outside (an outside back)
+    (p.holes || []).forEach(function (h) {
+      var cam = !h.op && !h.mark && !h.through && Math.abs(h.d - 15) < 0.1, conf = !h.op && !h.mark && h.through && Math.abs(h.d - 8) < 0.1, pin = h.op === 'pin'; if (!cam && !conf && !pin) return;
+      var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
+      var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
+      var qn = new T.Quaternion().setFromUnitVectors(up, n), put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off); m.quaternion.copy(qn); root.add(m); return m; };
+      if (conf) { put(gHead, '#aeb7bc', 0.6); put(gHex, '#3c4549', 0.9, { metalness: 0.5, roughness: 0.6 }); }
+      else if (cam) { put(gCam, '#b9c1c6', 0.2); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }).rotateY(Math.PI / 2); }
+      else put(gPin, '#a4adb2', 3.5);
+    }); });
 }
 function nv3Box(o, s, color, opt, part) {   // a plain box given by its low corner and size, in cabinet axes
   var T = NV3.T, m = new T.Mesh(new T.BoxGeometry(s[0], s[1], s[2]), nv3Mat(color, opt));
@@ -18741,6 +18804,7 @@ function nv3Build() {
     if (r.worktop) { var wt = r.worktop; root.add(nv3Box([wt.x0, wt.y0, wt.z0], [wt.L, wt.y1 - wt.y0, wt.T], MC(wt.mat, '#b98d5e'), { roughness: 0.45 }, { kind: 'worktop' })); }
     if (E.sidePanels) E.sidePanels(c).forEach(function (q) { root.add(nv3Box([q.x0, q.y0, q.z0], [q.x1 - q.x0, q.y1 - q.y0, q.z1 - q.z0], MC(q.mat, '#d5cbbd'))); });
   }
+  if (NV3.hw && !focus) nv3Screws(r, root);
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
   var fronts = (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
@@ -18844,6 +18908,80 @@ function nv3Click(e) {
   if (part && typeof nvpOpen === 'function') nvpOpen(part, e.clientX, e.clientY);
 }
 document.addEventListener('keydown', function (e) { if (e.key !== 'Escape' || !document.getElementById('nv3')) return; if (NV3.focus) { NV3.focus = null; render(); } else if (NV3.full) { NV3.full = false; render(); } });
+
+
+/* ======== src/ui/49-sketch.js ======== */
+/* 49-sketch.js — sketch on a board: cutouts (rectangles — also notches over an edge — and round holes) drawn on the
+   board's face, kept with the cabinet (c.nvCuts[<part key>] = [{ k:'rect', x, y, w, h } | { k:'circ', x, y, d }], mm from
+   the board's own corner: x along its length, y along its width) and shown at once in the 3-D picture.
+   The CNC programs come from the live engine, which does not know these cutouts — so each board with a sketch raises a
+   warning in the check ("cut by hand from the drawing") until the engine can machine them. */
+var NVS = { cab: null, key: null, tool: 'rect', sel: -1, drag: null, el: null };
+function nvsPanel() { var c = cur(), inf = S._info && S._info[S.sel]; if (!c || !inf || !inf.r || c.id !== NVS.cab) return null; return inf.r.panels.filter(function (p) { return p.key === NVS.key; })[0] || null; }
+function nvsCuts(make) { var c = cur(); if (!c) return []; if (!c.nvCuts) { if (!make) return []; c.nvCuts = {}; } if (!c.nvCuts[NVS.key]) { if (!make) return []; c.nvCuts[NVS.key] = []; } return c.nvCuts[NVS.key]; }
+function nvsOpen(part) {
+  var c = cur(), inf = S._info && S._info[S.sel], p = c && inf && inf.r ? inf.r.panels.filter(function (q) { return q.name === part.name; })[0] : null; if (!p) return;
+  NVS.cab = c.id; NVS.key = p.key; NVS.sel = -1; NVS.title = typeof nvpName === 'function' ? nvpName(part, p) : p.short; nvsPaint(); if (typeof nv3Build === 'function') nv3Build();
+}
+function nvsClose() { if (NVS.el) NVS.el.remove(); NVS.el = null; NVS.key = null; NVS.cab = null; if (typeof nv3Build === 'function') nv3Build(); }
+function nvsCommit() { var c = cur(), L0 = nvsCuts(); if (c && c.nvCuts && !L0.length) { delete c.nvCuts[NVS.key]; if (!Object.keys(c.nvCuts).length) delete c.nvCuts; } save(); NV.issues = null; if (typeof nv3Build === 'function') nv3Build(); if (typeof nvLive === 'function') nvLive(); }
+function nvsPaint() {
+  var p = nvsPanel(); if (!p) { nvsClose(); return; }
+  var d = NVS.el; if (!d) { d = NVS.el = document.createElement('div'); d.className = 'nvs nv-card'; document.body.appendChild(d); nvsWire(d); }
+  var cuts = nvsCuts(), pad = Math.max(p.L, p.W) * 0.06, n1 = function (v) { return Math.round(v * 10) / 10; }, sw = Math.max(p.L, p.W) / 380;
+  var grid = '', step = Math.max(p.L, p.W) > 900 ? 100 : 50; for (var gx = step; gx < p.L; gx += step) grid += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + p.W + '"/>'; for (var gy = step; gy < p.W; gy += step) grid += '<line x1="0" y1="' + gy + '" x2="' + p.L + '" y2="' + gy + '"/>';
+  var holes = (p.holes || []).map(function (h) { return '<circle cx="' + n1(h.x) + '" cy="' + n1(p.W - h.y) + '" r="' + Math.max(2, (h.d || 5) / 2) + '"/>'; }).join('');
+  var shapes = cuts.map(function (q, i) { var on = i === NVS.sel ? ' on' : '';
+    return q.k === 'circ' ? '<circle class="nvs-c' + on + '" data-i="' + i + '" cx="' + n1(q.x) + '" cy="' + n1(p.W - q.y) + '" r="' + n1(q.d / 2) + '" stroke-width="' + sw * 1.5 + '"/>'
+      : '<rect class="nvs-c' + on + '" data-i="' + i + '" x="' + n1(q.x) + '" y="' + n1(p.W - q.y - q.h) + '" width="' + n1(q.w) + '" height="' + n1(q.h) + '" stroke-width="' + sw * 1.5 + '"/>'; }).join('');
+  var f = function (i, k, label, v) { return '<label><span>' + label + '</span><input type="text" inputmode="decimal" data-i="' + i + '" data-k="' + k + '" value="' + n1(v) + '"></label>'; };
+  var rows = cuts.map(function (q, i) { return '<div class="nvs-row' + (i === NVS.sel ? ' on' : '') + '" data-row="' + i + '"><b>' + (q.k === 'circ' ? '◯' : '▭') + '</b>' + f(i, 'x', q.k === 'circ' ? L('Centras X', 'Centre X') : 'X', q.x) + f(i, 'y', q.k === 'circ' ? L('Centras Y', 'Centre Y') : 'Y', q.y) +
+    (q.k === 'circ' ? f(i, 'd', L('Skersmuo', 'Diameter'), q.d) : f(i, 'w', L('Ilgis', 'Length'), q.w) + f(i, 'h', L('Plotis', 'Width'), q.h)) + '<button type="button" class="nv-ic" data-del="' + i + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></div>'; }).join('');
+  d.innerHTML = '<div class="nvs-h"><div><b>' + L('Eskizas', 'Sketch') + ' — ' + esc(NVS.title || p.short || p.role) + '</b><small>' + fmt(p.L) + ' × ' + fmt(p.W) + ' × ' + fmt(p.T) + ' mm</small></div><button type="button" class="nv-ic" data-x="1" aria-label="' + esc(t('close')) + '">✕</button></div>' +
+    '<div class="nvs-tools"><button type="button" data-tool="rect" class="nv3-b' + (NVS.tool === 'rect' ? ' on' : '') + '">▭ ' + L('Stačiakampė išpjova', 'Rectangular cutout') + '</button><button type="button" data-tool="circ" class="nv3-b' + (NVS.tool === 'circ' ? ' on' : '') + '">◯ ' + L('Apvali skylė', 'Round hole') + '</button></div>' +
+    '<svg class="nvs-svg" viewBox="' + (-pad) + ' ' + (-pad) + ' ' + (p.L + 2 * pad) + ' ' + (p.W + 2 * pad) + '" preserveAspectRatio="xMidYMid meet"><rect class="nvs-board" x="0" y="0" width="' + p.L + '" height="' + p.W + '" stroke-width="' + sw + '"/><g class="nvs-grid" stroke-width="' + sw * 0.4 + '">' + grid + '</g><g class="nvs-holes">' + holes + '</g>' + shapes +
+      '<text x="' + p.L / 2 + '" y="' + (p.W + pad * 0.75) + '" text-anchor="middle" font-size="' + pad * 0.5 + '">X → ' + fmt(p.L) + '</text><text x="' + (-pad * 0.3) + '" y="' + p.W / 2 + '" text-anchor="middle" font-size="' + pad * 0.5 + '" transform="rotate(-90 ' + (-pad * 0.3) + ' ' + p.W / 2 + ')">Y → ' + fmt(p.W) + '</text><circle cx="0" cy="' + p.W + '" r="' + sw * 3 + '" fill="#b3261e"/></svg>' +
+    '<p class="nv-hint">' + L('Tempkite ant plokštės — nubrėžiama išpjova (kas 5 mm; tikslius matmenis įrašykite žemiau). Tempkite esamą — perkeliama. Stačiakampis gali išeiti per kraštą — bus įpjova. Raudonas taškas — X=0, Y=0; pilkos skylutės — CNC gręžimai. Plokštė 3D vaizde paryškinta mėlynai.', 'Drag on the board to draw a cutout (5 mm steps; type exact sizes below). Drag an existing one to move it. A rectangle may run over the edge — a notch. The red dot is X=0, Y=0; grey dots are CNC drillings. The board is tinted blue in the 3-D view.') + '</p>' +
+    (rows ? '<div class="nvs-list">' + rows + '</div>' : '<div class="nv-empty" style="padding:14px">' + L('Išpjovų dar nėra', 'No cutouts yet') + '</div>') +
+    (cuts.length ? '<div class="nv-issue warn" style="margin-top:10px"><span>' + L('CNC programa šių išpjovų dar nedaro — jos pjaunamos rankomis pagal šį eskizą. Patikroje bus įspėjimas.', 'The CNC program does not cut these yet — they are cut by hand from this sketch. The check will show a warning.') + '</span></div>' : '') +
+    '<div class="nvs-f"><button type="button" class="nv-btn sm danger" data-clear="1"' + (cuts.length ? '' : ' disabled') + '>' + L('Pašalinti visas', 'Remove all') + '</button><button type="button" class="nv-btn sm pri" data-x="1">' + L('Gerai', 'Done') + '</button></div>';
+}
+function nvsWire(d) {
+  var pt = function (e) { var sv = d.querySelector('.nvs-svg'), p = nvsPanel(), q = sv.createSVGPoint(); q.x = e.clientX; q.y = e.clientY; q = q.matrixTransform(sv.getScreenCTM().inverse()); return [q.x, p.W - q.y]; }, sn = function (v) { return Math.round(v / 5) * 5; };
+  d.addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) { var row = e.target.closest('[data-row]'); if (row && e.target.tagName !== 'INPUT') { NVS.sel = +row.getAttribute('data-row'); nvsPaint(); } return; }
+    if (b.getAttribute('data-x')) return nvsClose();
+    if (b.getAttribute('data-tool')) { NVS.tool = b.getAttribute('data-tool'); return nvsPaint(); }
+    if (b.getAttribute('data-del') != null) { nvsCuts(true).splice(+b.getAttribute('data-del'), 1); NVS.sel = -1; nvsCommit(); return nvsPaint(); }
+    if (b.getAttribute('data-clear')) { var c = cur(); if (c.nvCuts) delete c.nvCuts[NVS.key]; NVS.sel = -1; nvsCommit(); return nvsPaint(); } });
+  d.addEventListener('change', function (e) { var el = e.target, i = el.getAttribute('data-i'), k = el.getAttribute('data-k'); if (i == null || !k) return; var q = nvsCuts()[+i], v = num(el.value); if (!q) return;
+    if ((k === 'w' || k === 'h' || k === 'd') && !(v > 0)) { el.value = q[k]; return; } q[k] = Math.round(v * 10) / 10; NVS.sel = +i; nvsCommit(); nvsPaint(); });
+  d.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur(); if ((e.key === 'Delete' || e.key === 'Backspace') && e.target.tagName !== 'INPUT' && NVS.sel >= 0) { nvsCuts(true).splice(NVS.sel, 1); NVS.sel = -1; nvsCommit(); nvsPaint(); } });
+  d.addEventListener('pointerdown', function (e) { var sv = e.target.closest && e.target.closest('.nvs-svg'); if (!sv || e.button !== 0) return; e.preventDefault();
+    var hit = e.target.closest('.nvs-c'), a = pt(e);
+    if (hit) { var i = +hit.getAttribute('data-i'), q = nvsCuts()[i]; NVS.sel = i; NVS.drag = { move: i, a: a, x0: q.x, y0: q.y }; }
+    else { var p = nvsPanel(), x = Math.max(0, Math.min(p.L, sn(a[0]))), y = Math.max(0, Math.min(p.W, sn(a[1]))); NVS.drag = { make: true, a: [x, y] }; }
+    try { sv.setPointerCapture(e.pointerId); } catch (er) {} });
+  d.addEventListener('pointermove', function (e) { var D = NVS.drag; if (!D) return; var a = pt(e), cuts = nvsCuts(true), p = nvsPanel();
+    if (D.move != null) { var q = cuts[D.move]; q.x = sn(D.x0 + a[0] - D.a[0]); q.y = sn(D.y0 + a[1] - D.a[1]); D.moved = true; }
+    else { var x = sn(a[0]), y = sn(a[1]); if (Math.abs(x - D.a[0]) < 5 && Math.abs(y - D.a[1]) < 5) return;
+      if (D.i == null) { cuts.push(NVS.tool === 'circ' ? { k: 'circ', x: D.a[0], y: D.a[1], d: 10 } : { k: 'rect', x: D.a[0], y: D.a[1], w: 5, h: 5 }); D.i = cuts.length - 1; NVS.sel = D.i; }
+      var c2 = cuts[D.i]; if (c2.k === 'circ') c2.d = Math.max(5, sn(2 * Math.hypot(a[0] - D.a[0], a[1] - D.a[1]))); else { c2.x = Math.min(D.a[0], x); c2.y = Math.min(D.a[1], y); c2.w = Math.abs(x - D.a[0]); c2.h = Math.abs(y - D.a[1]); } D.moved = true; }
+    void p; nvsPaint(); if (typeof nv3Build === 'function') nv3Build(); });
+  d.addEventListener('pointerup', function () { var D = NVS.drag; NVS.drag = null; if (!D) return; if (D.moved) nvsCommit(); nvsPaint(); });
+}
+NVAFTER.push(function () { if (NVS.key && !nvsPanel()) nvsClose(); else if (NVS.key && (S.home || S.tab !== 'cab')) nvsClose(); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && NVS.el && document.activeElement.tagName !== 'INPUT') nvsClose(); });
+/* the check: a sketched board is not machined by the program */
+var nvsBaseIssues = nvComputeIssues;
+nvComputeIssues = function (proj, info) {
+  var out = nvsBaseIssues(proj, info) || [];
+  (proj ? proj.cabinets : []).forEach(function (c, i) { Object.keys(c.nvCuts || {}).forEach(function (k) { var n = (c.nvCuts[k] || []).length; if (!n) return;
+    var p = info[i] && info[i].r ? info[i].r.panels.filter(function (q) { return q.key === k; })[0] : null;
+    if (!p) { out.push({ id: 'cuts.lost', sev: 'warn', cab: i, topic: 'review', field: null, msg: L('Eskizas detalei „' + k + '“, kurios spintelėje nebėra (' + n + ' išpjov.)', 'A sketch for the part "' + k + '" that the cabinet no longer has (' + n + ' cutouts)'), hint: L('Detalė dingo pakeitus spintelę. Patvirtinkite arba grąžinkite detalę.', 'The part went away when the cabinet changed.') }); return; }
+    out.push({ id: 'cuts.manual.' + k, sev: 'warn', cab: i, topic: 'review', field: null, msg: L('Detalė ' + (p.short || k) + ': ' + n + ' išpjov. pagal eskizą — CNC programoje jų nėra, pjaunama rankomis', 'Part ' + (p.short || k) + ': ' + n + ' sketched cutout(s) — not in the CNC program, cut by hand'), hint: L('Atsispausdinkite eskizą arba pažymėkite ant detalės.', 'Print the sketch or mark it on the part.'), raw: 'cuts ' + JSON.stringify(c.nvCuts[k]) });
+  }); });
+  return out;
+};
 
 
 /* ======== src/ui/50-check.js ======== */

@@ -101,8 +101,10 @@ function nv3Shade(hex, k) { var c = new NV3.T.Color(hex); c.multiplyScalar(k); r
 /* a board from its engine placement: local x = its length (u), y = its width (v), z = its thickness (against n).
    Box faces in three's order: +x −x +y −y +z −z  →  edges x1 x0 y1 y0, then the two big faces. */
 function nv3Board(p, color, opt) {
-  var T = NV3.T, q = p.place, g = new T.BoxGeometry(p.L, p.W, p.T), fe = (cur().edge.facade || 'PAGAL FASADA'), mats;
-  var dim = opt && opt.dim, edgeMode = NV3.edges && !dim && p.key;
+  var T = NV3.T, q = p.place, g = null, fe = (cur().edge.facade || 'PAGAL FASADA'), mats;
+  var dim = opt && opt.dim, edgeMode = NV3.edges && !dim && p.key, cuts = !edgeMode && p.key && (cur().nvCuts || {})[p.key];
+  if (cuts && cuts.length) { try { var shp = nv3CutShapes(p.L, p.W, cuts); if (shp.length) { g = new T.ExtrudeGeometry(shp, { depth: p.T, bevelEnabled: false, curveSegments: 28 }); g.translate(-p.L / 2, -p.W / 2, -p.T / 2); } } catch (e) { g = null; } }
+  if (!g) g = new T.BoxGeometry(p.L, p.W, p.T);
   if (edgeMode) { var em = function (e) { var st = ecState(p, e, fe); return new T.MeshStandardMaterial({ color: new T.Color(st === 1 ? '#1f5fbf' : st === 2 ? '#d9730d' : '#b9b4a8'), roughness: 0.6, emissive: new T.Color(st === 1 ? '#0b2a5c' : st === 2 ? '#6a3200' : '#000000'), emissiveIntensity: st ? 0.35 : 0 }); };
     var face = nv3Mat(color); mats = [em('x1'), em('x0'), em('y1'), em('y0'), face, face]; }
   else mats = dim ? nv3Mat(color, { transparent: true, opacity: 0.16, depthWrite: false }) : nv3Mat(color);
@@ -111,10 +113,51 @@ function nv3Board(p, color, opt) {
   m.matrixAutoUpdate = false;
   var cx = [0, 1, 2].map(function (i) { return q.o[i] + q.u[i] * p.L / 2 + q.v[i] * p.W / 2 - q.n[i] * p.T / 2; });
   m.matrix.makeBasis(u, v, z).setPosition(cx[0], cx[1], cx[2]); void n;
-  var ln = new T.LineSegments(new T.EdgesGeometry(g), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.12 : 0.28 })); m.add(ln);
+  var ln = new T.LineSegments(new T.EdgesGeometry(g, 25), new T.LineBasicMaterial({ color: 0x1c211e, transparent: true, opacity: dim ? 0.12 : 0.28 })); m.add(ln);
+  if (!dim && typeof NVS !== 'undefined' && NVS.key === p.key && NVS.cab === cur().id) { m.material = new T.MeshStandardMaterial({ color: new T.Color(color), roughness: 0.62, emissive: new T.Color('#2a55d9'), emissiveIntensity: 0.22 }); }   // the board being sketched on
   m.userData = { part: { kind: 'panel', role: p.role, name: p.name }, key: p.key, cen: cx, edge: !!edgeMode };
   if (!dim) NV3.pick.push(m);
   return m;
+}
+/* the outline of a board after its cutouts (49-sketch.js): rectangles may cross the board's edges (notches), so the
+   kept area is found on the grid of all their edges and its border traced into loops; round holes are added inside. */
+function nv3CutShapes(L, W, cuts) {
+  var T = NV3.T, xs = [0, L], ys = [0, W], rects = cuts.filter(function (q) { return q.k === 'rect' && q.w > 0 && q.h > 0; });
+  rects.forEach(function (q) { [q.x, q.x + q.w].forEach(function (v) { if (v > 0 && v < L) xs.push(v); }); [q.y, q.y + q.h].forEach(function (v) { if (v > 0 && v < W) ys.push(v); }); });
+  var uq = function (a) { a.sort(function (p, q) { return p - q; }); return a.filter(function (v, i) { return !i || v - a[i - 1] > 0.01; }); }; xs = uq(xs); ys = uq(ys);
+  var nx = xs.length - 1, ny = ys.length - 1, keep = function (i, j) { if (i < 0 || j < 0 || i >= nx || j >= ny) return false; var cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2; return !rects.some(function (q) { return cx > q.x && cx < q.x + q.w && cy > q.y && cy < q.y + q.h; }); };
+  var next = {}, key = function (i, j) { return i + ',' + j; }, edge = function (a, b) { next[key(a[0], a[1])] = b; };
+  for (var i = 0; i < nx; i++) for (var j = 0; j < ny; j++) { if (!keep(i, j)) continue;   // counter-clockwise border edges of every kept cell that has no kept neighbour there
+    if (!keep(i, j - 1)) edge([i, j], [i + 1, j]); if (!keep(i + 1, j)) edge([i + 1, j], [i + 1, j + 1]); if (!keep(i, j + 1)) edge([i + 1, j + 1], [i, j + 1]); if (!keep(i - 1, j)) edge([i, j + 1], [i, j]); }
+  var loops = [], guard = 0;
+  Object.keys(next).forEach(function (k0) { if (!next[k0]) return; var pts = [], k = k0; while (next[k] && guard++ < 20000) { var p = k.split(',').map(Number), n = next[k]; next[k] = null; pts.push([xs[p[0]], ys[p[1]]]); k = key(n[0], n[1]); } if (pts.length > 2) loops.push(pts); });
+  var area = function (P) { var a = 0; for (var q = 0; q < P.length; q++) { var r2 = P[(q + 1) % P.length]; a += P[q][0] * r2[1] - r2[0] * P[q][1]; } return a / 2; };
+  var inside = function (pt, P) { var c = false; for (var q = 0, r3 = P.length - 1; q < P.length; r3 = q++) if ((P[q][1] > pt[1]) !== (P[r3][1] > pt[1]) && pt[0] < (P[r3][0] - P[q][0]) * (pt[1] - P[q][1]) / (P[r3][1] - P[q][1]) + P[q][0]) c = !c; return c; };
+  var outers = loops.filter(function (P) { return area(P) > 0; }), holes = loops.filter(function (P) { return area(P) < 0; });
+  return outers.map(function (P) { var sh = new T.Shape(P.map(function (q) { return new T.Vector2(q[0], q[1]); }));
+    holes.forEach(function (H) { if (inside(H[0], P)) sh.holes.push(new T.Path(H.map(function (q) { return new T.Vector2(q[0], q[1]); }))); });
+    cuts.forEach(function (q) { if (q.k !== 'circ' || !(q.d > 0)) return; var rr = q.d / 2; if (q.x - rr < 0.5 || q.y - rr < 0.5 || q.x + rr > L - 0.5 || q.y + rr > W - 0.5 || !inside([q.x, q.y], P)) return;
+      if (rects.some(function (r4) { return q.x + rr > r4.x && q.x - rr < r4.x + r4.w && q.y + rr > r4.y && q.y - rr < r4.y + r4.h; })) return;
+      var h = new T.Path(); h.absarc(q.x, q.y, rr, 0, Math.PI * 2, true); sh.holes.push(h); });
+    return sh; });
+}
+/* connectors as they sit in the boards, from the engine's real drillings: confirmat heads, cam housings, shelf pins */
+function nv3Screws(r, root) {
+  var T = NV3.T, steel = { metalness: 0.9, roughness: 0.3 }, gHead = NV3.gHead = NV3.gHead || new T.CylinderGeometry(5.2, 5.2, 1.6, 20), gHex = NV3.gHex = NV3.gHex || new T.CylinderGeometry(2.2, 2.2, 1.8, 6),
+    gCam = NV3.gCam = NV3.gCam || new T.CylinderGeometry(7.4, 7.4, 1.2, 28), gSlot = NV3.gSlot = NV3.gSlot || new T.BoxGeometry(9, 1.5, 1.4), gPin = NV3.gPin = NV3.gPin || new T.CylinderGeometry(2.5, 2.5, 7, 12), up = new T.Vector3(0, 1, 0);
+  var all = (r.panels || []).filter(function (q) { return q.place && !q.drawerOf && q.role !== 'FASADAS' && q.role !== 'DURYS'; });
+  all.forEach(function (p) { var pl = p.place, ax = 0; [1, 2].forEach(function (i) { if (Math.abs(pl.n[i]) > Math.abs(pl.n[ax])) ax = i; });
+    var ext = []; all.forEach(function (q) { [0, q.L].forEach(function (a) { [0, q.W].forEach(function (b) { [0, q.T].forEach(function (d) { ext.push(q.place.o[ax] + a * q.place.u[ax] + b * q.place.v[ax] - d * q.place.n[ax]); }); }); }); });
+    var outA = Math.abs(pl.o[ax] - (pl.n[ax] > 0 ? Math.max.apply(null, ext) : Math.min.apply(null, ext))) < 0.5;   // face A is the cabinet's outside (an outside back)
+    (p.holes || []).forEach(function (h) {
+      var cam = !h.op && !h.mark && !h.through && Math.abs(h.d - 15) < 0.1, conf = !h.op && !h.mark && h.through && Math.abs(h.d - 8) < 0.1, pin = h.op === 'pin'; if (!cam && !conf && !pin) return;
+      var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
+      var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
+      var qn = new T.Quaternion().setFromUnitVectors(up, n), put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off); m.quaternion.copy(qn); root.add(m); return m; };
+      if (conf) { put(gHead, '#aeb7bc', 0.6); put(gHex, '#3c4549', 0.9, { metalness: 0.5, roughness: 0.6 }); }
+      else if (cam) { put(gCam, '#b9c1c6', 0.2); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }).rotateY(Math.PI / 2); }
+      else put(gPin, '#a4adb2', 3.5);
+    }); });
 }
 function nv3Box(o, s, color, opt, part) {   // a plain box given by its low corner and size, in cabinet axes
   var T = NV3.T, m = new T.Mesh(new T.BoxGeometry(s[0], s[1], s[2]), nv3Mat(color, opt));
@@ -200,6 +243,7 @@ function nv3Build() {
     if (r.worktop) { var wt = r.worktop; root.add(nv3Box([wt.x0, wt.y0, wt.z0], [wt.L, wt.y1 - wt.y0, wt.T], MC(wt.mat, '#b98d5e'), { roughness: 0.45 }, { kind: 'worktop' })); }
     if (E.sidePanels) E.sidePanels(c).forEach(function (q) { root.add(nv3Box([q.x0, q.y0, q.z0], [q.x1 - q.x0, q.y1 - q.y0, q.z1 - q.z0], MC(q.mat, '#d5cbbd'))); });
   }
+  if (NV3.hw && !focus) nv3Screws(r, root);
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
   var fronts = (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
