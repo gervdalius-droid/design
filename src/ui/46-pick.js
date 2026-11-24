@@ -48,6 +48,7 @@ function nvpDo(k) {
   if (k.indexOf('go:') === 0) { var a = k.split(':'); nvGo({ topic: a[1], sec: a[2] != null ? +a[2] : null }); return; }
   if (k === 'edges') {   // this board alone, pulled out of the cabinet, its edges clickable (45-edges.js)
     var inf = S._info && S._info[S.sel], pp = inf && inf.r ? inf.r.panels.filter(function (q) { return q.name === part.name; })[0] : null; if (!pp) return;
+    if (typeof nv3On === 'function' && nv3On()) { NV3.edges = true; NV3.focus = pp.key; render(); return; }   // in the same picture: the board comes out, its edges are clickable
     NV.ecFocus = { key: pp.key, cab: c.id, name: nvpName(part, pp), x: nvpS.at ? nvpS.at[0] : window.innerWidth / 2, y: nvpS.at ? nvpS.at[1] : 200 };
     S.ecView = Object.assign(S.ecView || { zoom: 1, exp: false, fronts: false }, { th: 0.62, ph: 0.42, zoom: 1 });
     render(); return; }

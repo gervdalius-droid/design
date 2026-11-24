@@ -315,7 +315,7 @@ NVSTAGE.cab = function (info) {
     '<section class="nve-canvas nv-card" aria-label="' + esc(L('Spintelės vaizdas', 'Cabinet picture')) + '">' +
       '<header class="nve-chead"><div class="nve-ctitle" data-live="ehead">' + nveHead(c) + '</div>' +
         (box ? '' : '<div class="seg nve-view" role="group" aria-label="' + esc(L('Vaizdas', 'View')) + '">' + [['front', L('Priekis', 'Front')], ['3d', '3D']].map(function (o) { var on = (NV.view === '3d' ? '3d' : 'front') === o[0]; return '<button type="button" id="nve-view-' + o[0] + '" data-nv="view" data-v="' + o[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + o[1] + '</button>'; }).join('') + '</div>') + '</header>' +
-      (view3 ? '<div class="nve-3d"><div id="assembly-preview"></div></div>'
+      (view3 ? '<div class="nve-3d">' + ((typeof nv3Html === 'function' && nv3Html()) || '<div id="assembly-preview"></div>') + '</div>'
         : '<div class="nve-stage' + (c.kind || c.dishwasher ? ' plain' : '') + '"><div class="nve-pic" data-live="epic" style="--a:' + pic.a.toFixed(4) + '">' + pic.html + '</div></div>' +
           (c.kind || c.dishwasher ? '' : '<p class="nve-tip">' + L('Spustelėkite sekciją, kad ją keistumėte · „+“ prideda naują viršuje', 'Click a section to change it · "+" adds a new one on top') + '</p>')) +
       '<div class="nve-iss" data-live="eissues" aria-label="' + esc(L('Šios spintelės pastabos', 'Issues of this cabinet')) + '">' + nveIssues() + '</div>' +
