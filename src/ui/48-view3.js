@@ -27,10 +27,11 @@ function nv3Html() {
   var b = function (attr, label, on, title) { return '<button type="button" class="nv3-b' + (on ? ' on' : '') + '" data-nv="nv3" data-v="' + attr + '"' + (on != null ? ' aria-pressed="' + !!on + '"' : '') + (title ? ' title="' + esc(title) + '"' : '') + '>' + label + '</button>'; };
   var c = cur(), fp = NV3.focus && S._info[S.sel] && S._info[S.sel].r.panels.filter(function (p) { return p.key === NV3.focus; })[0];
   if (NV3.focus && !fp) NV3.focus = null;
+  var plain = c.kind === 'panel'; if (plain) NV3.joints = false;   // a loose board: no fronts, joints or opening
   return '<div class="nv3' + (NV3.full ? ' full' : '') + '" id="nv3"><div class="nv3-tools">' +
-      b('m:assembly', L('Surinkta', 'Assembled'), NV3.mode === 'assembly') + b('m:interior', L('Be fasadų', 'No fronts'), NV3.mode === 'interior') +
+      (plain ? '' : b('m:assembly', L('Surinkta', 'Assembled'), NV3.mode === 'assembly') + b('m:interior', L('Be fasadų', 'No fronts'), NV3.mode === 'interior')) +
       b('edges', '▭ ' + L('Kraštai', 'Edges'), NV3.edges, L('Kraštų laminavimas: spustelėkite kraštą modelyje', 'Edge banding: click an edge on the model')) +
-      b('joints', '⊙ ' + L('Jungtys', 'Joints'), NV3.joints, L('Jungtys: spustelėkite jungtį modelyje, tempkite tašką', 'Connectors: click a joint on the model, drag a point')) +
+      (plain ? '' : b('joints', '⊙ ' + L('Jungtys', 'Joints'), NV3.joints, L('Jungtys: spustelėkite jungtį modelyje, tempkite tašką', 'Connectors: click a joint on the model, drag a point'))) +
       (c.dishwasher ? '' : '<button type="button" class="nv3-b" data-act="skopen" title="' + esc(L('Detalių operacijos: braižykite ant detalės — išpjovos, frezavimas, gręžimas', 'Part operations: draw on a part — cutouts, routing, drilling')) + '">✎ ' + L('Braižyti', 'Draw') + (skCount(c) ? ' <b>' + skCount(c) + '</b>' : '') + '</button>') +
       '<span class="nv3-sep"></span>' + b('v:front', L('Priekis', 'Front')) + b('v:iso', '3D') + b('v:under', L('Apačia', 'Below')) + b('v:back', L('Galas', 'Back')) +
       '<span class="nv3-grow"></span>' + b('full', NV3.full ? L('Uždaryti ✕', 'Close ✕') : L('Išplėsti ⤢', 'Expand ⤢'), NV3.full) + '</div>' +
@@ -41,8 +42,8 @@ function nv3Html() {
       '<button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="edges">' + L('Gerai', 'Done') + '</button></div>' : '') +
     '<div class="nv3-stage" id="nv3-stage"><div class="nv3-cam"><button type="button" data-nv="nv3" data-v="z:0.8" aria-label="+">+</button><button type="button" data-nv="nv3" data-v="z:1.25" aria-label="−">−</button><button type="button" data-nv="nv3" data-v="v:iso" aria-label="reset">↺</button></div>' +
       '<div class="nv3-hint">' + (NV3.joints ? L('Spustelėkite jungties liniją ar tašką · tempkite tašką išilgai · spustelėjus liniją pridedama jungtis', 'Click a joint line or a point · drag a point along it · a click on the line adds a connector') : NV3.edges ? L('Spustelėkite kraštą: nelaminuojama → karkaso kraštas → pagal fasadą', 'Click an edge: not banded → carcass edge → as the fronts') : L('Tempkite — sukite · ratukas — mastelis · dešinys klavišas — perstumti · spustelėkite detalę — keisti', 'Drag to turn · wheel to zoom · right button to pan · click a board to change it')) + '</div></div>' +
-    '<div class="nv3-foot"><label class="nv3-range"><span>' + L('Atidarymas', 'Opening') + '</span><input type="range" min="0" max="100" step="1" value="' + Math.round(NV3.open * 100) + '" id="nv3-open"><output id="nv3-open-o">' + Math.round(NV3.open * 100) + '%</output></label>' +
-      '<label class="chk"><input type="checkbox" data-nv3="hw"' + (NV3.hw ? ' checked' : '') + '> ' + L('Furnitūra', 'Hardware') + '</label><label class="chk"><input type="checkbox" data-nv3="dims"' + (NV3.dims ? ' checked' : '') + '> ' + L('Matmenys', 'Dimensions') + '</label><label class="chk"><input type="checkbox" data-nv3="handles"' + (NV3.handles ? ' checked' : '') + '> ' + L('Rankenos', 'Handles') + '</label></div>' +
+    (NV3.joints ? '' : '<div class="nv3-foot">' + (plain ? '' : '<label class="nv3-range"><span>' + L('Atidarymas', 'Opening') + '</span><input type="range" min="0" max="100" step="1" value="' + Math.round(NV3.open * 100) + '" id="nv3-open"><output id="nv3-open-o">' + Math.round(NV3.open * 100) + '%</output></label>') +
+      (plain ? '' : '<label class="chk"><input type="checkbox" data-nv3="hw"' + (NV3.hw ? ' checked' : '') + '> ' + L('Furnitūra', 'Hardware') + '</label>') + '<label class="chk"><input type="checkbox" data-nv3="dims"' + (NV3.dims ? ' checked' : '') + '> ' + L('Matmenys', 'Dimensions') + '</label>' + (plain ? '' : '<label class="chk"><input type="checkbox" data-nv3="handles"' + (NV3.handles ? ' checked' : '') + '> ' + L('Rankenos', 'Handles') + '</label>') + '</div>') +
     '<span data-live="nv3" hidden></span></div>';
 }
 NVLIVE.nv3 = function () { nv3Build(); return ''; };
@@ -273,7 +274,7 @@ function nv3Build() {
   };
   /* carcass */
   var jm = NV3.joints && !focus; NV3.jpick = [];
-  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return (cen[i] - mid[i]) * 0.55; }); };   // joints: the boards pulled apart so every joint shows what goes into what
+  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return Math.max(-1, Math.min(1, (cen[i] - mid[i]) / Math.max(1, ext[i] / 2))) * 130; }); };   // the same gap whatever the cabinet's size   // joints: the boards pulled apart so every joint shows what goes into what
   (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return;
     var bm = nv3Board(p, MC(p.mat, '#e9e6de'), { dim: (jm && !jx) || (focus && p.key !== focus) });
     if (jx) { var eo = expOff(bm.userData.cen), eg = new T.Group(); eg.position.set(eo[0], eo[1], eo[2]); eg.add(bm); root.add(eg); } else root.add(place(bm, p)); });
@@ -339,7 +340,7 @@ function nv3Build() {
   });
   nv3Pose();
   /* outer sizes */
-  if (NV3.dims && !focus) { var lm = new T.LineBasicMaterial({ color: 0x69726c }), pts = [], seg = function (a, b) { pts.push(new T.Vector3().fromArray(a), new T.Vector3().fromArray(b)); }, o = 55, zb = c.hang === true || !(r.legs || []).length ? 0 : -((r.legs[0] || {}).h || 0);
+  if (NV3.dims && !focus && !jx) { var lm = new T.LineBasicMaterial({ color: 0x69726c }), pts = [], seg = function (a, b) { pts.push(new T.Vector3().fromArray(a), new T.Vector3().fromArray(b)); }, o = 55, zb = c.hang === true || !(r.legs || []).length ? 0 : -((r.legs[0] || {}).h || 0);
     seg([0, -o, zb], [W, -o, zb]); seg([0, -o + 14, zb], [0, -o - 14, zb]); seg([W, -o + 14, zb], [W, -o - 14, zb]);
     seg([-o, 0, zb], [-o, D, zb]); seg([-o - 14, 0, zb], [-o + 14, 0, zb]); seg([-o - 14, D, zb], [-o + 14, D, zb]);
     seg([-o, -o, 0], [-o, -o, H]); seg([-o - 14, -o, 0], [-o + 14, -o, 0]); seg([-o - 14, -o, H], [-o + 14, -o, H]);

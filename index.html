@@ -19204,10 +19204,11 @@ function nv3Html() {
   var b = function (attr, label, on, title) { return '<button type="button" class="nv3-b' + (on ? ' on' : '') + '" data-nv="nv3" data-v="' + attr + '"' + (on != null ? ' aria-pressed="' + !!on + '"' : '') + (title ? ' title="' + esc(title) + '"' : '') + '>' + label + '</button>'; };
   var c = cur(), fp = NV3.focus && S._info[S.sel] && S._info[S.sel].r.panels.filter(function (p) { return p.key === NV3.focus; })[0];
   if (NV3.focus && !fp) NV3.focus = null;
+  var plain = c.kind === 'panel'; if (plain) NV3.joints = false;   // a loose board: no fronts, joints or opening
   return '<div class="nv3' + (NV3.full ? ' full' : '') + '" id="nv3"><div class="nv3-tools">' +
-      b('m:assembly', L('Surinkta', 'Assembled'), NV3.mode === 'assembly') + b('m:interior', L('Be fasadų', 'No fronts'), NV3.mode === 'interior') +
+      (plain ? '' : b('m:assembly', L('Surinkta', 'Assembled'), NV3.mode === 'assembly') + b('m:interior', L('Be fasadų', 'No fronts'), NV3.mode === 'interior')) +
       b('edges', '▭ ' + L('Kraštai', 'Edges'), NV3.edges, L('Kraštų laminavimas: spustelėkite kraštą modelyje', 'Edge banding: click an edge on the model')) +
-      b('joints', '⊙ ' + L('Jungtys', 'Joints'), NV3.joints, L('Jungtys: spustelėkite jungtį modelyje, tempkite tašką', 'Connectors: click a joint on the model, drag a point')) +
+      (plain ? '' : b('joints', '⊙ ' + L('Jungtys', 'Joints'), NV3.joints, L('Jungtys: spustelėkite jungtį modelyje, tempkite tašką', 'Connectors: click a joint on the model, drag a point'))) +
       (c.dishwasher ? '' : '<button type="button" class="nv3-b" data-act="skopen" title="' + esc(L('Detalių operacijos: braižykite ant detalės — išpjovos, frezavimas, gręžimas', 'Part operations: draw on a part — cutouts, routing, drilling')) + '">✎ ' + L('Braižyti', 'Draw') + (skCount(c) ? ' <b>' + skCount(c) + '</b>' : '') + '</button>') +
       '<span class="nv3-sep"></span>' + b('v:front', L('Priekis', 'Front')) + b('v:iso', '3D') + b('v:under', L('Apačia', 'Below')) + b('v:back', L('Galas', 'Back')) +
       '<span class="nv3-grow"></span>' + b('full', NV3.full ? L('Uždaryti ✕', 'Close ✕') : L('Išplėsti ⤢', 'Expand ⤢'), NV3.full) + '</div>' +
@@ -19218,8 +19219,8 @@ function nv3Html() {
       '<button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="edges">' + L('Gerai', 'Done') + '</button></div>' : '') +
     '<div class="nv3-stage" id="nv3-stage"><div class="nv3-cam"><button type="button" data-nv="nv3" data-v="z:0.8" aria-label="+">+</button><button type="button" data-nv="nv3" data-v="z:1.25" aria-label="−">−</button><button type="button" data-nv="nv3" data-v="v:iso" aria-label="reset">↺</button></div>' +
       '<div class="nv3-hint">' + (NV3.joints ? L('Spustelėkite jungties liniją ar tašką · tempkite tašką išilgai · spustelėjus liniją pridedama jungtis', 'Click a joint line or a point · drag a point along it · a click on the line adds a connector') : NV3.edges ? L('Spustelėkite kraštą: nelaminuojama → karkaso kraštas → pagal fasadą', 'Click an edge: not banded → carcass edge → as the fronts') : L('Tempkite — sukite · ratukas — mastelis · dešinys klavišas — perstumti · spustelėkite detalę — keisti', 'Drag to turn · wheel to zoom · right button to pan · click a board to change it')) + '</div></div>' +
-    '<div class="nv3-foot"><label class="nv3-range"><span>' + L('Atidarymas', 'Opening') + '</span><input type="range" min="0" max="100" step="1" value="' + Math.round(NV3.open * 100) + '" id="nv3-open"><output id="nv3-open-o">' + Math.round(NV3.open * 100) + '%</output></label>' +
-      '<label class="chk"><input type="checkbox" data-nv3="hw"' + (NV3.hw ? ' checked' : '') + '> ' + L('Furnitūra', 'Hardware') + '</label><label class="chk"><input type="checkbox" data-nv3="dims"' + (NV3.dims ? ' checked' : '') + '> ' + L('Matmenys', 'Dimensions') + '</label><label class="chk"><input type="checkbox" data-nv3="handles"' + (NV3.handles ? ' checked' : '') + '> ' + L('Rankenos', 'Handles') + '</label></div>' +
+    (NV3.joints ? '' : '<div class="nv3-foot">' + (plain ? '' : '<label class="nv3-range"><span>' + L('Atidarymas', 'Opening') + '</span><input type="range" min="0" max="100" step="1" value="' + Math.round(NV3.open * 100) + '" id="nv3-open"><output id="nv3-open-o">' + Math.round(NV3.open * 100) + '%</output></label>') +
+      (plain ? '' : '<label class="chk"><input type="checkbox" data-nv3="hw"' + (NV3.hw ? ' checked' : '') + '> ' + L('Furnitūra', 'Hardware') + '</label>') + '<label class="chk"><input type="checkbox" data-nv3="dims"' + (NV3.dims ? ' checked' : '') + '> ' + L('Matmenys', 'Dimensions') + '</label>' + (plain ? '' : '<label class="chk"><input type="checkbox" data-nv3="handles"' + (NV3.handles ? ' checked' : '') + '> ' + L('Rankenos', 'Handles') + '</label>') + '</div>') +
     '<span data-live="nv3" hidden></span></div>';
 }
 NVLIVE.nv3 = function () { nv3Build(); return ''; };
@@ -19450,7 +19451,7 @@ function nv3Build() {
   };
   /* carcass */
   var jm = NV3.joints && !focus; NV3.jpick = [];
-  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return (cen[i] - mid[i]) * 0.55; }); };   // joints: the boards pulled apart so every joint shows what goes into what
+  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return Math.max(-1, Math.min(1, (cen[i] - mid[i]) / Math.max(1, ext[i] / 2))) * 130; }); };   // the same gap whatever the cabinet's size   // joints: the boards pulled apart so every joint shows what goes into what
   (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return;
     var bm = nv3Board(p, MC(p.mat, '#e9e6de'), { dim: (jm && !jx) || (focus && p.key !== focus) });
     if (jx) { var eo = expOff(bm.userData.cen), eg = new T.Group(); eg.position.set(eo[0], eo[1], eo[2]); eg.add(bm); root.add(eg); } else root.add(place(bm, p)); });
@@ -19516,7 +19517,7 @@ function nv3Build() {
   });
   nv3Pose();
   /* outer sizes */
-  if (NV3.dims && !focus) { var lm = new T.LineBasicMaterial({ color: 0x69726c }), pts = [], seg = function (a, b) { pts.push(new T.Vector3().fromArray(a), new T.Vector3().fromArray(b)); }, o = 55, zb = c.hang === true || !(r.legs || []).length ? 0 : -((r.legs[0] || {}).h || 0);
+  if (NV3.dims && !focus && !jx) { var lm = new T.LineBasicMaterial({ color: 0x69726c }), pts = [], seg = function (a, b) { pts.push(new T.Vector3().fromArray(a), new T.Vector3().fromArray(b)); }, o = 55, zb = c.hang === true || !(r.legs || []).length ? 0 : -((r.legs[0] || {}).h || 0);
     seg([0, -o, zb], [W, -o, zb]); seg([0, -o + 14, zb], [0, -o - 14, zb]); seg([W, -o + 14, zb], [W, -o - 14, zb]);
     seg([-o, 0, zb], [-o, D, zb]); seg([-o - 14, 0, zb], [-o + 14, 0, zb]); seg([-o - 14, D, zb], [-o + 14, D, zb]);
     seg([-o, -o, 0], [-o, -o, H]); seg([-o - 14, -o, 0], [-o + 14, -o, 0]); seg([-o - 14, -o, H], [-o + 14, -o, H]);
@@ -19691,6 +19692,31 @@ app.addEventListener('change', function (e) { var k = e.target.getAttribute && e
   var r = S._info[S.sel].r, sel = NV3.jSel, j = (r.joints || []).filter(function (x) { return x.key === sel.key; })[0]; if (!j) return;
   var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, pos = (sd.pos || []).slice(), v = num(e.target.value); if (!isFinite(v)) { e.target.value = fmt(pos[+k]); return; }
   pos[+k] = v; if (!nv3JCommit(j.key, sel.side, sd.type, pos)) e.target.value = fmt((sd.pos || [])[+k]); });
+
+
+/* ======== src/ui/49-partops.js ======== */
+/* 49-partops.js — the live app's part operations (Detalių operacijos: drawn on a part, routed or drilled) in the check list.
+   The engine reports them as plain sentences ("1-KAIRE eskizas #2: …"). Here each gets its place and its way out:
+   an operation that will NOT be made stops production (the cutout would silently be missing), a changed depth must be
+   seen, and the row's button opens the drawing of that very part. */
+var nvoBase = nvComputeIssues;
+nvComputeIssues = function (proj, info) {
+  var list = nvoBase(proj, info) || [];
+  list.forEach(function (x) {
+    var raw = String(x.raw || x.msg || ''), m = /^(.+?) eskizas #(\d+):\s*(.*)$/.exec(raw); if (!m || x.cab == null || x.cab < 0) return;
+    var inf = info && info[x.cab], p = inf && inf.r ? (inf.r.panels || []).filter(function (q) { return (q.short || q.key || q.name) === m[1]; })[0] : null;
+    var made = /sumažintas|reduced/i.test(m[3]);   // the only message where the operation is still made
+    x.id = 'ops.' + (made ? 'depth' : 'skipped') + '.' + (p ? p.key : m[1]) + '.' + m[2];
+    x.sev = made ? 'warn' : 'error';
+    x.topic = 'cnc'; x.field = null;
+    x.msg = L('Detalės ' + m[1] + ' operacija #' + m[2] + ': ' + m[3].replace(/\s*—?\s*NEPROGRAMUOTA\s*$/, '') + (made ? '' : ' — NEBUS PAGAMINTA'),
+              'Part ' + m[1] + ', operation #' + m[2] + ': ' + m[3].replace(/\s*—?\s*NEPROGRAMUOTA\s*$/, '') + (made ? '' : ' — WILL NOT BE MADE'));
+    x.hint = made ? L('Frezuojant visada paliekama plona plėvelė; jei reikia kitaip — pakeiskite gylį brėžinyje.', 'Routing always leaves a thin skin; change the depth on the drawing if needed.')
+                  : L('Pataisykite arba ištrinkite šią operaciją detalės brėžinyje.', 'Correct or delete this operation on the part\'s drawing.');
+    x.act = { label: L('Atidaryti brėžinį', 'Open the drawing'), act: 'skopen', v: p ? p.key : null, i: x.cab };
+  });
+  return list;
+};
 
 
 /* ======== src/ui/50-check.js ======== */
@@ -20068,7 +20094,7 @@ NVAFTER.push(function () {
 /* 99-export.js — what the tests and the browser console may reach of the new interface (window.__nv).
    The live app's own window.__dbk is set right after this, at the end of the closure. */
 window.__nv = {
-  NV: NV, A: NVA, stages: NVSTAGE, live: NVLIVE,
+  NV: NV, NV3: NV3, A: NVA, stages: NVSTAGE, live: NVLIVE,
   issues: function () { NV.issues = null; return nvIssues(); },
   counts: function (list) { if (!list) NV.issues = null; return nvCounts(list); },
   go: nvGo, undo: nvUndo, redo: nvRedo, render: function () { render(); },
