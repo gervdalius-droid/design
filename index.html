@@ -1371,6 +1371,42 @@ button.nv-brand:hover{background:var(--sunk)}
 }
 @media print{.nv-top{display:none}}
 
+/* ---- inspector building blocks (shared by the topics of the cabinet workspace) */
+.nv-grp{padding:14px 0;border-top:1px solid var(--line)}
+.nv-grp:first-child{border-top:0;padding-top:0}
+.nv-grp>h4{font:700 14px/1.2 var(--f-display);letter-spacing:-.1px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.nv-grp>h4 small{font-weight:500;color:var(--muted);font-size:12px}
+.nv-fields{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:flex-end}
+.nv-hint{color:var(--muted);font-size:12.5px;line-height:1.45;margin:6px 0 0}
+.nv-adv{border-top:1px dashed var(--line2);margin-top:14px;padding-top:4px}
+.nv-adv>summary{cursor:pointer;list-style:none;padding:8px 0;font-weight:600;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px;user-select:none}
+.nv-adv>summary::-webkit-details-marker{display:none}
+.nv-adv>summary::before{content:'›';display:inline-block;transition:transform .15s;font-size:16px;line-height:1}
+.nv-adv[open]>summary::before{transform:rotate(90deg)}
+.nv-adv>summary:hover{color:var(--ink)}
+.nv-state{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--line2);flex:none}
+.nv-state.ok{background:var(--ok)}.nv-state.warn{background:#d79a12}.nv-state.error{background:var(--bad)}.nv-state.todo{background:var(--accent)}
+.nv-step{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:10px;background:var(--panel);overflow:hidden}
+.nv-step button{width:36px;height:38px;border:0;background:none;cursor:pointer;font-size:18px;font-weight:600;color:var(--ink)}
+.nv-step button:hover:not(:disabled){background:var(--sunk)}
+.nv-step button:disabled{opacity:.3;cursor:default}
+.nv-step b{min-width:34px;text-align:center;font:700 16px var(--f-body);font-variant-numeric:tabular-nums}
+.nv-pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px}
+.nv-pick button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 6px;border:1.5px solid var(--line);border-radius:12px;background:var(--panel);cursor:pointer;font-weight:600;font-size:12.5px;color:var(--ink)}
+.nv-pick button:hover{border-color:var(--line2);background:var(--sunk)}
+.nv-pick button.on,.nv-pick button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.nv-pick button svg{width:34px;height:34px}
+
+/* ---- the plain fallback cabinet workspace of 00-core.js (30-editor.js brings the real one) */
+.nv0-ws{display:grid;grid-template-columns:200px minmax(380px,460px) minmax(0,1fr);gap:16px;align-items:start}
+.nv0-list{display:flex;flex-direction:column;gap:6px}
+.nv0-cab{display:flex;align-items:center;gap:8px;text-align:left;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 10px;cursor:pointer}
+.nv0-cab.on{border-color:var(--accent);background:var(--accent-soft)}
+.nv0-topics{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.nv0-topics button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line2);background:var(--panel);border-radius:999px;padding:6px 12px;font-weight:600;cursor:pointer}
+.nv0-topics button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+@media (max-width:1100px){.nv0-ws{grid-template-columns:1fr}}
+
 </style>
 <style>
 /* src/ui/02-logo.css */
@@ -14620,7 +14656,7 @@ function render() {
   S._info = cabInfo;
   var stage = NVSTAGE[S.tab], body;
   try { body = stage(cabInfo); } catch (e1) { if (window.console) console.error(e1); body = '<div class="nv-card nv-crash"><b>' + L('Šio lango parodyti nepavyko', 'This view could not be shown') + '</b><pre>' + esc(String(e1 && e1.stack || e1)) + '</pre></div>'; }
-  var modal = stage.ownModals ? '' : (S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '');
+  var modal = S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '';
   app.className = 'nv-app nv-tab-' + S.tab;
   app.innerHTML = nvHeader() + '<main class="nv-main" id="nv-main">' + body + '</main>' + modal +
     '<datalist id="dl-mat">' + listOpts('mat') + '</datalist><datalist id="dl-edge">' + listOpts('edge') + '</datalist><datalist id="dl-wt">' + listOpts('wt') + '</datalist>';
@@ -14706,7 +14742,18 @@ NVA.topic = function (el, v) { NV.topic = v; NV.secSel = null; };
 NVA.view = function (el, v) { NV.view = v; };
 
 /* ----------------------------------------------------------------- stage views: until a src/ui file gives its own, the live app's view is shown */
-NVSTAGE.cab = function (info) { return viewCab(info); }; NVSTAGE.cab.ownModals = true;
+/* a plain cabinet workspace: cabinet list · topics (or, with none registered, the live steps) · 3-D picture.
+   30-editor.js replaces it with the real one; it stays as the fallback and as the harness for building topics alone. */
+function nvTopicCur(c) { var ts = nvTopicsFor(c); if (!ts.length) return null; var k = ts.filter(function (x) { return x.key === NV.topic; })[0]; return k || ts[0]; }
+NVSTAGE.cab = function (info) {
+  var cabs = S.proj.cabinets;
+  if (S.picking || !cabs.length) return typeof nvPicker === 'function' ? nvPicker() : viewPick();
+  var c = cur(), inf = info[S.sel], ts = nvTopicsFor(c), tp = nvTopicCur(c);
+  var list = '<aside class="nv0-list">' + cabs.map(function (k, i) { var w = nvWorst(nvIssuesFor(i)); return '<button type="button" class="nv0-cab' + (i === S.sel ? ' on' : '') + '" data-act="sel" data-i="' + i + '"><span class="nv-state ' + w + '"></span><b>' + (i + 1) + ' · ' + esc(k.name || typeName(k)) + '</b></button>'; }).join('') + '<button type="button" class="nv-btn pri" data-act="pick">' + t('newCab') + '</button></aside>';
+  var body = tp ? '<nav class="nv0-topics">' + ts.map(function (x) { var w = nvWorst(nvIssuesFor(S.sel).filter(function (y) { return y.topic === x.key; })); return '<button type="button" data-nv="topic" data-v="' + x.key + '" class="' + (x.key === tp.key ? 'on' : '') + '"><span class="nv-state ' + w + '"></span>' + esc(x.label()) + '</button>'; }).join('') + '</nav><div class="nv-card nv0-body">' + tp.body(c, inf) + '</div>'
+    : cabBar(c) + stepNav(c, inf) + oneStep(viewEditor(c), c, inf);
+  return '<div class="nv0-ws">' + list + '<section class="nv0-ed editor">' + body + '</section><aside class="nv0-pic"><div id="assembly-preview"></div></aside></div>';
+};
 NVSTAGE.room = function (info) { return roomChecks(info) + '<div class="room" id="room"></div>'; };
 NVSTAGE.chk = function () {
   var L0 = nvIssues();

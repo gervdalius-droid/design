@@ -188,7 +188,7 @@ function render() {
   S._info = cabInfo;
   var stage = NVSTAGE[S.tab], body;
   try { body = stage(cabInfo); } catch (e1) { if (window.console) console.error(e1); body = '<div class="nv-card nv-crash"><b>' + L('Šio lango parodyti nepavyko', 'This view could not be shown') + '</b><pre>' + esc(String(e1 && e1.stack || e1)) + '</pre></div>'; }
-  var modal = stage.ownModals ? '' : (S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '');
+  var modal = S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '';
   app.className = 'nv-app nv-tab-' + S.tab;
   app.innerHTML = nvHeader() + '<main class="nv-main" id="nv-main">' + body + '</main>' + modal +
     '<datalist id="dl-mat">' + listOpts('mat') + '</datalist><datalist id="dl-edge">' + listOpts('edge') + '</datalist><datalist id="dl-wt">' + listOpts('wt') + '</datalist>';
@@ -274,7 +274,18 @@ NVA.topic = function (el, v) { NV.topic = v; NV.secSel = null; };
 NVA.view = function (el, v) { NV.view = v; };
 
 /* ----------------------------------------------------------------- stage views: until a src/ui file gives its own, the live app's view is shown */
-NVSTAGE.cab = function (info) { return viewCab(info); }; NVSTAGE.cab.ownModals = true;
+/* a plain cabinet workspace: cabinet list · topics (or, with none registered, the live steps) · 3-D picture.
+   30-editor.js replaces it with the real one; it stays as the fallback and as the harness for building topics alone. */
+function nvTopicCur(c) { var ts = nvTopicsFor(c); if (!ts.length) return null; var k = ts.filter(function (x) { return x.key === NV.topic; })[0]; return k || ts[0]; }
+NVSTAGE.cab = function (info) {
+  var cabs = S.proj.cabinets;
+  if (S.picking || !cabs.length) return typeof nvPicker === 'function' ? nvPicker() : viewPick();
+  var c = cur(), inf = info[S.sel], ts = nvTopicsFor(c), tp = nvTopicCur(c);
+  var list = '<aside class="nv0-list">' + cabs.map(function (k, i) { var w = nvWorst(nvIssuesFor(i)); return '<button type="button" class="nv0-cab' + (i === S.sel ? ' on' : '') + '" data-act="sel" data-i="' + i + '"><span class="nv-state ' + w + '"></span><b>' + (i + 1) + ' · ' + esc(k.name || typeName(k)) + '</b></button>'; }).join('') + '<button type="button" class="nv-btn pri" data-act="pick">' + t('newCab') + '</button></aside>';
+  var body = tp ? '<nav class="nv0-topics">' + ts.map(function (x) { var w = nvWorst(nvIssuesFor(S.sel).filter(function (y) { return y.topic === x.key; })); return '<button type="button" data-nv="topic" data-v="' + x.key + '" class="' + (x.key === tp.key ? 'on' : '') + '"><span class="nv-state ' + w + '"></span>' + esc(x.label()) + '</button>'; }).join('') + '</nav><div class="nv-card nv0-body">' + tp.body(c, inf) + '</div>'
+    : cabBar(c) + stepNav(c, inf) + oneStep(viewEditor(c), c, inf);
+  return '<div class="nv0-ws">' + list + '<section class="nv0-ed editor">' + body + '</section><aside class="nv0-pic"><div id="assembly-preview"></div></aside></div>';
+};
 NVSTAGE.room = function (info) { return roomChecks(info) + '<div class="room" id="room"></div>'; };
 NVSTAGE.chk = function () {
   var L0 = nvIssues();
