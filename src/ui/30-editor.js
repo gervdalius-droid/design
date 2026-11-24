@@ -537,7 +537,7 @@ document.addEventListener('pointerdown', function (ev) {
   ev.preventDefault(); ev.stopPropagation();
   nveFG = { el: el, k: el.getAttribute('data-nvfg'), r: r, e: e, pic: pic, mm: Math.max(vb.width / rc.width, vb.height / rc.height), x: ev.clientX, y: ev.clientY, l0: el.offsetLeft, t0: el.offsetTop, v: null, tip: pic.querySelector('.nve-fgtip') };
   var g = r.fgaps, k = nveFG.k;
-  if (k === 'bot') { var dropS = nveDropSecs(c); if (dropS.length) { nveFG.drop = dropS; nveFG.v0 = Math.max(0, num(c.sections[dropS[0]].frontDrop) || 0); nveFG.max = nveFG.v0 + Math.max(0, e.z0 - g.hb - 20); el.classList.add('drag'); try { el.setPointerCapture(ev.pointerId); } catch (x2) {} return; } }
+  if (k === 'bot') { var dropS = nveDropSecs(c); if (dropS.length && dropS.length === colsOf(c)) { /* every column ends in doors over a niche: the grip is their lower edge */ nveFG.drop = dropS; nveFG.v0 = Math.max(0, num(c.sections[dropS[0]].frontDrop) || 0); nveFG.max = nveFG.v0 + Math.max(0, e.z0 - g.hb - 20); el.classList.add('drag'); try { el.setPointerCapture(ev.pointerId); } catch (x2) {} return; } }
   nveFG.v0 = k === 'bot' ? e.z0 - g.hb : k === 'top' ? +r.dims.H - e.z1 : k === 'l' ? e.x0 : +r.dims.W - e.x1;
   el.classList.add('drag'); try { el.setPointerCapture(ev.pointerId); } catch (x) {}
 }, true);

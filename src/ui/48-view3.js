@@ -197,7 +197,7 @@ function nv3Screws(r, root, expOff) {
       var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
       if (expOff) { var eo = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; })); o.x += eo[0]; o.y += eo[1]; o.z += eo[2]; }
-      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = expOff ? 2.4 : 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // pulled apart: connectors drawn larger than life so they can be told apart
+      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = expOff ? 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)) : 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // pulled apart: connectors drawn larger than life so they can be told apart
       if (conf) { put(gHead, '#aeb7bc', 0.6); put(gHex, '#3c4549', 0.9, { metalness: 0.5, roughness: 0.6 });
         if (expOff) {   // pulled apart: the whole screw, through its board and out towards the edge it goes into
           var tip = o.clone().addScaledVector(n, -p.T - 62), neck = o.clone().addScaledVector(n, -p.T - 48);
@@ -279,7 +279,7 @@ function nv3Build() {
   };
   /* carcass */
   var jm = NV3.joints && !focus; NV3.jpick = [];
-  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return Math.max(-1, Math.min(1, (cen[i] - mid[i]) / Math.max(1, ext[i] / 2))) * 130; }); };   // the same gap whatever the cabinet's size   // joints: the boards pulled apart so every joint shows what goes into what
+  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return Math.max(-1, Math.min(1, (cen[i] - mid[i]) / Math.max(1, ext[i] / 2))) * Math.max(130, Math.max(W, H, D) * 0.09); }); };   // the same gap whatever the cabinet's size   // joints: the boards pulled apart so every joint shows what goes into what
   (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return;
     var bm = nv3Board(p, MC(p.mat, '#e9e6de'), { dim: (jm && !jx) || (focus && p.key !== focus) });
     if (jx) { var eo = expOff(bm.userData.cen), eg = new T.Group(); eg.position.set(eo[0], eo[1], eo[2]); eg.add(bm); root.add(eg); } else root.add(place(bm, p)); });
@@ -370,7 +370,7 @@ function nv3Pose() {   // doors and drawers at the opening of the slider
 }
 function nv3View(kind) {
   var T = NV3.T, c = cur(); if (!c || !NV3.cam) return;
-  var W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, D = num(c.D) || 560, pad = NV3.joints && NV3.jExp !== false && c.kind !== 'panel' ? 260 : 0,   // pulled apart: 130 mm further out on every side, plus the screws
+  var W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, D = num(c.D) || 560, pad = NV3.joints && NV3.jExp !== false && c.kind !== 'panel' ? Math.max(260, Math.max(W, H, D) * 0.18) : 0,   // pulled apart: 130 mm further out on every side, plus the screws
     size = Math.hypot(W + pad, H + pad, D + pad), tg = new T.Vector3(W / 2, H / 2 - (pad ? 0 : 30), -D / 2 + (pad ? 0 : 60));
   var dirV = kind ? new T.Vector3().fromArray(kind === 'front' ? [0, 0.05, 1] : kind === 'under' ? [-0.5, -0.75, 1] : kind === 'back' ? [0.6, 0.45, -1] : [-0.62, 0.48, 1]) : NV3.cam.position.clone().sub(NV3.ctl.target);   // no kind: the same cabinet, another size or mode — keep the angle
   if (dirV.length() < 1e-6) dirV.set(-0.62, 0.48, 1);

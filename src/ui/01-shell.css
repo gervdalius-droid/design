@@ -122,7 +122,7 @@ button.nv-brand:hover{background:var(--sunk)}
 @media (max-width:760px){
   .nv-top-in{flex-wrap:wrap;gap:8px}
   .nv-proj{flex:1 1 120px}
-  .nv-stages{order:3;width:100%;justify-content:space-between;margin:0;padding:0}
+  .nv-stages{order:3;width:100%;min-width:0;justify-content:space-between;margin:0;padding:0;overflow-x:auto;scrollbar-width:none}.nv-stages::-webkit-scrollbar{display:none}
   .nv-status span:last-child{display:none}
   .nv-main{padding:12px 12px 60px}
 }

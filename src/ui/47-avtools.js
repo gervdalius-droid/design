@@ -14,3 +14,6 @@ function nvaAvBtn() {
 }
 NVA.ecall = function () { NV.ecFocus = null; S.echeck = true; S.jcheck = false; };
 new MutationObserver(nvaAvBtn).observe(app, { childList: true, subtree: true });
+
+/* a narrow screen scrolls the stage bar inside itself: keep the stage that is open in view */
+NVAFTER.push(function () { var a = document.querySelector('.nv-stage.on'), p = a && a.parentNode; if (p && p.scrollWidth > p.clientWidth + 1) p.scrollLeft = Math.max(0, a.offsetLeft - (p.clientWidth - a.offsetWidth) / 2); });

@@ -65,7 +65,8 @@ function nvwRails(def, r) {
       var x0 = col === 0 ? t0 : bnd[col] + t0 / 2, x1 = col === cols - 1 ? W - t0 : bnd[col + 1] - t0 / 2, info = (r.shelfInfo || []).filter(function (q2) { return q2.col === col && q2.sec === si; })[0];
       var zs = info ? info.zc.slice().sort(function (a, b) { return b - a; }) : [], base = info ? info.base : t0, top = zs.length ? zs[0] - t0 / 2 : H - t0;
       var z = [top - 60]; if (n > 1) z.push(zs.length > 1 ? zs[1] - t0 / 2 - 60 : Math.round((base + top) / 2) - 60);
-      z.forEach(function (zz) { rails.push({ col: col, x0: x0, x1: x1, z: zz, y: (+def.D || 560) / 2, clear: zz - base }); });
+      z.forEach(function (zz) { var below = zs.filter(function (v) { return v < zz - 1; });   // free height: down to the next shelf under the rail, or to the section's bottom
+        rails.push({ col: col, x0: x0, x1: x1, z: zz, y: (+def.D || 560) / 2, clear: zz - (below.length ? below[0] + t0 / 2 : base) }); });
       r.hardware.push({ item: 'Pakabos vamzdis L=' + Math.round(x1 - x0 - 4), qty: n, unit: 'vnt.' }); nAll += n; });
   }
   if (nAll) r.hardware.push({ item: 'Pakabos vamzdžio laikikliai', qty: 2 * nAll, unit: 'vnt.' });
