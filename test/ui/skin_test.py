@@ -135,6 +135,7 @@ def s_set_admin(c):
 
 
 def s_cab(c):
+    js(c, "__nv.NV.r3off='test';__nv.NV.view='3d'")   # this suite checks the skin of the live 3-D widget (still used for 3-D constructions); the new view has its own styles
     js(c, go("cab", "S.admin=false;S.sel=0;S.picking=false;")); time.sleep(0.9)
     if js(c, "!!document.querySelector('#assembly-preview .av.connector-mode')"):   # the 3-D view remembers its mode
         av_click(c, "[data-connectors]")

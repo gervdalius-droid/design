@@ -66,6 +66,9 @@ def run(c):
     c.eval(HOOK)
     if not c.eval("(function(){var b=document.querySelector('[data-act=psample]');if(b){b.click();return true}return false})()"):
         c.click_text('Atidaryti pavyzdį')
+    time.sleep(0.8)
+    # the example is clean since the real check engine; the gate needs a warning to show: a 1400 mm cabinet without a partition
+    c.eval("__nv.S.proj.cabinets[1].W = 1400; __dbk.save(); __nv.render()")
     c.wait("__nv.S.proj && __nv.S.proj.cabinets.length === 3 && !__nv.S.home")
     c.drain_logs()
 

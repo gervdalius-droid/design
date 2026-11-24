@@ -266,6 +266,12 @@ app.addEventListener('change', function (e) {
   var r; try { r = NVC[k](el, e); } catch (er) { if (window.console) console.error(er); return; }
   if (r !== false) render();
 });
+/* leaving a cabinet field always redraws the page: the live app redraws only for a hand-kept list of fields, and a field
+   outside it that shows or hides other controls (a lifted bottom → the plinth's position) left the page stale */
+app.addEventListener('change', function (e) {
+  var b = e.target && e.target.getAttribute && e.target.getAttribute('data-bind');
+  if (b && /^c\./.test(b) && typeof later === 'function') later('render');
+});
 document.addEventListener('keydown', function (e) {   // Ctrl/Cmd+Z, Ctrl+Shift+Z / Ctrl+Y: the whole project, wherever the focus is — except while typing in a field (the field's own undo)
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
   var k = (e.key || '').toLowerCase(); if (k !== 'z' && k !== 'y') return;

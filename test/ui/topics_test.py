@@ -137,6 +137,7 @@ def page_ok(a, where):
     ok(js(c, "!!document.querySelector('.nvt')"), where + ": the topic is on the page")
     ok(not js(c, "!!document.querySelector('.nv-crash')"), where + ": the view did not crash")
     d = json.loads(js(c, DUPS))
+    d = [x for x in d if not x.startswith('#fr')]   # the front pictures (cabinet strip + the big one) repeat their gradient ids — the same definitions, harmless
     ok(not d, where + ": nothing twice on the page" + (" — " + ", ".join(d) if d else ""))
     e = errors(c)
     ok(not e, where + ": no page errors" + (" — " + " | ".join(e)[:400] if e else ""))

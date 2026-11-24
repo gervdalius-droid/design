@@ -16144,6 +16144,12 @@ app.addEventListener('change', function (e) {
   var r; try { r = NVC[k](el, e); } catch (er) { if (window.console) console.error(er); return; }
   if (r !== false) render();
 });
+/* leaving a cabinet field always redraws the page: the live app redraws only for a hand-kept list of fields, and a field
+   outside it that shows or hides other controls (a lifted bottom → the plinth's position) left the page stale */
+app.addEventListener('change', function (e) {
+  var b = e.target && e.target.getAttribute && e.target.getAttribute('data-bind');
+  if (b && /^c\./.test(b) && typeof later === 'function') later('render');
+});
 document.addEventListener('keydown', function (e) {   // Ctrl/Cmd+Z, Ctrl+Shift+Z / Ctrl+Y: the whole project, wherever the focus is — except while typing in a field (the field's own undo)
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
   var k = (e.key || '').toLowerCase(); if (k !== 'z' && k !== 'y') return;
@@ -18593,7 +18599,11 @@ function nv3Load() {
   NV3.loading = true;
   Promise.all([import('three'), import('three/examples/jsm/controls/OrbitControls.js'), import('three/examples/jsm/environments/RoomEnvironment.js')]).then(function (m) {
     NV3.T = m[0]; NV3.OC = m[1].OrbitControls; NV3.RE = m[2].RoomEnvironment; NV3.loading = false;
-    if (!S.home && S.tab === 'cab' && NV.view === '3d') render();
+    if (!S.home && S.tab === 'cab' && NV.view === '3d') {   // show it — without disturbing a field that is being typed in (its selection is kept)
+      var ae = document.activeElement, id = ae && ae.id, a0 = null, a1 = null; try { a0 = ae.selectionStart; a1 = ae.selectionEnd; } catch (e) {}
+      render();
+      var el = id && document.getElementById(id); if (el && a0 != null) { try { el.setSelectionRange(a0, a1); } catch (e2) {} }
+    }
   }).catch(function (e) { NV3.failed = true; NV3.loading = false; if (window.console) console.warn('three.js not loaded — the built-in 3-D view is used', e); });
 }
 function nv3On() { var c = cur(); return NV.view === '3d' && !NV.r3off && !!NV3.T && !NV3.failed && !!c && c.kind !== 'box'; }
@@ -19555,7 +19565,7 @@ NVAFTER.push(function () {
 window.__nv = {
   NV: NV, A: NVA, stages: NVSTAGE, live: NVLIVE,
   issues: function () { NV.issues = null; return nvIssues(); },
-  counts: function () { NV.issues = null; return nvCounts(); },
+  counts: function (list) { if (!list) NV.issues = null; return nvCounts(list); },
   go: nvGo, undo: nvUndo, redo: nvRedo, render: function () { render(); },
   S: S, cur: cur, info: function () { return S._info; },
   build: function () { return buildProjectAll(); },

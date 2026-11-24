@@ -3,7 +3,7 @@
 window.__nv = {
   NV: NV, A: NVA, stages: NVSTAGE, live: NVLIVE,
   issues: function () { NV.issues = null; return nvIssues(); },
-  counts: function () { NV.issues = null; return nvCounts(); },
+  counts: function (list) { if (!list) NV.issues = null; return nvCounts(list); },
   go: nvGo, undo: nvUndo, redo: nvRedo, render: function () { render(); },
   S: S, cur: cur, info: function () { return S._info; },
   build: function () { return buildProjectAll(); },

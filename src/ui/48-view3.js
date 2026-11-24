@@ -13,7 +13,11 @@ function nv3Load() {
   NV3.loading = true;
   Promise.all([import('three'), import('three/examples/jsm/controls/OrbitControls.js'), import('three/examples/jsm/environments/RoomEnvironment.js')]).then(function (m) {
     NV3.T = m[0]; NV3.OC = m[1].OrbitControls; NV3.RE = m[2].RoomEnvironment; NV3.loading = false;
-    if (!S.home && S.tab === 'cab' && NV.view === '3d') render();
+    if (!S.home && S.tab === 'cab' && NV.view === '3d') {   // show it — without disturbing a field that is being typed in (its selection is kept)
+      var ae = document.activeElement, id = ae && ae.id, a0 = null, a1 = null; try { a0 = ae.selectionStart; a1 = ae.selectionEnd; } catch (e) {}
+      render();
+      var el = id && document.getElementById(id); if (el && a0 != null) { try { el.setSelectionRange(a0, a1); } catch (e2) {} }
+    }
   }).catch(function (e) { NV3.failed = true; NV3.loading = false; if (window.console) console.warn('three.js not loaded — the built-in 3-D view is used', e); });
 }
 function nv3On() { var c = cur(); return NV.view === '3d' && !NV.r3off && !!NV3.T && !NV3.failed && !!c && c.kind !== 'box'; }
