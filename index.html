@@ -2093,6 +2093,64 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 
 </style>
 <style>
+/* src/ui/37-sketch.css */
+/* 37-sketch.css — the drawing takes the window: the part picker narrow on the left, the drawing as large as it gets,
+   what the picked shape is and how it is routed in a column on the right (the live layout stacks all of it in a box) */
+@media (min-width: 1000px) {
+  .skover .skbox { max-width: none; width: calc(100vw - 20px); height: calc(100vh - 20px); max-height: none; display: flex; flex-direction: column; }
+  .skover .skbox > .drwbar, .skover .skbox > .jcfoot { flex: 0 0 auto; }
+  .skover .skbox > .jcbody { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; max-height: none; }
+  .skover .sk-cols { flex: 1 1 auto; min-width: 0; min-height: 0; display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  .skover .sk-left { position: static; overflow: auto; min-height: 0; }
+  .skover .sk-left .ec-msvg { height: 200px; }
+  .skover .sk-right { min-width: 0; min-height: 0; display: flex; }
+  .skover .sk-right > .card { flex: 1 1 auto; }
+  .skover .sk-ed { flex: 1 1 auto; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 336px; grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 14px; }
+  .skover .sk-head, .skover .sk-tools { grid-column: 1 / 3; }
+  .skover .sk-wrap { grid-column: 1; grid-row: 3; min-height: 0; }
+  .skover .sk-svg { height: 100%; }
+  .skover .sk-hint { grid-column: 1; grid-row: 4; margin: 6px 0 0; }
+  .skover .sk-below { grid-column: 2; grid-row: 3 / 5; overflow: auto; min-height: 0; display: block; padding-right: 2px; }
+  .skover .sk-below > .sk-props { margin-top: 0; }
+  .skover .jcfoot { padding-top: 6px; padding-bottom: 6px; }
+  .skover .jcfoot .btn.big { padding-top: 7px; padding-bottom: 7px; }
+  .skover .sk-hint { font-size: 12.5px; line-height: 1.35; }
+  .skover .skbox > .drwbar { padding-top: 9px; padding-bottom: 9px; }
+}
+.skover .sk-ed .f.sk-f input { width: 68px !important; padding: 4px 6px; }
+.skover .sk-props { padding: 9px 11px; }
+.skover .sk-props .sk-row { gap: 6px; margin-bottom: 4px; }
+.skover .sk-ops { gap: 4px; margin: 3px 0 6px; }
+.skover .sk-ops .btn { padding: 4px 8px; font-size: 12.5px; }
+.skover .sk-props .lbl { font-size: 12.5px; }
+.skover .sk-pt .f.sk-f input { width: 62px !important; }
+
+</style>
+<style>
+/* src/ui/38-route.css */
+/* 38-route.css — the routing options of a drawn shape (in the drawing's right-hand column) */
+.nvq { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 8px; }
+.nvq-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.nvq-h .btn { padding: 2px 8px; font-size: 12.5px; }
+.nvq-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 8px; align-items: start; padding: 6px 0; border-top: 1px dashed var(--line); }
+.nvq-row:first-of-type { border-top: 0; }
+.nvq-k { font-size: 12.5px; font-weight: 600; padding-top: 6px; }
+.nvq-v { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.nvq-seg { display: flex; flex-wrap: wrap; }
+.sk-props .nvq-seg button { padding: 4px 8px; font-size: 12.5px; }
+.nvq-in { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; }
+.nvq-f span i { font-style: normal; opacity: .7; }
+.skover .sk-ed .f.sk-f.nvq-f input { width: 66px !important; }
+.nvq-eq { font-size: 12px; color: var(--muted, #5f6a64); padding-bottom: 7px; }
+.nvq-v > .nvq-eq { padding-bottom: 0; }
+.nvq-note { margin: 6px 0 0; font-size: 12.5px; color: #6b4a00; background: #fff6da; border: 1px solid #ecd58a; border-radius: 6px; padding: 5px 8px; }
+.nvq-leg { margin: 8px 0 0; font-size: 12px; color: var(--muted, #5f6a64); display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.nvq-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 6px; }
+.nvq-leg i:first-child { margin-left: 0; }
+.nvq-leg i.ar { width: 0; height: 0; border-radius: 0; border-left: 9px solid #5b2aa0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+
+</style>
+<style>
 /* src/ui/40-skin.css */
 /* 40-skin.css — the live app's own widgets in the new look, and the frame of the layout and settings stages.
 
@@ -2586,7 +2644,8 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 .nv3-leg{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
 .nv3-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-left:6px}
 .nv3-stage{position:relative;flex:1;min-height:420px;background:#f6f5f1;overflow:hidden}
-.nv3:not(.full) .nv3-stage{flex:1;min-height:340px}
+.nv3:not(.full) .nv3-stage{flex:1;min-height:220px}   /* 340 pushed the footer (opening, parts) under the list of problems on a laptop */
+@media (max-height:820px){.nv3:not(.full) .nv3-hint{display:none}.nv3:not(.full) .nv3-foot{padding:6px 14px}}
 .nve-3d:has(.nv3){display:flex;flex-direction:column;min-height:0}
 .nv3-cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outline:0}
 .nv3-cv:active{cursor:grabbing}
@@ -3194,7 +3253,8 @@ function applySketch(p, list, warn) {
     var o = skOutline(s), op = s.op || 'none', face = s.face === 'B' ? 'B' : 'A', tag = lbl + (i + 1) + ': ';
     p.sketch.push({ pts:o.pts, closed:o.closed, op:op, face:face, id:s.id, n:i + 1, t:s.t, thr:!!s.through || (op === 'drill' && (+s.depth || 0) >= p.T) });
     if (op === 'none' || o.pts.length < 2) return;
-    if (o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }
+    if ((op === 'drill' || !api.nvClip) && o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }
+    if (op === 'drill' && s.t === 'circle' && ((+s.x || 0) < 0 || (+s.x || 0) > p.L || (+s.y || 0) < 0 || (+s.y || 0) > p.W)) { warn.push(tag + 'skylės centras už detalės — NEPROGRAMUOTA'); return; }
     if (op === 'drill') {
       if (s.t !== 'circle') { warn.push(tag + 'gręžti galima tik apskritimą — NEPROGRAMUOTA'); return; }
       var d = Math.round(2 * (+s.r || 0) * 100) / 100, thr = !!s.through || (+s.depth || 0) >= p.T;
@@ -3219,7 +3279,9 @@ function applySketch(p, list, warn) {
         loops.reverse();   // from the middle outwards
       }
     }
-    loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep }); });
+    if (op !== 'on') loops = loops.map(function (lp) { return lp.concat([lp[0]]); });
+    if (api.nvClip) { loops = api.nvClip(loops, p.L, p.W, C0); if (!loops.length) { warn.push(tag + 'visa operacija už detalės — NEPROGRAMUOTA'); return; } }
+    loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep, op:op, cam:s.cam || null }); });
     nOp++;
   });
   if (nOp) p.note += ', rankinės operacijos: ' + nOp;
@@ -4920,7 +4982,7 @@ function programs(p) {
       return groovePath({ x0:g.x0, x1:g.x1, y0:y0, y1:y1 }, DX, DY, dep, g.name || 'GROOVE');
     }).concat(PA.filter(function (g) { return g.face === up; }).map(function (g) {   // drawn by hand: the tool centre's path as worked out with the part (B up: Y mirrored)
       var P = g.pts.map(function (q) { return [q[0], up === 'A' ? q[1] : DY - q[1]]; }); if (up === 'B') P.reverse();   // mirrored: turn the path round so the panel stays on the same side of the tool
-      return routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), Math.min(g.depth, DZ - R.rout.skin), g.name);
+      var nvD = Math.min(g.depth, DZ - R.rout.skin), nvM = g.cam && api.nvRoute ? api.nvRoute(P, nvD, g, R.rout, { DX:DX, DY:DY }) : null; return nvM ? { name:g.name, moves:nvM } : routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), nvD, g.name);
     }));
   };
   var faceTxt = function (up) { return up === 'A' ? '' : ' -- THIS PROGRAM DRILLS THE OTHER FACE: panel turned over about X (long edge stays, Y mirrored)'; };
@@ -12894,7 +12956,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 })(typeof window !== 'undefined' ? window : this);
 
 </script>
-<script>window.NV_BUILD="8c55635b26"</script>
+<script>window.NV_BUILD="183c0e0af7"</script>
 <script>
 /* =====================================================================
    app.js — Dėdės Baldai spintelių kūrėjas (cabinet creator).
@@ -14267,6 +14329,7 @@ function skSvg(p, list, selId, preview) {
     s += '<line x1="' + A[0] + '" y1="' + A[1] + '" x2="' + B[0] + '" y2="' + B[1] + '" stroke="#8b918b" stroke-width="' + e.d + '" stroke-opacity=".45" pointer-events="none"/>'; });
   if (!preview) (p.paths || []).forEach(function (g) {   // what the cutter takes away: its centre's path, as wide as the cutter
     s += '<polyline points="' + g.pts.map(Ps).join(' ') + '" fill="none" stroke="#7a3fc4" stroke-opacity="' + (g.face === skSide() ? 0.2 : 0.08) + '" stroke-width="' + E.R.rout.dia + '" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>'; });
+  if (!preview && typeof nvqSvg === 'function') s += nvqSvg(p, list, selId, P, u);
   list.forEach(function (sh, i) {
     var o = E.skOutline(sh), on = sh.id === selId, op = sh.op || 'none', col = op === 'none' ? '#46514b' : '#7a3fc4'; if (o.pts.length < 2) return;
     var d = 'M' + o.pts.map(function (q) { return P(q[0], q[1]).join(' '); }).join(' L') + (o.closed ? ' Z' : ''), other = op !== 'none' && (sh.face || 'A') !== skSide();
@@ -14331,7 +14394,7 @@ function skProps(c, p, r, sh, idx) {
   var tn = sh.t === 'rect' ? (lt ? 'Stačiakampis' : 'Rectangle') : sh.t === 'circle' ? (lt ? 'Apskritimas' : 'Circle') : (lt ? 'Linija' : 'Line') + ' (' + (sh.pts || []).length + (lt ? ' tšk.' : ' pts') + ')';
   return '<div class="sk-props"><div class="sk-ph"><b>#' + n + ' ' + tn + '</b><span class="sk-pb"><button type="button" class="btn ghost" data-act="skdup">' + (lt ? 'Kopija' : 'Copy') + '</button><button type="button" class="btn ghost danger" data-act="skdel">' + (lt ? 'Ištrinti' : 'Delete') + '</button></span></div>' +
     '<div class="lbl">' + (lt ? 'Kur ir kokio dydžio' : 'Where and how big') + ' <span class="unit">' + (lt ? '— arba spustelėkite matmenį brėžinyje' : '— or click a size on the drawing') + '</span></div>' + geo +
-    '<div class="lbl" style="margin-top:8px">' + (lt ? 'Ką daryti' : 'What to do') + '</div>' + ops + how + ws + '</div>';
+    '<div class="lbl" style="margin-top:8px">' + (lt ? 'Ką daryti' : 'What to do') + '</div>' + ops + how + (typeof nvqProps === 'function' ? nvqProps(c, p, r, sh, idx) : '') + ws + '</div>';
 }
 function skEditor(c, p, r) {
   var K = S.sk, lt = S.lang === 'lt', list = skList(c, p.key), idx = -1, fn = skFaceNames(p);
@@ -14409,7 +14472,8 @@ var SK_IO = { downOver:false };
   var setVB = function (sv, v) { S.sk.view = v; sv.setAttribute('viewBox', skR(v.x) + ' ' + skR(v.y) + ' ' + skR(v.w) + ' ' + skR(v.h)); };
   var sP = function (X, q) { var d = X.F.to(q[0], q[1]); return [skR(d[0]), skR(-d[1])]; };
   /* snapping (program coordinates): points (corners, ends, middles, centres, holes) first, then lining up with them, the panel's edges, the last point; else the grid */
-  function snap(P, X, prev, e, exclId) {
+  function snap(P, X, prev, e, exclId, drag) {
+    if (typeof nvsSnap === 'function') { var nvS = nvsSnap(P, X, prev, e, exclId, drag, mmPx(svgEl()), grid()); if (nvS) return nvS; }
     var sv = svgEl(), tol = 9 * mmPx(sv), L = X.p.L, W = X.p.W, pts = [[0, 0], [L, 0], [L, W], [0, W], [L / 2, 0], [L / 2, W], [0, W / 2], [L, W / 2], [L / 2, W / 2]];
     X.list.forEach(function (sh) { if (sh.id === exclId) return; var o = E.skOutline(sh);
       if (sh.t === 'circle') { pts.push([sh.x, sh.y], [sh.x + sh.r, sh.y], [sh.x - sh.r, sh.y], [sh.x, sh.y + sh.r], [sh.x, sh.y - sh.r]); return; }
@@ -14463,6 +14527,7 @@ var SK_IO = { downOver:false };
       s += isPt ? '<rect x="' + skR(C[0] - hs) + '" y="' + skR(C[1] - hs) + '" width="' + skR(2 * hs) + '" height="' + skR(2 * hs) + '" fill="none" stroke="' + c1 + '" stroke-width="2" vector-effect="non-scaling-stroke" pointer-events="none"/>'
         : '<path d="M' + skR(C[0] - hs) + ' ' + C[1] + 'h' + skR(2 * hs) + 'M' + C[0] + ' ' + skR(C[1] - hs) + 'v' + skR(2 * hs) + '" stroke="' + c1 + '" stroke-width="1.5" vector-effect="non-scaling-stroke" pointer-events="none"/>';
     }
+    if (typeof nvsMarks === 'function') s += nvsMarks(X, snapInfo, cur, u, function (q) { return sP(X, q); }, D);
     g.innerHTML = s; hud(X);
   }
   function redrawSvg(X) { var sv = svgEl(); if (!sv) return; sv.innerHTML = skSvg(X.p, X.list, X.K.sel, true) + '<g class="sk-live"></g>'; }
@@ -14541,16 +14606,16 @@ var SK_IO = { downOver:false };
       if (!D.moved && Math.hypot(e.clientX - D.x, e.clientY - D.y) < 4) return; D.moved = true;
       var sh = X.list.filter(function (q) { return q.id === D.id; })[0]; if (!sh) return; var o = D.orig;
       if (D.mode === 'move') {   // the grabbed shape follows the pointer; its first point snaps
-        var base = o.t === 'line' ? o.pts[0] : [o.x, o.y], tgt = snap([base[0] + P[0] - D.start[0], base[1] + P[1] - D.start[1]], X, null, e, sh.id).p, ddx = tgt[0] - base[0], ddy = tgt[1] - base[1];
+        var base = (typeof nvsBase === 'function' && nvsBase(o, D.start)) || (o.t === 'line' ? o.pts[0] : [o.x, o.y]), tgt = (snapInfo = snap([base[0] + P[0] - D.start[0], base[1] + P[1] - D.start[1]], X, null, e, sh.id, { move:o })).p, ddx = tgt[0] - base[0], ddy = tgt[1] - base[1];
         if (o.t === 'line') sh.pts = o.pts.map(function (q) { return [skR(q[0] + ddx), skR(q[1] + ddy)]; }); else { sh.x = skR(o.x + ddx); sh.y = skR(o.y + ddy); }
       } else {
-        var Q = snap(P, X, null, e, sh.id).p, h = D.h;
+        var Q = (snapInfo = snap(P, X, null, e, sh.id, { grip:D.h, o:o })).p, h = D.h;
         if (o.t === 'line') sh.pts[+h] = [skR(Q[0]), skR(Q[1])];
         else if (o.t === 'circle') { if (h === 'c') { sh.x = skR(Q[0]); sh.y = skR(Q[1]); } else sh.r = Math.max(0.5, Math.round(Math.hypot(Q[0] - o.x, Q[1] - o.y) * 100) / 100); }
         else { var cs = [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h]], op = cs[(+h + 2) % 4];
           sh.x = skR(Math.min(op[0], Q[0])); sh.y = skR(Math.min(op[1], Q[1])); sh.w = Math.max(0.5, skR(Math.abs(Q[0] - op[0]))); sh.h = Math.max(0.5, skR(Math.abs(Q[1] - op[1]))); }
       }
-      redrawSvg(X); return;
+      redrawSvg(X); live(X); return;
     }
     if (X.K.tool === 'sel') return;
     var dr = X.K.draft, prev = dr && dr.pts ? dr.pts[dr.pts.length - 1] : dr && dr.a;
@@ -18179,8 +18244,9 @@ function nveIssues() {
     if ((!a || (x.act && x.act.nv === 'ack')) && (x.topic || x.field || x.tab)) a += '<button type="button" class="nv-btn sm" data-nv="go"' + (x.tab ? ' data-tab="' + esc(x.tab) + '"' : '') + (x.topic ? ' data-topic="' + esc(x.topic) + '"' : '') + (x.field ? ' data-field="' + esc(x.field) + '"' : '') + (x.sec != null ? ' data-sec="' + x.sec + '"' : '') + (x.col != null ? ' data-col="' + x.col + '"' : '') + '>' + L('Taisyti →', 'Fix →') + '</button>';
     return a;
   };
-  var h = all.slice(0, 3).map(function (x) { return '<div class="nve-ir ' + x.sev + '">' + nveMark(x.sev) + '<span class="nve-im" title="' + esc(x.hint || '') + '">' + esc(x.msg) + '</span>' + at(x) + '</div>'; }).join('');
-  if (all.length > 3) h += hasRev ? '<button type="button" class="nve-more" data-nv="go" data-topic="review">+' + (all.length - 3) + ' ' + L('daugiau', 'more') + ' →</button>' : '<span class="nve-more">+' + (all.length - 3) + ' ' + L('daugiau', 'more') + '</span>';
+  var nShow = window.innerHeight < 720 ? 1 : window.innerHeight < 880 ? 2 : 3;   /* a low window (a laptop): fewer rows, so the list does not push the 3D view's own controls out of sight */
+  var h = all.slice(0, nShow).map(function (x) { return '<div class="nve-ir ' + x.sev + '">' + nveMark(x.sev) + '<span class="nve-im" title="' + esc(x.hint || '') + '">' + esc(x.msg) + '</span>' + at(x) + '</div>'; }).join('');
+  if (all.length > nShow) h += hasRev ? '<button type="button" class="nve-more" data-nv="go" data-topic="review">+' + (all.length - nShow) + ' ' + L('daugiau', 'more') + ' →</button>' : '<span class="nve-more">+' + (all.length - nShow) + ' ' + L('daugiau', 'more') + '</span>';
   return h;
 }
 NVLIVE.eissues = function (c) { return c ? nveIssues() : null; };
@@ -19099,6 +19165,538 @@ function nvuSetNote(html) {
 }
 
 
+/* ======== src/ui/37-sketch.js ======== */
+/* 37-sketch.js — drawing on a part the way a CAD sketcher does it.
+
+   The live drawing tool (Detalių operacijos) caught only points: corners, ends, middles, hole centres — and otherwise
+   the grid. Here the pointer is caught by everything a sketch is built from, in this order:
+
+     1. points       an end, a corner, a middle, a centre, a circle's quadrant, a hole, where two lines cross,
+                     the foot of a perpendicular / the touching point of a tangent from the last point
+     2. direction    a line being drawn holds horizontal, vertical, the previous segment's direction or square to it,
+                     parallel or square to another drawn line …
+     3. on a line    … and where that direction meets a line, an edge or a circle the point lands exactly on it;
+                     without a direction: the nearest point of the line / edge / circle
+     4. lining up    level with / straight above another point (dashed guide)
+     5. the grid
+
+   What was caught is shown at the pointer (a sign and a word), the line it refers to is lit. Alt held: nothing is caught.
+   A shape that is dragged is caught by the point it was taken by; a dragged corner also by its own shape's other points.
+
+   build.py PATCHES ('app') route the live tool's snap(), its drawing of the pointer and its dragging through here;
+   without this file the live behaviour is back. Coordinates are the part's program frame, as stored. */
+
+var NVS = { px: 12 };   // how near the pointer has to come, in screen pixels
+
+function nvsD(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+function nvsOnSeg(P, a, b) { var dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy; if (l2 < 1e-12) return [a[0], a[1]]; var t = Math.max(0, Math.min(1, ((P[0] - a[0]) * dx + (P[1] - a[1]) * dy) / l2)); return [a[0] + dx * t, a[1] + dy * t]; }
+/* where the lines a–b and c–d cross: p, and how far along each (0…1 = within the segment); null when parallel */
+function nvsCross(a, b, c, d) {
+  var rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1], den = rx * sy - ry * sx; if (Math.abs(den) < 1e-9) return null;
+  var t = ((c[0] - a[0]) * sy - (c[1] - a[1]) * sx) / den, u = ((c[0] - a[0]) * ry - (c[1] - a[1]) * rx) / den;
+  return { p: [a[0] + rx * t, a[1] + ry * t], t: t, u: u };
+}
+/* where the line through a along d (a unit vector) meets a circle; t = how far along */
+function nvsLineCirc(a, d, c, r) {
+  var fx = a[0] - c[0], fy = a[1] - c[1], b = fx * d[0] + fy * d[1], q = fx * fx + fy * fy - r * r, disc = b * b - q; if (disc < 0) return [];
+  var sq = Math.sqrt(disc); return [-b - sq, -b + sq].map(function (t) { return { p: [a[0] + d[0] * t, a[1] + d[1] * t], t: t }; });
+}
+
+/* everything of the part and its sketch a point can be caught by */
+function nvsEnts(X, exclId, drag) {
+  var L = X.p.L, W = X.p.W, pts = [], segs = [], circs = [];
+  var pt = function (p, t, al) { pts.push({ p: [p[0], p[1]], t: t, al: al !== false }); };
+  var sg = function (a, b, k) { if (nvsD(a, b) > 1e-6) segs.push({ a: [a[0], a[1]], b: [b[0], b[1]], k: k }); };
+  var cs = [[0, 0], [L, 0], [L, W], [0, W]];
+  cs.forEach(function (q, i) { var n = cs[(i + 1) % 4]; pt(q, 'corner'); sg(q, n, 'edge'); pt([(q[0] + n[0]) / 2, (q[1] + n[1]) / 2], 'mid'); });
+  pt([L / 2, W / 2], 'cen');
+  X.list.forEach(function (sh) {
+    var own = sh.id === exclId, h = own && drag && drag.grip != null && sh.t === 'line' ? +drag.grip : -1;
+    if (own && h < 0) return;   // the shape being moved; of a line whose one point is dragged the rest stays to be caught by
+    if (sh.t === 'circle') { pt([sh.x, sh.y], 'cen'); [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) { pt([sh.x + d[0] * sh.r, sh.y + d[1] * sh.r], 'quad'); }); circs.push({ c: [sh.x, sh.y], r: sh.r }); return; }
+    var P = sh.t === 'rect' ? [[sh.x, sh.y], [sh.x + sh.w, sh.y], [sh.x + sh.w, sh.y + sh.h], [sh.x, sh.y + sh.h]] : (sh.pts || []), closed = sh.t === 'rect' || (!!sh.closed && P.length > 2);
+    P.forEach(function (q, i) {
+      if (i !== h) pt(q, 'end');
+      var j = i + 1; if (j >= P.length) { if (!closed) return; j = 0; }
+      if (i === h || j === h) return;
+      sg(q, P[j], 'line'); pt([(q[0] + P[j][0]) / 2, (q[1] + P[j][1]) / 2], 'mid');
+    });
+    if (sh.t === 'rect') pt([sh.x + sh.w / 2, sh.y + sh.h / 2], 'cen');
+  });
+  var dr = X.K.draft;   // the line being drawn: its own earlier points (the first one closes it)
+  if (dr && dr.pts) dr.pts.forEach(function (q, i) { var n = dr.pts.length; if (i === n - 1) return; pt(q, i === 0 && n > 2 ? 'close' : 'end'); if (i < n - 2) sg(q, dr.pts[i + 1], 'line'); });
+  (X.p.holes || []).forEach(function (hh) { if (hh.op !== 'sketch') pt([hh.x, hh.y], 'hole', false); });   // to land on, not to line up with
+  return { pts: pts, segs: segs, circs: circs };
+}
+
+function nvsOut(p, kind, guides, nv) { return { p: [p[0], p[1]], kind: kind, guides: guides || [], nv: nv || {} }; }
+
+/* where the point lands. P: the pointer, prev: the point before it (a line / rectangle / circle being drawn),
+   drag: { move: shape } | { grip: handle, o: shape } while dragging, mm: millimetres per screen pixel, g: the grid */
+function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
+  if (!X || !X.p || !S.sk || !isFinite(mm) || !(mm > 0)) return null;
+  if (e && e.altKey) return nvsOut(P, 'grid', [], { free: true });
+  var tol = NVS.px * mm, en = nvsEnts(X, exclId, drag), dr = X.K.draft, line = !!(prev && dr && dr.t === 'line'), i, j;
+  var best = null, take = function (p, t, d, more) { if (d < (best ? best.d : tol)) { best = { p: p, t: t, d: d }; if (more) for (var k in more) best[k] = more[k]; } };
+
+  /* 1. points */
+  en.pts.forEach(function (q) { take(q.p, q.t, nvsD(q.p, P)); });
+  var Sg = en.segs, far = tol * 3;
+  if (Sg.length <= 120) for (i = 0; i < Sg.length; i++) { if (nvsD(nvsOnSeg(P, Sg[i].a, Sg[i].b), P) > far) continue;
+    for (j = i + 1; j < Sg.length; j++) { var x = nvsCross(Sg[i].a, Sg[i].b, Sg[j].a, Sg[j].b); if (x && x.t > -1e-9 && x.t < 1 + 1e-9 && x.u > -1e-9 && x.u < 1 + 1e-9) take(x.p, 'int', nvsD(x.p, P) + tol * 0.02); } }
+  en.circs.forEach(function (c) { Sg.forEach(function (s) { var l = nvsD(s.a, s.b), d = [(s.b[0] - s.a[0]) / l, (s.b[1] - s.a[1]) / l];
+    nvsLineCirc(s.a, d, c.c, c.r).forEach(function (q) { if (q.t > -1e-9 && q.t < l + 1e-9) take(q.p, 'int', nvsD(q.p, P) + tol * 0.02); }); }); });
+  if (line) {   // from the last point: square onto a line, touching a circle
+    Sg.forEach(function (s) { var dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1], t = ((prev[0] - s.a[0]) * dx + (prev[1] - s.a[1]) * dy) / (dx * dx + dy * dy); if (t < -1e-9 || t > 1 + 1e-9) return;
+      var f = [s.a[0] + dx * t, s.a[1] + dy * t]; if (nvsD(f, prev) > 1e-6) take(f, 'perp', nvsD(f, P) + tol * 0.2, { ref: s }); });
+    en.circs.forEach(function (c) { var d0 = nvsD(prev, c.c); if (d0 <= c.r + 1e-6) return; var a0 = Math.atan2(prev[1] - c.c[1], prev[0] - c.c[0]), da = Math.acos(c.r / d0);
+      [a0 + da, a0 - da].forEach(function (a) { var q = [c.c[0] + c.r * Math.cos(a), c.c[1] + c.r * Math.sin(a)]; take(q, 'tan', nvsD(q, P) + tol * 0.2, { circ: c }); }); });
+  }
+  if (best) return nvsOut(best.p, 'pt', [], { t: best.t, ref: best.ref, circ: best.circ, from: line ? prev : null });
+
+  /* 2. the direction a line being drawn holds */
+  var lock = null;
+  if (line) {
+    var dirs = [{ d: [1, 0], rel: 'ax' }, { d: [0, 1], rel: 'ax' }], skew = function (u) { return Math.abs(u[0]) > 2e-3 && Math.abs(u[1]) > 2e-3; },
+      has = function (u) { return dirs.some(function (D) { return Math.abs(D.d[0] * u[1] - D.d[1] * u[0]) < 2e-3; }); },
+      add = function (a, b, r1, r2, ref) { var l = nvsD(a, b); if (l < 1e-6) return; var u = [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; if (!skew(u) || has(u)) return; dirs.push({ d: u, rel: r1, ref: ref }, { d: [-u[1], u[0]], rel: r2, ref: ref }); };
+    var n = dr.pts.length; if (n >= 2) add(dr.pts[n - 2], dr.pts[n - 1], 'ext', 'perp', { a: dr.pts[n - 2], b: dr.pts[n - 1] });
+    Sg.forEach(function (s) { if (s.k === 'line' && dirs.length < 14) add(s.a, s.b, 'par', 'perp', s); });
+    var v = [P[0] - prev[0], P[1] - prev[1]], len = Math.hypot(v[0], v[1]), shift = !!(e && e.shiftKey);
+    if (len > tol * 0.4) dirs.forEach(function (D) { if (shift && D.rel !== 'ax') return;
+      var off = Math.abs(v[0] * D.d[1] - v[1] * D.d[0]), lim = shift ? Infinity : Math.min(tol * 0.6, len * (D.rel === 'ax' ? 0.12 : 0.085));   /* ≈ 7° to the axes, 5° to other directions */
+      if (off < lim && (!lock || off < lock.off)) lock = { d: D.d, rel: D.rel, ref: D.ref, off: off, al: v[0] * D.d[0] + v[1] * D.d[1] }; });
+  }
+
+  /* 3. on a line, an edge, a circle */
+  var on = null, tolOn = tol * 0.55;
+  Sg.forEach(function (s) { var q = nvsOnSeg(P, s.a, s.b), d = nvsD(q, P); if (d < (on ? on.d : tolOn)) on = { p: q, d: d, seg: s }; });
+  en.circs.forEach(function (c) { var d0 = nvsD(P, c.c); if (d0 < 1e-6) return; var d = Math.abs(d0 - c.r); if (d < (on ? on.d : tolOn)) on = { p: [c.c[0] + (P[0] - c.c[0]) * c.r / d0, c.c[1] + (P[1] - c.c[1]) * c.r / d0], d: d, circ: c }; });
+  var others = en.pts.filter(function (q) { return q.al; });
+  if (lock && on) {   // the held direction, as far as that line
+    var hit = null, far2 = [prev[0] + lock.d[0], prev[1] + lock.d[1]];
+    if (on.seg) { var xx = nvsCross(prev, far2, on.seg.a, on.seg.b); if (xx && xx.u > -1e-9 && xx.u < 1 + 1e-9 && nvsD(xx.p, P) < tol * 1.5) hit = xx.p; }
+    else nvsLineCirc(prev, lock.d, on.circ.c, on.circ.r).forEach(function (q) { if (nvsD(q.p, P) < tol * 1.5 && (!hit || nvsD(q.p, P) < nvsD(hit, P))) hit = q.p; });
+    if (hit) return nvsOut(hit, 'pt', [], { t: 'on', rel: lock.rel, d: lock.d, lref: lock.ref, ref: on.seg, circ: on.circ, from: prev });
+  }
+  if (on && !(lock && lock.off < on.d)) {
+    var q0 = on.p, gd = [], s0 = on.seg;
+    if (s0) { var hor = Math.abs(s0.a[1] - s0.b[1]) < 1e-9, ver = Math.abs(s0.a[0] - s0.b[0]) < 1e-9;
+      if (hor || ver) {   // along an edge or a straight line: level with another point, else whole grid steps
+        var k = hor ? 0 : 1, lo = Math.min(s0.a[k], s0.b[k]), hi = Math.max(s0.a[k], s0.b[k]), al0 = null, bd = tol * 0.6;
+        others.forEach(function (c) { var d = Math.abs(c.p[k] - P[k]); if (d < bd && c.p[k] > lo - 1e-9 && c.p[k] < hi + 1e-9) { bd = d; al0 = c.p; } });
+        var val = Math.max(lo, Math.min(hi, al0 ? al0[k] : Math.round(P[k] / g) * g));
+        q0 = hor ? [val, s0.a[1]] : [s0.a[0], val]; if (al0 && nvsD(al0, q0) > 1e-6) gd.push([al0[0], al0[1], q0[0], q0[1]]); } }
+    return nvsOut(q0, 'pt', gd, { t: 'on', ref: s0, circ: on.circ, from: line ? prev : null });
+  }
+  if (lock) {
+    var q1, g1 = [];
+    if (lock.rel === 'ax') {   // along an axis: the free measure lines up with another point, else goes by the grid
+      var k1 = Math.abs(lock.d[0]) > 0.5 ? 0 : 1, h1 = null, b1 = tol * 0.6;
+      others.forEach(function (c) { var d = Math.abs(c.p[k1] - P[k1]); if (d < b1) { b1 = d; h1 = c.p; } });
+      var v1 = h1 ? h1[k1] : Math.round(P[k1] / g) * g; q1 = k1 === 0 ? [v1, prev[1]] : [prev[0], v1]; if (h1 && nvsD(h1, q1) > 1e-6) g1.push([h1[0], h1[1], q1[0], q1[1]]);
+    } else { var al1 = Math.round(lock.al / g) * g; if (!al1) al1 = lock.al; q1 = [prev[0] + lock.d[0] * al1, prev[1] + lock.d[1] * al1]; }
+    return nvsOut(q1, 'al', g1, { rel: lock.rel, d: lock.d, lref: lock.ref, from: prev });
+  }
+
+  /* 4. level with / straight above another point, 5. the grid */
+  var ax = null, ay = null, bx = tol * 0.6, by = tol * 0.6, gds = [];
+  others.forEach(function (c) { var dx = Math.abs(c.p[0] - P[0]), dy = Math.abs(c.p[1] - P[1]); if (dx < bx) { bx = dx; ax = c.p; } if (dy < by) { by = dy; ay = c.p; } });
+  var x1 = ax ? ax[0] : Math.round(P[0] / g) * g, y1 = ay ? ay[1] : Math.round(P[1] / g) * g;
+  if (ax) gds.push([ax[0], ax[1], x1, y1]); if (ay) gds.push([ay[0], ay[1], x1, y1]);
+  return nvsOut([x1, y1], ax || ay ? 'al' : 'grid', gds, { from: line ? prev : null });
+}
+
+/* a dragged shape is caught by the point it was taken by: the nearest of its ends, middles, corners, centre */
+function nvsBase(o, start) {
+  var c = [];
+  if (o.t === 'circle') c = [[o.x, o.y], [o.x + o.r, o.y], [o.x - o.r, o.y], [o.x, o.y + o.r], [o.x, o.y - o.r]];
+  else if (o.t === 'rect') c = [[o.x, o.y], [o.x + o.w, o.y], [o.x + o.w, o.y + o.h], [o.x, o.y + o.h], [o.x + o.w / 2, o.y], [o.x + o.w / 2, o.y + o.h], [o.x, o.y + o.h / 2], [o.x + o.w, o.y + o.h / 2], [o.x + o.w / 2, o.y + o.h / 2]];
+  else (o.pts || []).forEach(function (q, i) { c.push(q); var n = o.pts[i + 1] || (o.closed && o.pts.length > 2 ? o.pts[0] : null); if (n) c.push([(q[0] + n[0]) / 2, (q[1] + n[1]) / 2]); });
+  var b = null, bd = Infinity; c.forEach(function (q) { var d = nvsD(q, start); if (d < bd) { bd = d; b = q; } });
+  return b ? [b[0], b[1]] : null;
+}
+
+var NVS_NAME = { end: ['Galas', 'Endpoint'], corner: ['Kampas', 'Corner'], close: ['Uždaryti kontūrą', 'Close the outline'], mid: ['Vidurys', 'Midpoint'], cen: ['Centras', 'Centre'], quad: ['Kvadrantas', 'Quadrant'],
+  hole: ['Skylė', 'Hole'], int: ['Sankirta', 'Intersection'], perp: ['Statmenai', 'Perpendicular'], tan: ['Liestinė', 'Tangent'], on: ['Ant linijos', 'On the line'], onEdge: ['Ant krašto', 'On the edge'], onCirc: ['Ant apskritimo', 'On the circle'],
+  H: ['Horizontaliai', 'Horizontal'], V: ['Vertikaliai', 'Vertical'], ext: ['Tęsinys', 'Extension'], par: ['Lygiagrečiai', 'Parallel'], relPerp: ['Statmenai', 'Perpendicular'], free: ['Laisvai', 'Free'] };
+
+/* what was caught, drawn at the pointer. u: one hundredth of the view, sP: program point → the drawing's coordinates */
+function nvsMarks(X, info, cur, u, sP, D) {
+  if (!info || !info.nv || !S.sk) return '';
+  var dragging = !!(D && (D.mode === 'move' || D.mode === 'grip') && D.moved);
+  if (S.sk.tool === 'sel' ? !dragging : !cur) return '';
+  var sv0 = document.querySelector('.sk-svg'), m0 = sv0 && sv0.getScreenCTM(), px = m0 && m0.a ? 1 / m0.a : u / 4;   // one screen pixel, in the drawing's units: signs and words keep their size at any zoom
+  var nv = info.nv, q = info.p, C = sP(q), s = '', en = S.lang === 'en' ? 1 : 0, pe = ' vector-effect="non-scaling-stroke" pointer-events="none"', Y = '#e8a200', G = '#1f7a4d';
+  var ln = function (a, b, st) { var A = sP(a), B = sP(b); return '<line x1="' + A[0] + '" y1="' + A[1] + '" x2="' + B[0] + '" y2="' + B[1] + '"' + st + pe + '/>'; };
+  [nv.ref, nv.lref].forEach(function (r) { if (r) s += ln(r.a, r.b, ' stroke="' + Y + '" stroke-width="3.5" stroke-opacity=".8" stroke-linecap="round"'); });
+  if (nv.circ) { var c0 = sP(nv.circ.c); s += '<circle cx="' + c0[0] + '" cy="' + c0[1] + '" r="' + skR(nv.circ.r) + '" fill="none" stroke="' + Y + '" stroke-width="3.5" stroke-opacity=".8"' + pe + '/>'; }
+  var words = [];
+  if (nv.rel && nv.d && nv.from) {   // the held direction, drawn on past the point
+    var k = px * 46, sg = nv.d[0] * (q[0] - nv.from[0]) + nv.d[1] * (q[1] - nv.from[1]) < 0 ? -1 : 1;
+    s += ln(nv.from, [q[0] + nv.d[0] * sg * k, q[1] + nv.d[1] * sg * k], ' stroke="' + G + '" stroke-width="1" stroke-dasharray="6 4"');
+    if (nv.rel === 'ax') { var A0 = X.F.to(0, 0), A1 = X.F.to(nv.d[0], nv.d[1]); words.push(NVS_NAME[Math.abs(A1[0] - A0[0]) > Math.abs(A1[1] - A0[1]) ? 'H' : 'V'][en]); }
+    else words.push(NVS_NAME[nv.rel === 'perp' ? 'relPerp' : nv.rel][en]);
+  }
+  var h = px * 5.5, st = ' fill="#fff" stroke="' + G + '" stroke-width="2"' + pe, t = nv.t, x = C[0], y = C[1], R1 = function (v) { return Math.round(v * 100) / 100; };
+  if (t === 'end' || t === 'corner' || t === 'close') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><circle cx="' + x + '" cy="' + y + '" r="' + R1(h * 0.35) + '" fill="' + G + '" pointer-events="none"/>';
+  else if (t === 'mid') s += '<path d="M' + R1(x - h) + ' ' + R1(y + h * 0.8) + 'L' + R1(x + h) + ' ' + R1(y + h * 0.8) + 'L' + x + ' ' + R1(y - h) + 'Z"' + st + '/>';
+  else if (t === 'cen' || t === 'hole') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><path d="M' + R1(x - h * 1.5) + ' ' + y + 'h' + R1(h * 3) + 'M' + x + ' ' + R1(y - h * 1.5) + 'v' + R1(h * 3) + '" stroke="' + G + '" stroke-width="1.5"' + pe + '/>';
+  else if (t === 'quad') s += '<path d="M' + R1(x - h) + ' ' + y + 'L' + x + ' ' + R1(y - h) + 'L' + R1(x + h) + ' ' + y + 'L' + x + ' ' + R1(y + h) + 'Z"' + st + '/>';
+  else if (t === 'int') s += '<path d="M' + R1(x - h) + ' ' + R1(y - h) + 'L' + R1(x + h) + ' ' + R1(y + h) + 'M' + R1(x - h) + ' ' + R1(y + h) + 'L' + R1(x + h) + ' ' + R1(y - h) + '" fill="none" stroke="' + G + '" stroke-width="2.6"' + pe + '/>';
+  else if (t === 'perp') s += '<path d="M' + R1(x - h) + ' ' + R1(y + h) + 'h' + R1(2 * h) + 'M' + x + ' ' + R1(y + h) + 'v' + R1(-2 * h) + '" fill="none" stroke="' + G + '" stroke-width="2.6"' + pe + '/>';
+  else if (t === 'tan' || t === 'on') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h * 0.6) + '" fill="' + G + '" stroke="#fff" stroke-width="1.5"' + pe + '/>';
+  if (t) words.unshift(NVS_NAME[t === 'on' ? (nv.circ ? 'onCirc' : nv.ref && nv.ref.k === 'edge' ? 'onEdge' : 'on') : t][en]);
+  if (nv.free) words.push(NVS_NAME.free[en]);
+  if (words.length) {   // the word, beside the pointer
+    var txt = words.join(' · '), fz = px * 12.5, w = txt.length * fz * 0.56 + fz * 0.9, V = S.sk.view, tx = x + px * 13, ty = y - px * 13;
+    if (V && tx + w > V.x + V.w) tx = x - px * 13 - w; if (V && ty - fz * 1.3 < V.y) ty = y + px * 24;
+    s += '<g class="nvs-tag" pointer-events="none"><rect x="' + R1(tx) + '" y="' + R1(ty - fz * 1.15) + '" width="' + R1(w) + '" height="' + R1(fz * 1.55) + '" rx="' + R1(fz * 0.3) + '" fill="#ffe27a" stroke="#b98900" stroke-width="1" vector-effect="non-scaling-stroke"/>' +
+      '<text x="' + R1(tx + fz * 0.45) + '" y="' + R1(ty) + '" font-size="' + R1(fz) + '" font-weight="600" fill="#3a2d00">' + esc(txt) + '</text></g>';
+  }
+  var dr = S.sk.draft;   // the length of the line being drawn, on the line
+  if (dr && dr.t === 'line' && cur && dr.pts.length) { var a = dr.pts[dr.pts.length - 1], len = nvsD(a, cur);
+    if (len > px * 34) { var A = sP(a), B = sP(cur), mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2, fz2 = px * 12.5;
+      s += '<text x="' + R1(mx) + '" y="' + R1(my - px * 6) + '" font-size="' + R1(fz2) + '" font-weight="700" fill="#a35400" text-anchor="middle" paint-order="stroke" stroke="#fff" stroke-width="' + R1(px * 3) + '" pointer-events="none">' + fmt(skR(len)) + '</text>'; } }
+  return s;
+}
+
+/* the keyboard belongs to the drawing while it is open: a field left in focus behind the window would swallow Enter,
+   the typed sizes and Esc (and take the typed numbers for itself) */
+NVAFTER.push(function () {
+  if (!S.sk) return; var a = document.activeElement;
+  if (a && a !== document.body && a.blur && !(a.closest && a.closest('.skover'))) a.blur();
+  var h = document.querySelector('.skover .sk-hint');   // what the pointer is caught by, said once under the drawing
+  if (h && !h.querySelector('.nvs-h')) h.insertAdjacentHTML('beforeend', ' <span class="nvs-h">' + esc(S.sk.tool === 'sel'
+    ? L('Tempiama figūra limpa tuo tašku, už kurio paimta. Alt — nelimpa.', 'A dragged shape is caught by the point it was taken by. Alt — nothing is caught.')
+    : L('Pelė limpa prie galų, vidurių, centrų, linijų, kraštų ir sankirtų; linija pati laikosi horizontaliai, vertikaliai, statmenai. Alt — nelimpa, Shift — tik horizontaliai / vertikaliai.',
+        'The pointer is caught by ends, middles, centres, lines, edges and crossings; a line holds horizontal, vertical, square by itself. Alt — nothing is caught, Shift — horizontal / vertical only.')) + '</span>');
+});
+document.addEventListener('keydown', function (e) {   // capture, registered after the live handler: only ever sees what that one let through
+  if (!S.sk) return; var a = e.target;
+  if (a && a.blur && /INPUT|SELECT|TEXTAREA/.test(a.tagName || '') && !(a.closest && a.closest('.skover'))) { a.blur(); e.preventDefault(); }
+}, true);
+
+/* the part fills the drawing: a narrower margin than the live view's (which left a fifth of the drawing empty) */
+function skView(p, F) {
+  var K = S.sk, v = K && K.view; if (v && v.key === p.key + skSide()) return v;
+  F = F || skFrame(p, skSide()); var m = Math.max(F.Dw, F.Dh) * 0.035 + 34;
+  return { key: p.key + skSide(), x: -m, y: -(F.Dh + m), w: F.Dw + 2 * m, h: F.Dh + 2 * m };
+}
+
+
+/* ======== src/ui/38-route.js ======== */
+/* 38-route.js — how a drawn shape is routed: the options a CAM gives, named as SCM Maestro names them
+   (Approach: type Line / Arc, mode Down / Quote, radius multiplier; Retract: type, multiplier, overlap — read from the
+   workshop's own Maestro projects), plus the angle, the depth of one pass, the direction and the feeds.
+
+   A shape without options is routed exactly as before (the live moves). With options the moves are made here and handed
+   to the engine through E.nvRoute (build.py PATCHES 'engine'); they are written with the same two instructions the
+   machine's programs have always used — XG0 to the start, XL2P for every move; an arc is a row of short chords.
+
+   The workshop's rules stay: never deeper than the engine allows (it passes the depth), never a plunge straight down
+   into the board — the cutter goes down along its way (the lead-in, or the path itself), back and forth when that way
+   is short — and never more than R.rout.air outside the part.
+
+   Stored on the shape as sh.cam, only what differs from the defaults:
+     ain   'ramp' | 'line' | 'arc'    lead-in: down along the path itself (as before) / a straight line / a tangent arc
+     aang  degrees                    line: its angle to the path (0 = straight on, 90 = square); arc: how much of a circle
+     amul  × cutter radius            the line's length / the arc's radius
+     amode 'down' | 'quote'           going down along the lead-in / the lead-in at full depth (only from outside the part)
+     rout  'up' | 'line' | 'arc'      lead-out: straight up (as before) / a line / an arc;  rang, rmul as above
+     over  mm                         a closed outline is followed this much past its start before leaving
+     step  mm                         the most taken in one pass (0 = the whole depth at once)
+     dang  degrees                    how steeply it goes down (0 = over R.rout.ramp mm, as before)
+     rev   1                          the other way round
+     feed, feedIn  mm/min             the cutting feed, the feed while going down */
+
+var NVQ_DEF = { ain: 'ramp', amode: 'down', amul: 2, rout: 'up', rmul: 2, over: 0, step: 0, dang: 0, rev: 0, feed: 0, feedIn: 0 };
+var NVQ_LIM = { amul: [0.5, 6], rmul: [0.5, 6], aang: [0, 180], rang: [0, 180], over: [0, 60], step: [0, 40], dang: [0, 45], feed: [0, 12000], feedIn: [0, 8000] };
+function nvqAngDef(type) { return type === 'arc' ? 90 : 45; }
+function nvqOpt(cam) {
+  cam = cam || {}; var o = {}, k; for (k in NVQ_DEF) o[k] = cam[k] != null ? cam[k] : NVQ_DEF[k];
+  o.ain = /^(line|arc)$/.test(o.ain) ? o.ain : 'ramp'; o.rout = /^(line|arc)$/.test(o.rout) ? o.rout : 'up'; o.amode = o.amode === 'quote' ? 'quote' : 'down'; o.rev = o.rev ? 1 : 0;
+  o.aang = cam.aang != null ? +cam.aang : nvqAngDef(o.ain); o.rang = cam.rang != null ? +cam.rang : nvqAngDef(o.rout);
+  for (k in NVQ_LIM) { var v = +o[k]; o[k] = isFinite(v) ? Math.max(NVQ_LIM[k][0], Math.min(NVQ_LIM[k][1], v)) : (NVQ_DEF[k] || 0); }
+  if (o.ain === 'line') o.aang = Math.min(o.aang, 90); if (o.rout === 'line') o.rang = Math.min(o.rang, 90);
+  if (o.ain === 'arc') o.aang = Math.max(o.aang, 10); if (o.rout === 'arc') o.rang = Math.max(o.rang, 10);
+  return o;
+}
+function nvqRoutable(op) { return op === 'on' || op === 'in' || op === 'out' || op === 'pocket'; }
+function nvqSided(sh) { return sh.op === 'in' || sh.op === 'out'; }   // the cutter runs beside the outline: there is a waste side to come in from
+/* set one option; what equals the default is not kept, a shape with nothing set has no cam at all */
+function nvqPut(sh, k, v) {
+  var cam = sh.cam = sh.cam || {};
+  if (v == null || v === '' || v === NVQ_DEF[k] || ((k === 'aang' || k === 'rang') && +v === nvqAngDef(cam[k === 'aang' ? 'ain' : 'rout'] || 'ramp'))) delete cam[k]; else cam[k] = v;
+  if (k === 'ain') { delete cam.aang; if (v === 'ramp') { delete cam.amul; delete cam.amode; } }
+  if (k === 'rout') { delete cam.rang; if (v === 'up') { delete cam.rmul; delete cam.over; } }
+  if (!Object.keys(cam).length) delete sh.cam;
+}
+
+/* ---------------------------------------------------------------- geometry */
+function nvqCum(P) { var c = [0]; for (var i = 1; i < P.length; i++) c.push(c[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1])); return c; }
+function nvqAt(P, cum, s) {   // the point at distance s along P, and the direction there
+  var T = cum[cum.length - 1], i = 1; s = Math.max(0, Math.min(T, s)); while (i < P.length - 1 && cum[i] <= s + 1e-9) i++;
+  var a = P[i - 1], b = P[i], l = cum[i] - cum[i - 1], f = l > 1e-9 ? (s - cum[i - 1]) / l : 0;
+  return { p: [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f], t: l > 1e-9 ? [(b[0] - a[0]) / l, (b[1] - a[1]) / l] : [1, 0] };
+}
+/* the stretch of P from distance s0 to s1 (s1 ≥ s0); a closed path goes on round */
+function nvqSub(P, cum, closed, s0, s1) {
+  var T = cum[cum.length - 1], out = [], push = function (q) { var l = out[out.length - 1]; if (!l || Math.hypot(q[0] - l[0], q[1] - l[1]) > 1e-7) out.push([q[0], q[1]]); };
+  if (!closed) { s0 = Math.max(0, Math.min(T, s0)); s1 = Math.max(s0, Math.min(T, s1)); }
+  var wrap = function (s) { if (!closed) return s; var m = s % T; return m < 0 ? m + T : m; };
+  push(nvqAt(P, cum, wrap(s0)).p);
+  var s = s0, guard = 0;
+  while (s < s1 - 1e-9 && guard++ < 100000) {
+    var base = closed ? Math.floor(s / T + 1e-12) * T : 0, loc = s - base, vi = -1;
+    for (var i = 1; i < cum.length; i++) if (cum[i] > loc + 1e-9) { vi = i; break; }
+    if (vi < 0) { if (!closed) break; s = base + T; continue; }   /* at the very end of a lap: on to the next */
+    var nx = base + cum[vi];
+    if (nx >= s1 - 1e-9) { push(nvqAt(P, cum, wrap(s1)).p); s = s1; break; }
+    push(P[vi]); s = nx;
+  }
+  return out;
+}
+function nvqInside(q, ring) { var c = false; for (var i = 0, j = ring.length - 1; i < ring.length; j = i++) { var a = ring[i], b = ring[j]; if ((a[1] > q[1]) !== (b[1] > q[1]) && q[0] < (b[0] - a[0]) * (q[1] - a[1]) / (b[1] - a[1]) + a[0]) c = !c; } return c; }
+/* a lead: the way to (out = false) or from (true) the point A of the path, where it runs along t; nW points into the waste,
+   sgn = +1 when that is on the left of the travel. A line of length mul·r at ang° to the path, or a tangent arc of radius mul·r
+   over ang°. Returned as points in the order they are run. */
+function nvqLead(A, t, nW, type, mul, ang, r, sgn, out) {
+  var L = mul * r, a = ang * Math.PI / 180, pts = [];
+  if (type === 'line') { var c = Math.cos(a) * L * (out ? 1 : -1), s = Math.sin(a) * L, E1 = [A[0] + t[0] * c + nW[0] * s, A[1] + t[1] * c + nW[1] * s]; return out ? [[A[0], A[1]], E1] : [E1, [A[0], A[1]]]; }
+  var C = [A[0] + nW[0] * L, A[1] + nW[1] * L], v = [-nW[0] * L, -nW[1] * L], n = Math.max(3, Math.ceil(a / (2 * Math.acos(Math.max(0, 1 - 0.05 / L)))));   /* chords no more than 0.05 mm off the arc */
+  for (var i = 0; i <= n; i++) { var th = (out ? 1 : -1) * sgn * a * (out ? i : n - i) / n, cs = Math.cos(th), sn = Math.sin(th); pts.push([C[0] + v[0] * cs - v[1] * sn, C[1] + v[0] * sn + v[1] * cs]); }
+  pts[out ? 0 : n] = [A[0], A[1]];
+  return pts;
+}
+
+/* ---------------------------------------------------------------- a shape that reaches past the part
+   What is drawn may go outside; what the cutter does stops at the part. Its centre's path is cut off where the cutter has
+   just left the board (its radius + the lead a groove's open end gets, never more than the machine allows outside), so a
+   line drawn across runs the board through from edge to edge, and a cut-out drawn over an edge becomes a notch: a closed
+   path cut by an edge comes apart into open stretches, each starting and ending outside. Stretches that would only cut
+   air are dropped. */
+function nvqClipSeg(a, b, x0, y0, x1, y1) {   // the part of a–b inside the box, as [t0, t1] along it; null = none
+  var dx = b[0] - a[0], dy = b[1] - a[1], t0 = 0, t1 = 1, p = [-dx, dx, -dy, dy], q = [a[0] - x0, x1 - a[0], a[1] - y0, y1 - a[1]];
+  for (var i = 0; i < 4; i++) { if (Math.abs(p[i]) < 1e-12) { if (q[i] < 0) return null; continue; }
+    var r = q[i] / p[i]; if (p[i] < 0) { if (r > t1) return null; if (r > t0) t0 = r; } else { if (r < t0) return null; if (r < t1) t1 = r; } }
+  return [t0, t1];
+}
+function nvqClip(pts, x0, y0, x1, y1) {   // → the stretches of the path inside the box; a closed path wholly inside comes back closed
+  var n = pts.length, D = function (a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }, closed = n > 3 && D(pts[0], pts[n - 1]) < 1e-6, runs = [], cur = null, cut = false;
+  var end = function () { if (cur) runs.push(cur); cur = null; }, add = function (q) { var l = cur[cur.length - 1]; if (!l || D(l, q) > 1e-7) cur.push(q); };
+  for (var i = 0; i < n - 1; i++) { var a = pts[i], b = pts[i + 1], c = nvqClipSeg(a, b, x0, y0, x1, y1);
+    if (!c || (c[1] - c[0] < 1e-9 && D(a, b) > 1e-9)) { cut = true; end(); continue; }
+    var A = [a[0] + (b[0] - a[0]) * c[0], a[1] + (b[1] - a[1]) * c[0]], B = [a[0] + (b[0] - a[0]) * c[1], a[1] + (b[1] - a[1]) * c[1]];
+    if (c[0] > 1e-9) { cut = true; end(); }
+    if (!cur) cur = [A]; add(B);
+    if (c[1] < 1 - 1e-9) { cut = true; end(); } }
+  end();
+  if (closed && cut && runs.length > 1) { var f = runs[0], l = runs[runs.length - 1];   // the loop's own start lies inside a stretch: its two halves are one
+    if (D(f[0], pts[0]) < 1e-6 && D(l[l.length - 1], pts[0]) < 1e-6) { runs[0] = l.concat(f.slice(1)); runs.pop(); } }
+  return runs.filter(function (r) { return r.length > 1; });
+}
+E.nvClip = function (loops, L, W, C0) {
+  var r = C0.dia / 2, m = Math.min(C0.air, r + C0.leadIn), out = [];
+  (loops || []).forEach(function (lp) { nvqClip(lp, -m, -m, L + m, W + m).forEach(function (run) {
+    for (var i = 0; i < run.length - 1; i++) if (nvqClipSeg(run[i], run[i + 1], -r, -r, L + r, W + r)) { out.push(run); return; } }); });   // it reaches the board somewhere
+  return out;
+};
+
+/* ---------------------------------------------------------------- the moves
+   P: the cutter centre's path in the program's coordinates (closed: last point = first), depth > 0, op: on | in | out | pocket.
+   → { moves: [{ t:'G0'|'L', x, y, z, v, k }], notes: [code] }; k says what the move is: in / cut / out / lift (for the drawing) */
+function nvqMoves(P0, depth, op, camRaw, C0, dim) {
+  var cam = nvqOpt(camRaw), r = C0.dia / 2, notes = [], mv = [], P = [];
+  P0.forEach(function (q) { var l = P[P.length - 1]; if (!l || Math.hypot(q[0] - l[0], q[1] - l[1]) > 1e-6) P.push([+q[0], +q[1]]); });
+  if (P.length < 2 || !(depth > 0)) return null;
+  var closed = P.length > 3 && Math.hypot(P[0][0] - P[P.length - 1][0], P[0][1] - P[P.length - 1][1]) < 1e-6;
+  if (closed) P[P.length - 1] = [P[0][0], P[0][1]];
+  var side = closed && (op === 'in' || op === 'out') ? 1 : 0;   // the engine lays both so the waste is on the left of the travel
+  if (cam.rev) { P.reverse(); side = -side; }
+  var lin = side ? cam.ain : 'ramp', lout = side ? cam.rout : 'up', over = side ? cam.over : 0;
+  if (!closed && (op === 'in' || op === 'out') && (cam.ain !== 'ramp' || cam.rout !== 'up' || cam.over > 0)) notes.push('edgeCut');   // cut off at the part's edge: it starts and ends outside
+  if (side && (lin !== 'ramp' || lout !== 'up')) {   // come in and leave in the middle of the longest side, not in a corner
+    var ring0 = P.slice(0, -1), bi = 0, bl = -1;
+    ring0.forEach(function (q, i) { var n = ring0[(i + 1) % ring0.length], l = Math.hypot(n[0] - q[0], n[1] - q[1]); if (l > bl + 1e-6) { bl = l; bi = i; } });
+    var nb = ring0[(bi + 1) % ring0.length], M = [(ring0[bi][0] + nb[0]) / 2, (ring0[bi][1] + nb[1]) / 2];
+    P = [M].concat(ring0.slice(bi + 1), ring0.slice(0, bi + 1), [[M[0], M[1]]]);
+  }
+  var cum = nvqCum(P), T = cum[cum.length - 1]; if (!(T > 1e-6)) return null;
+  var feed = cam.feed > 0 ? cam.feed : C0.feedCut, feedIn = cam.feedIn > 0 ? cam.feedIn : C0.feedPlunge;
+  var nP = cam.step > 0 ? Math.min(20, Math.max(1, Math.ceil(depth / cam.step - 1e-9))) : 1;
+  var rampLen = function (dz) { return cam.dang > 0 ? Math.max(1, dz / Math.tan(cam.dang * Math.PI / 180)) : C0.ramp; };
+  var R3 = function (v) { return Math.round(v * 1000) / 1000; }, cur = null;
+  var go = function (q) { mv.push({ t: 'G0', x: R3(q[0]), y: R3(q[1]), z: C0.safeZ, k: 'rapid' }); cur = q; };
+  var to = function (q, z, v, k) { mv.push({ t: 'L', x: R3(q[0]), y: R3(q[1]), z: R3(z), v: v, k: k }); cur = q; };
+  var run = function (pts, z0, z1, v, k) { var len = 0, i, acc = 0; for (i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    for (i = 1; i < pts.length; i++) { acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); to(pts[i], len > 1e-9 ? z0 + (z1 - z0) * acc / len : z1, v, k); } };
+  var plen = function (pts) { var l = 0; for (var i = 1; i < pts.length; i++) l += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return l; };
+  var ring = closed ? P.slice(0, -1) : null, air = C0.air;
+  /* a lead may only run through the waste, and not further out of the part than the machine allows */
+  var onRing = function (q) { for (var i = 0; i < ring.length; i++) { var a = ring[i], b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 > 1e-12 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)) : 0;
+      if (Math.hypot(a[0] + dx * t - q[0], a[1] + dy * t - q[1]) < 1e-4) return true; } return false; };
+  var inWaste = function (q) { return onRing(q) || nvqInside(q, ring) === (op === 'in'); };   // on the path itself counts: it is cut anyway
+  var leadOk = function (pts, skip) { for (var i = 0; i < pts.length; i++) { if (i === skip) continue; var o = pts[i === 0 ? 1 : i - 1], q = pts[i];
+      if (q[0] < -air || q[0] > dim.DX + air || q[1] < -air || q[1] > dim.DY + air) return false;
+      var mid = [(q[0] + o[0]) / 2, (q[1] + o[1]) / 2]; if (!inWaste(q) || !inWaste(mid)) return false; } return true; };
+  var fit = function (make, mul, skipLast, short) { var fs = [1, 0.75, 0.5, 0.35]; for (var i = 0; i < fs.length; i++) { var pts = make(mul * fs[i]); if (leadOk(pts, skipLast ? pts.length - 1 : 0)) { if (i) notes.push(short); return pts; } } return null; };
+  var normal = function (t) { return side > 0 ? [-t[1], t[0]] : [t[1], -t[0]]; };
+  var leave = function (s, z) {   // the lead-out from distance s of the path, at depth
+    if (lout === 'up') return; var B = nvqAt(P, cum, closed ? s % T : s), nW = normal(B.t);
+    var LO = fit(function (m) { return nvqLead(B.p, B.t, nW, lout, m, cam.rang, r, side, true); }, cam.rmul, false, 'outShort');
+    if (!LO) { if (notes.indexOf('outNone') < 0) notes.push('outNone'); return; } run(LO, z, z, feed, 'out');
+  };
+
+  var LI = null;
+  if (lin !== 'ramp') { var A0 = nvqAt(P, cum, 0), nW0 = normal(A0.t);
+    LI = fit(function (m) { return nvqLead(A0.p, A0.t, nW0, lin, m, cam.aang, r, side, false); }, cam.amul, true, 'inShort');
+    if (!LI) { notes.push('inNone'); lin = 'ramp'; } }
+
+  if (lin !== 'ramp') {   // every pass: in along the lead, once round (and the overlap), out, up
+    var S0 = LI[0], ll = plen(LI), back = LI.slice().reverse(), outside = S0[0] < -r || S0[0] > dim.DX + r || S0[1] < -r || S0[1] > dim.DY + r;
+    var quote = cam.amode === 'quote' && outside; if (cam.amode === 'quote' && !outside) notes.push('quoteIn');
+    for (var k = 1; k <= nP; k++) { var zk = -depth * k / nP;
+      go(S0);
+      if (quote) { to(S0, zk, feedIn, 'in'); run(LI, zk, zk, feed, 'in'); }
+      else { to(S0, 0, feedIn, 'in'); var m = Math.max(1, Math.ceil(rampLen(-zk) / ll - 1e-9)); if (m % 2 === 0) m++; m = Math.min(m, 15);
+        for (var j = 0; j < m; j++) run(j % 2 ? back : LI, zk * j / m, zk * (j + 1) / m, feedIn, 'in'); }
+      run(nvqSub(P, cum, true, 0, T + over), zk, zk, feed, 'cut');
+      leave(over, zk);
+      to(cur, C0.safeZ, feed, 'lift');
+    }
+  } else if (closed) {   // down along the outline itself, round, deeper along the next stretch, round … no lifting in between
+    go(P[0]); to(P[0], 0, feedIn, 'in'); var s = 0, zp = 0;
+    for (var k2 = 1; k2 <= nP; k2++) { var z2 = -depth * k2 / nP, rl = Math.min(rampLen(zp - z2), T);
+      run(nvqSub(P, cum, true, s, s + rl), zp, z2, feedIn, 'in');
+      run(nvqSub(P, cum, true, s + rl, s + rl + T), z2, z2, feed, 'cut');
+      s += rl; zp = z2; }
+    if (over > 0) { run(nvqSub(P, cum, true, s, s + over), zp, zp, feed, 'cut'); s += over; }
+    leave(s, zp);
+    to(cur, C0.safeZ, feed, 'lift');
+  } else {   // an open line: down along it, back, to the far end; the next pass comes back the same way
+    var Q = P, cq = cum; go(Q[0]); to(Q[0], 0, feedIn, 'in'); var zq = 0;
+    for (var k3 = 1; k3 <= nP; k3++) { var z3 = -depth * k3 / nP, rl3 = Math.min(rampLen(zq - z3), T), head = nvqSub(Q, cq, false, 0, rl3);
+      run(head, zq, z3, feedIn, 'in'); run(head.slice().reverse(), z3, z3, feed, 'cut'); run(nvqSub(Q, cq, false, 0, T), z3, z3, feed, 'cut');
+      zq = z3; Q = Q.slice().reverse(); cq = nvqCum(Q); }
+    to(cur, C0.safeZ, feed, 'lift');
+  }
+  return { moves: mv, notes: notes, passes: nP, start: [mv[0].x, mv[0].y] };
+}
+E.nvRoute = function (P, depth, g, C0, dim) {   // the engine asks here for every path that has options; null = its own moves
+  try { var o = nvqMoves(P, depth, g.op, g.cam, C0, dim); return o ? o.moves : null; } catch (e) { if (window.console) console.error(e); return null; }
+};
+
+/* the same moves in the part's own frame (as drawn): a path worked from face B is mirrored for its program and back */
+function nvqPreview(p, g) {
+  if (!g || !g.cam) return null; var C0 = E.R.rout, B = g.face === 'B', DY = p.W;
+  var P = g.pts.map(function (q) { return [q[0], B ? DY - q[1] : q[1]]; }); if (B) P.reverse();
+  var o = null; try { o = nvqMoves(P, Math.min(g.depth, p.T - C0.skin), g.op, g.cam, C0, { DX: p.L, DY: p.W }); } catch (e) { o = null; }
+  if (!o) return null;
+  return { notes: o.notes, passes: o.passes, moves: o.moves.map(function (m) { return B ? { t: m.t, x: m.x, y: DY - m.y, z: m.z, v: m.v, k: m.k } : m; }) };
+}
+function nvqPathsOf(p, n) { return (p.paths || []).filter(function (g) { var m = /^ESKIZAS_(\d+)/.exec(g.name || ''); return m && +m[1] === n; }); }
+var NVQ_NOTE = {
+  inShort: ['Įėjimas sutrumpintas — atliekoje jam per mažai vietos.', 'The lead-in was shortened — the waste has no room for it.'],
+  inNone: ['Įėjimui linija ar lanku atliekoje vietos nėra — freza leidžiasi pačiu kontūru.', 'No room in the waste for a line or arc lead-in — the cutter goes down along the outline itself.'],
+  outShort: ['Išėjimas sutrumpintas — atliekoje jam per mažai vietos.', 'The lead-out was shortened — the waste has no room for it.'],
+  outNone: ['Išėjimui atliekoje vietos nėra — freza kyla tiesiai aukštyn.', 'No room in the waste for the lead-out — the cutter lifts straight up.'],
+  edgeCut: ['Kontūras kerta detalės kraštą — freza ateina ir išeina už krašto, įėjimo ir išėjimo nustatymai čia netaikomi.', 'The outline crosses the part\'s edge — the cutter comes in and leaves outside the edge; the lead-in and lead-out settings do not apply here.'],
+  quoteIn: ['Įėjimas „gylyje“ galimas tik iš už detalės krašto (freza nesileidžia stačiai į plokštę) — leidžiamasi nuožulniai.', 'A lead-in "at depth" is possible only from outside the part (the cutter never plunges straight into the board) — it goes down along the lead-in.']
+};
+function nvqNotes(p, n) { var out = []; nvqPathsOf(p, n).forEach(function (g) { var o = nvqPreview(p, g); if (o) o.notes.forEach(function (c) { if (out.indexOf(c) < 0) out.push(c); }); }); return out; }
+
+/* ---------------------------------------------------------------- on the drawing: where the cutter starts, which way it goes,
+   how it comes in and leaves (green = going in, red = leaving) */
+function nvqSvg(p, list, selId, P, u) {
+  var sv = document.querySelector('.sk-svg'), m0 = sv && sv.getScreenCTM(), px = m0 && m0.a ? 1 / m0.a : u / 4, s = '', pe = ' vector-effect="non-scaling-stroke" pointer-events="none"', side = skSide();
+  var R2 = function (v) { return Math.round(v * 100) / 100; };
+  list.forEach(function (sh, i) {
+    if (!nvqRoutable(sh.op)) return; var gs = nvqPathsOf(p, i + 1); if (!gs.length) return;
+    var on = sh.id === selId, op = (sh.face || 'A') !== side ? 0.4 : on ? 1 : 0.7;
+    gs.forEach(function (g, gi) {
+      var o = nvqPreview(p, g), pts, start, dirTo;
+      if (o) {
+        var first = []; for (var j = 0; j < o.moves.length; j++) { first.push(o.moves[j]); if (o.moves[j].k === 'lift') break; }   // one pass is enough to show the way
+        var part = function (k) { var out = [], runs = []; first.forEach(function (m, j2) { if (m.k === k) { if (!out.length && j2) out.push(first[j2 - 1]); out.push(m); } else if (out.length) { runs.push(out); out = []; } }); if (out.length) runs.push(out); return runs; };
+        var poly = function (runs, col, w, dash) { return runs.map(function (rn) { return '<polyline points="' + rn.map(function (m) { return P(m.x, m.y).join(','); }).join(' ') + '" fill="none" stroke="' + col + '" stroke-width="' + w + '" stroke-opacity="' + op + '"' + (dash ? ' stroke-dasharray="' + dash + '"' : '') + ' stroke-linejoin="round"' + pe + '/>'; }).join(''); };
+        var band = function (runs) { return runs.map(function (rn) { return '<polyline points="' + rn.map(function (m) { return P(m.x, m.y).join(','); }).join(' ') + '" fill="none" stroke="#7a3fc4" stroke-opacity="' + (0.13 * op) + '" stroke-width="' + E.R.rout.dia + '" stroke-linejoin="round" stroke-linecap="round" pointer-events="none"/>'; }).join(''); };
+        var rin = part('in'), rout = part('out');
+        s += band(rin) + band(rout) + poly(rin, '#1f7a4d', 2) + poly(rout, '#c2410c', 2);
+        start = [first[0].x, first[0].y]; var c1 = first.filter(function (m) { return m.k === 'cut'; })[0], c0 = c1 ? first[first.indexOf(c1) - 1] : null;
+        dirTo = c1 && c0 ? [[c0.x, c0.y], [c1.x, c1.y]] : null;
+      } else { pts = g.face === 'B' ? g.pts.slice().reverse() : g.pts; start = pts[0]; dirTo = pts.length > 1 ? [pts[0], pts[1]] : null; }
+      if (gi > 0 && (!o || sh.op === 'pocket')) return;   // a pocket's rings: one start mark is enough
+      var S0 = P(start[0], start[1]);
+      s += '<circle cx="' + S0[0] + '" cy="' + S0[1] + '" r="' + R2(px * 4.5) + '" fill="#1f7a4d" fill-opacity="' + op + '" stroke="#fff" stroke-width="1.5"' + pe + '/>';
+      if (dirTo) {   // an arrow a little way along the first cutting move
+        var A = P(dirTo[0][0], dirTo[0][1]), B = P(dirTo[1][0], dirTo[1][1]), dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy);
+        if (l > px * 6) { dx /= l; dy /= l; var d0 = Math.min(l * 0.5, px * 26), tx = A[0] + dx * d0, ty = A[1] + dy * d0, hw = px * 5.5, hl = px * 11;
+          s += '<path d="M' + R2(tx + dx * hl) + ' ' + R2(ty + dy * hl) + 'L' + R2(tx - dy * hw) + ' ' + R2(ty + dx * hw) + 'L' + R2(tx + dy * hw) + ' ' + R2(ty - dx * hw) + 'Z" fill="#5b2aa0" fill-opacity="' + op + '" stroke="#fff" stroke-width="1"' + pe + '/>'; }
+      }
+    });
+  });
+  return s;
+}
+
+/* ---------------------------------------------------------------- the options of the picked shape */
+function nvqProps(c, p, r, sh, idx) {
+  if (!nvqRoutable(sh.op)) return '';
+  var o = nvqOpt(sh.cam), raw = sh.cam || {}, sided = nvqSided(sh), R0 = E.R.rout, rr = R0.dia / 2, maxD = p.T - R0.skin, depth = sh.through ? maxD : Math.min(+sh.depth || 0, maxD), h = '';
+  var segB = function (k, opts) { return '<div class="seg nvq-seg" role="group">' + opts.map(function (x) { var on = String(o[k]) === String(x[0]); return '<button type="button" data-nv="nvqSet" data-v="' + k + ':' + x[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>'; };
+  var num = function (k, label, unit, ph, title) { var v = raw[k] != null ? raw[k] : (k === 'aang' || k === 'rang' || k === 'amul' || k === 'rmul' ? o[k] : '');
+    return '<label class="f sk-f nvq-f"' + (title ? ' title="' + esc(title) + '"' : '') + '><span>' + esc(label) + (unit ? ' <i>' + esc(unit) + '</i>' : '') + '</span><input type="text" inputmode="decimal" data-nv-change="nvqNum" data-k="' + k + '" value="' + esc(v === '' ? '' : String(v)) + '" placeholder="' + esc(ph || '') + '"></label>'; };
+  var row = function (label, body) { return '<div class="nvq-row"><span class="nvq-k">' + esc(label) + '</span><div class="nvq-v">' + body + '</div></div>'; };
+  if (sided) {
+    h += row(L('Įėjimas', 'Lead-in'), segB('ain', [['ramp', L('Pačiu kontūru', 'Along the outline')], ['line', L('Linija', 'Line')], ['arc', L('Lankas', 'Arc')]]) +
+      (o.ain !== 'ramp' ? '<div class="nvq-in">' + num('aang', o.ain === 'arc' ? L('Lanko kampas', 'Arc angle') : L('Kampas į kontūrą', 'Angle to the outline'), '°') +
+        num('amul', o.ain === 'arc' ? L('Spindulys', 'Radius') : L('Ilgis', 'Length'), '× R', '', L('Frezos spindulio kartotinis', 'A multiple of the cutter radius')) +
+        '<span class="nvq-eq">= ' + fmt(o.amul * rr) + ' mm</span></div>' +
+        '<div class="nvq-in">' + segB('amode', [['down', L('Leidžiantis', 'Going down')], ['quote', L('Gylyje', 'At depth')]]) + '</div>' : ''));
+    h += row(L('Išėjimas', 'Lead-out'), segB('rout', [['up', L('Tiesiai aukštyn', 'Straight up')], ['line', L('Linija', 'Line')], ['arc', L('Lankas', 'Arc')]]) +
+      (o.rout !== 'up' ? '<div class="nvq-in">' + num('rang', o.rout === 'arc' ? L('Lanko kampas', 'Arc angle') : L('Kampas į kontūrą', 'Angle to the outline'), '°') +
+        num('rmul', o.rout === 'arc' ? L('Spindulys', 'Radius') : L('Ilgis', 'Length'), '× R', '', L('Frezos spindulio kartotinis', 'A multiple of the cutter radius')) +
+        '<span class="nvq-eq">= ' + fmt(o.rmul * rr) + ' mm</span></div>' : '') +
+      '<div class="nvq-in">' + num('over', L('Persidengimas', 'Overlap'), 'mm', '0', L('Kiek kontūro pravažiuojama antrą kartą prieš išeinant', 'How much of the outline is run twice before leaving')) + '</div>');
+  }
+  var nP = o.step > 0 && depth > 0 ? Math.min(20, Math.max(1, Math.ceil(depth / o.step - 1e-9))) : 1, dz = depth > 0 ? depth / nP : 0;
+  var ang = o.dang > 0 ? o.dang : (dz > 0 ? Math.atan(dz / R0.ramp) * 180 / Math.PI : 0);
+  h += row(L('Leidimasis', 'Going down'), '<div class="nvq-in">' + num('dang', L('Kampas', 'Angle'), '°', L('auto', 'auto'), L('Kokiu kampu freza leidžiasi į plokštę. Tuščia — per ', 'How steeply the cutter goes down into the board. Empty — over ') + R0.ramp + ' mm') +
+    num('step', L('Vienu praėjimu', 'Per pass'), 'mm', L('visas', 'all'), L('Didžiausias gylis vienu praėjimu. Tuščia — visas gylis iš karto', 'The most taken in one pass. Empty — the whole depth at once')) + '</div>' +
+    '<span class="nvq-eq">' + (depth > 0 ? (nP > 1 ? nP + L(' praėjimai po ', ' passes of ') + fmt(Math.round(dz * 10) / 10) + ' mm' : L('1 praėjimas, ', '1 pass, ') + fmt(depth) + ' mm') + L(' · leidžiasi ≈ ', ' · going down ≈ ') + fmt(Math.round(ang * 10) / 10) + '°' : '') + '</span>');
+  h += row(L('Kryptis', 'Direction'), segB('rev', [[0, L('Įprasta', 'As usual')], [1, L('Atvirkščia', 'Reversed')]]));
+  h += row(L('Pastūma', 'Feed'), '<div class="nvq-in">' + num('feed', L('Pjaunant', 'Cutting'), 'mm/min', String(R0.feedCut)) + num('feedIn', L('Leidžiantis', 'Going down'), 'mm/min', String(R0.feedPlunge)) + '</div>');
+  var notes = nvqNotes(p, idx + 1).map(function (k) { return '<p class="nvq-note">' + esc(L(NVQ_NOTE[k][0], NVQ_NOTE[k][1])) + '</p>'; }).join('');
+  return '<div class="nvq" id="nvq"><div class="nvq-h"><span class="lbl">' + L('Kaip frezuoti', 'How it is routed') + '</span>' +
+    (sh.cam ? '<button type="button" class="btn ghost" data-nv="nvqReset" title="' + esc(L('Grąžinti įprastą frezavimą', 'Back to the usual routing')) + '">↺ ' + L('Įprastai', 'Default') + '</button>' : '<span class="unit">' + L('įprastai', 'default') + '</span>') + '</div>' + h + notes +
+    '<p class="nvq-leg"><i style="background:#1f7a4d"></i>' + L('pradžia ir įėjimas', 'start and lead-in') + ' <i style="background:#c2410c"></i>' + L('išėjimas', 'lead-out') + ' <i class="ar"></i>' + L('kryptis', 'direction') + '</p></div>';
+}
+NVA.nvqSet = function (el, v) {
+  var kv = String(v).split(':'), k = kv[0], val = kv[1]; if (!(k in NVQ_DEF)) return false;
+  skChange(function (sh) { nvqPut(sh, k, k === 'rev' ? (+val ? 1 : 0) : val); });
+};
+NVA.nvqReset = function () { skChange(function (sh) { delete sh.cam; }); };
+NVC.nvqNum = function (el) {
+  var k = el.getAttribute('data-k'), t = String(el.value).trim(), lim = NVQ_LIM[k]; if (!lim) return false;
+  if (t === '') { skChange(function (sh) { nvqPut(sh, k, null); }); return; }
+  var v = skNum(t); if (v == null || v < 0) { toast(L('Įveskite skaičių', 'Enter a number'), true); return; }
+  v = Math.max(lim[0], Math.min(lim[1], v));
+  skChange(function (sh) { nvqPut(sh, k, v || null); });
+};
+
+/* what the route could not do as asked is said in the check list too (it is still made — in the safer way) */
+var nvqIssues0 = nvComputeIssues;
+nvComputeIssues = function (proj, info) {
+  var list = nvqIssues0(proj, info) || [];
+  (proj.cabinets || []).forEach(function (c, ci) { var inf = info && info[ci]; if (!inf || !inf.r || !c.sketch) return;
+    (inf.r.panels || []).forEach(function (p) { (c.sketch[p.key] || []).forEach(function (sh, i) { if (!sh.cam || !nvqRoutable(sh.op)) return;
+      nvqNotes(p, i + 1).forEach(function (k) { list.push({ id: 'route.' + k + '.' + p.key + '.' + (i + 1), sev: 'info', cab: ci, topic: 'cnc', field: null,
+        msg: L('Detalės ' + (p.short || p.key) + ' operacija #' + (i + 1) + ': ', 'Part ' + (p.short || p.key) + ', operation #' + (i + 1) + ': ') + L(NVQ_NOTE[k][0], NVQ_NOTE[k][1]),
+        act: { label: L('Atidaryti brėžinį', 'Open the drawing'), act: 'skopen', v: p.key, i: ci } }); }); }); }); });
+  return list;
+};
+
+
 /* ======== src/ui/40-room.js ======== */
 /* =====================================================================
    40-room.js — the layout stage (Išdėstymas), the settings page (⚙), and the few helpers the re-skin of the
@@ -19719,6 +20317,7 @@ function nv3Cuts(p) {
   (p.sketch || []).forEach(function (sh) { if (sh.op !== 'in' || !sh.closed || sh.pts.length < 3) return;
     var g = (p.paths || []).filter(function (x) { return x.name === 'ESKIZAS_' + sh.n; })[0]; if (!g || g.depth < thrD) return;
     var xs = sh.pts.map(function (q) { return q[0]; }), ys = sh.pts.map(function (q) { return q[1]; }), x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    if (x0 < 0.5 || y0 < 0.5 || x1 > p.L - 0.5 || y1 > p.W - 0.5) return;   /* over the part's edge (a notch): drawn as routed, not opened as a hole */
     if (sh.t === 'rect') out.push({ k: 'rect', x: x0, y: y0, w: x1 - x0, h: y1 - y0, n: sh.n });
     else if (sh.t === 'circle') out.push({ k: 'circ', x: (x0 + x1) / 2, y: (y0 + y1) / 2, d: x1 - x0, n: sh.n }); });
   (p.holes || []).forEach(function (h) { if (h.op === 'sketch' && h.through) out.push({ k: 'circ', x: h.x, y: h.y, d: h.d }); });
@@ -20910,7 +21509,12 @@ window.__nv = {
   go: nvGo, undo: nvUndo, redo: nvRedo, render: function () { render(); },
   S: S, cur: cur, info: function () { return S._info; },
   build: function () { return buildProjectAll(); },
-  topics: function () { return typeof NVTOPICS !== 'undefined' ? NVTOPICS : []; }
+  topics: function () { return typeof NVTOPICS !== 'undefined' ? NVTOPICS : []; },
+  /* the drawing on a part: a program point → where it is on the screen (tests click there) */
+  skScreen: function (x, y) { var X = skCtx(), sv = document.querySelector('.sk-svg'); if (!X || !sv) return null; var d = X.F.to(x, y), pt = sv.createSVGPoint(); pt.x = d[0]; pt.y = -d[1]; var q = pt.matrixTransform(sv.getScreenCTM()); return [q.x, q.y]; },
+  skShapes: function () { var X = skCtx(); return X ? X.list : null; },
+  routeNotes: function (p, n) { return nvqNotes(p, n); },
+  skSnap: function (P, prev, mm, o) { o = o || {}; return nvsSnap(P, skCtx(), prev || null, { altKey: !!o.alt, shiftKey: !!o.shift }, o.excl == null ? null : o.excl, o.drag || null, mm || 2, o.grid || 5); }
 };
 
 document.documentElement.lang = S.lang;

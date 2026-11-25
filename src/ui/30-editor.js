@@ -239,8 +239,9 @@ function nveIssues() {
     if ((!a || (x.act && x.act.nv === 'ack')) && (x.topic || x.field || x.tab)) a += '<button type="button" class="nv-btn sm" data-nv="go"' + (x.tab ? ' data-tab="' + esc(x.tab) + '"' : '') + (x.topic ? ' data-topic="' + esc(x.topic) + '"' : '') + (x.field ? ' data-field="' + esc(x.field) + '"' : '') + (x.sec != null ? ' data-sec="' + x.sec + '"' : '') + (x.col != null ? ' data-col="' + x.col + '"' : '') + '>' + L('Taisyti →', 'Fix →') + '</button>';
     return a;
   };
-  var h = all.slice(0, 3).map(function (x) { return '<div class="nve-ir ' + x.sev + '">' + nveMark(x.sev) + '<span class="nve-im" title="' + esc(x.hint || '') + '">' + esc(x.msg) + '</span>' + at(x) + '</div>'; }).join('');
-  if (all.length > 3) h += hasRev ? '<button type="button" class="nve-more" data-nv="go" data-topic="review">+' + (all.length - 3) + ' ' + L('daugiau', 'more') + ' →</button>' : '<span class="nve-more">+' + (all.length - 3) + ' ' + L('daugiau', 'more') + '</span>';
+  var nShow = window.innerHeight < 720 ? 1 : window.innerHeight < 880 ? 2 : 3;   /* a low window (a laptop): fewer rows, so the list does not push the 3D view's own controls out of sight */
+  var h = all.slice(0, nShow).map(function (x) { return '<div class="nve-ir ' + x.sev + '">' + nveMark(x.sev) + '<span class="nve-im" title="' + esc(x.hint || '') + '">' + esc(x.msg) + '</span>' + at(x) + '</div>'; }).join('');
+  if (all.length > nShow) h += hasRev ? '<button type="button" class="nve-more" data-nv="go" data-topic="review">+' + (all.length - nShow) + ' ' + L('daugiau', 'more') + ' →</button>' : '<span class="nve-more">+' + (all.length - nShow) + ' ' + L('daugiau', 'more') + '</span>';
   return h;
 }
 NVLIVE.eissues = function (c) { return c ? nveIssues() : null; };

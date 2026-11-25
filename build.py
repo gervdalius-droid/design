@@ -73,13 +73,59 @@ PATCHES = [
                "merivo: { up:54, fa:18, marks:'37, 261, 293', perLen:'270: 37,197,229; 300: 37,197,229; 350: 37,197,229', ded:51, shorter:26, boxShorter:10, t:16, below:34,"),
     ('engine', "axis:Math.max(t + up, f.bottom + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop)",
                "axis:Math.max(t + up, f.bottom + (+R.merivo.fa || 0) + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop)"),
+
+    # ---- routing drawn by hand (Detalių operacijos)
+    # (1) a closed outline (cut out, cut round, a pocket's rings) was routed without its last side: the path stopped at
+    #     the last corner and lifted, so a rectangle got three sides of four. The loop is closed here.
+    #     A shape that reaches past the part was refused when it went more than 20 mm out; now what the cutter does is cut
+    #     off at the part (E.nvClip of src/ui/38-route.js: its centre's path ends where the cutter has just left the board),
+    #     so a line drawn across runs from edge to edge and a cut-out over an edge becomes a notch.
+    #     Each path also carries its operation and the routing options of src/ui/38-route.js.
+    ('engine', "loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep }); });",
+               "if (op !== 'on') loops = loops.map(function (lp) { return lp.concat([lp[0]]); });\n"
+               "    if (api.nvClip) { loops = api.nvClip(loops, p.L, p.W, C0); if (!loops.length) { warn.push(tag + 'visa operacija už detalės — NEPROGRAMUOTA'); return; } }\n"
+               "    loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep, op:op, cam:s.cam || null }); });"),
+    #     … so only a drilled hole is still refused for lying outside (and one whose centre is off the part altogether)
+    ('engine', "if (o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }",
+               "if ((op === 'drill' || !api.nvClip) && o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }\n"
+               "    if (op === 'drill' && s.t === 'circle' && ((+s.x || 0) < 0 || (+s.x || 0) > p.L || (+s.y || 0) < 0 || (+s.y || 0) > p.W)) { warn.push(tag + 'skylės centras už detalės — NEPROGRAMUOTA'); return; }"),
+    # (2) a path with routing options (lead-in, lead-out, passes …) gets its moves from src/ui/38-route.js; without options
+    #     the live moves, unchanged
+    ('engine', "return routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), Math.min(g.depth, DZ - R.rout.skin), g.name);",
+               "var nvD = Math.min(g.depth, DZ - R.rout.skin), nvM = g.cam && api.nvRoute ? api.nvRoute(P, nvD, g, R.rout, { DX:DX, DY:DY }) : null; return nvM ? { name:g.name, moves:nvM } : routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), nvD, g.name);"),
+
+    # ---- the drawing tool (src/ui/37-sketch.js): where a point lands is decided there (ends, middles, centres, on a line,
+    #      crossings, perpendicular, horizontal / vertical …), it draws what was caught, and a dragged shape is caught by the
+    #      point it was taken by. The live snapping stays as the fallback.
+    ('app', "function snap(P, X, prev, e, exclId) {",
+            "function snap(P, X, prev, e, exclId, drag) {\n    if (typeof nvsSnap === 'function') { var nvS = nvsSnap(P, X, prev, e, exclId, drag, mmPx(svgEl()), grid()); if (nvS) return nvS; }"),
+    ('app', "    g.innerHTML = s; hud(X);",
+            "    if (typeof nvsMarks === 'function') s += nvsMarks(X, snapInfo, cur, u, function (q) { return sP(X, q); }, D);\n    g.innerHTML = s; hud(X);"),
+    ('app', "var base = o.t === 'line' ? o.pts[0] : [o.x, o.y], tgt = snap([base[0] + P[0] - D.start[0], base[1] + P[1] - D.start[1]], X, null, e, sh.id).p,",
+            "var base = (typeof nvsBase === 'function' && nvsBase(o, D.start)) || (o.t === 'line' ? o.pts[0] : [o.x, o.y]), tgt = (snapInfo = snap([base[0] + P[0] - D.start[0], base[1] + P[1] - D.start[1]], X, null, e, sh.id, { move:o })).p,"),
+    ('app', "var Q = snap(P, X, null, e, sh.id).p, h = D.h;",
+            "var Q = (snapInfo = snap(P, X, null, e, sh.id, { grip:D.h, o:o })).p, h = D.h;"),
+    ('app', "      redrawSvg(X); return;",
+            "      redrawSvg(X); live(X); return;"),
+    # the cutter's whole way (lead-in, lead-out, where it starts) on the drawing, and the routing options of a shape
+    ('app', "stroke-linejoin=\"round\" stroke-linecap=\"round\" pointer-events=\"none\"/>'; });",
+            "stroke-linejoin=\"round\" stroke-linecap=\"round\" pointer-events=\"none\"/>'; });\n  if (!preview && typeof nvqSvg === 'function') s += nvqSvg(p, list, selId, P, u);"),
+    ('app', "'</div>' + ops + how + ws + '</div>';",
+            "'</div>' + ops + how + (typeof nvqProps === 'function' ? nvqProps(c, p, r, sh, idx) : '') + ws + '</div>';"),
 ]
+
+def patched(n, t):
+    for (m, old, new) in PATCHES:
+        if m == n and not (m == 'engine' and '--plain-engine' in sys.argv):   # --plain-engine: the live engine as it is (test/ui/golden_test.py compares the interface alone)
+            if t.count(old) != 1: sys.exit("build.py: patch for src/lib/%s.js no longer matches exactly once — the live app changed there; review PATCHES." % n)
+            t = t.replace(old, new)
+    return t
 
 def arg(name):
     return sys.argv[sys.argv.index(name) + 1] if name in sys.argv and sys.argv.index(name) + 1 < len(sys.argv) else None
 
 def main():
-    app = rd('src/lib/app.js')
+    app_live = rd('src/lib/app.js'); app = patched('app', app_live)
     if app.count(BOOT) != 1:
         sys.exit("build.py: the boot line of src/lib/app.js was not found exactly once — the live app changed its start-up; adjust BOOT.")
     cut = app.index(BOOT)
@@ -96,7 +142,7 @@ def main():
 
     # which live functions does the new interface replace? (top-level declarations with the same name)
     decl = re.compile(r'^function ([A-Za-z_$][\w$]*)\s*\(', re.M)
-    legacy_fns = set(decl.findall(app))
+    legacy_fns = set(decl.findall(app_live))
     over = sorted(set(decl.findall(overlay)) & legacy_fns)
     dup = sorted(n for n in set(decl.findall(overlay)) if len(re.findall(r'^function %s\s*\(' % re.escape(n), overlay, re.M)) > 1)
     if dup:
@@ -106,30 +152,24 @@ def main():
     css += ''.join('<style>\n/* src/ui/%s */\n%s\n</style>\n' % (os.path.basename(p), open(p, encoding='utf-8').read()) for p in ui_css)
     head = rd('src/head.html')
     js = '<script>\n' + rd('vendor/jszip.min.js') + '\n</script>\n'
-    def lib(n):
-        t = rd('src/lib/%s.js' % n)
-        for (m, old, new) in PATCHES:
-            if m == n and not (m == 'engine' and '--plain-engine' in sys.argv):   # --plain-engine: the live engine as it is (test/ui/golden_test.py compares the interface alone)
-                if t.count(old) != 1: sys.exit("build.py: patch for src/lib/%s.js no longer matches exactly once — the live app changed there; review PATCHES." % n)
-                t = t.replace(old, new)
-        return t
-    js += ''.join('<script>' + lib(n) + '</script>\n' for n in LIB)
+    js += ''.join('<script>' + patched(n, rd('src/lib/%s.js' % n)) + '</script>\n' for n in LIB)
     build_id = hashlib.sha1((js + closure).encode('utf-8')).hexdigest()[:10]   # what this page computes with: every module (with its corrections) and the interface
     js += '<script>window.NV_BUILD="%s"</script>\n' % build_id
     js += '<script>' + closure + '</script>\n'
+    shared = arg('--shared') or 'shared/'   # on the workshop's site: --shared /hub/shared/ (tools/deploy.py)
     # sign-in, cloud saving and "one editor per project" — the live app's own scripts, unchanged, loaded exactly as there
     # (copies next to the page so it also runs outside app.dedesbaldai.lt; tools/sync_legacy.py refreshes them)
     js += ''.join('<script src="%s"%s></script>\n' % (s, ' defer' if 'notices' in s else '') for s in
-                  ['workshop-auth.js', 'shared/notices.js', 'cloud.js', 'shared/project-lock.js', 'locks.js', 'shared/back.js'])
+                  ['workshop-auth.js', shared + 'notices.js', 'cloud.js', shared + 'project-lock.js', 'locks.js', shared + 'back.js'])
     if re.search(r'</script', overlay, re.I):   # an inline script must never contain its own end tag
         sys.exit("build.py: a src/ui script contains '</script' — write it as '<\\/script'")
     page = ('<!doctype html>\n<html lang="lt" data-theme="light">\n<head>\n' + head + css + '</head>\n<body>\n'
             '<div id="app"></div>\n<div id="toast" class="toast" hidden></div>\n' + js + '</body>\n</html>\n')
-    outp = os.path.join(R, out); os.makedirs(os.path.dirname(outp), exist_ok=True)
+    outp = os.path.join(R, out); os.makedirs(os.path.dirname(outp), exist_ok=True)   # an absolute --out is taken as it is
     open(outp, 'w', encoding='utf-8').write(page)
     print('%s  %.2f MB  ·  ui: %s' % (out, len(page.encode('utf-8')) / 1e6, ' '.join(os.path.basename(p) for p in ui_js + ui_css)))
     print('overrides of live functions (%d): %s' % (len(over), ', '.join(over)))
-    print('live app.js sha1 ' + hashlib.sha1(app.encode('utf-8')).hexdigest()[:12])
+    print('live app.js sha1 ' + hashlib.sha1(app_live.encode('utf-8')).hexdigest()[:12])
     print('build ' + build_id)
     if '--check' in sys.argv:
         check(out)

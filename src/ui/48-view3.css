@@ -10,7 +10,8 @@
 .nv3-leg{display:inline-flex;gap:6px;align-items:center;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
 .nv3-leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-left:6px}
 .nv3-stage{position:relative;flex:1;min-height:420px;background:#f6f5f1;overflow:hidden}
-.nv3:not(.full) .nv3-stage{flex:1;min-height:340px}
+.nv3:not(.full) .nv3-stage{flex:1;min-height:220px}   /* 340 pushed the footer (opening, parts) under the list of problems on a laptop */
+@media (max-height:820px){.nv3:not(.full) .nv3-hint{display:none}.nv3:not(.full) .nv3-foot{padding:6px 14px}}
 .nve-3d:has(.nv3){display:flex;flex-direction:column;min-height:0}
 .nv3-cv{display:block;width:100%;height:100%;touch-action:none;cursor:grab;outline:0}
 .nv3-cv:active{cursor:grabbing}

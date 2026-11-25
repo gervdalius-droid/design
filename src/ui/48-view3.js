@@ -163,6 +163,7 @@ function nv3Cuts(p) {
   (p.sketch || []).forEach(function (sh) { if (sh.op !== 'in' || !sh.closed || sh.pts.length < 3) return;
     var g = (p.paths || []).filter(function (x) { return x.name === 'ESKIZAS_' + sh.n; })[0]; if (!g || g.depth < thrD) return;
     var xs = sh.pts.map(function (q) { return q[0]; }), ys = sh.pts.map(function (q) { return q[1]; }), x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    if (x0 < 0.5 || y0 < 0.5 || x1 > p.L - 0.5 || y1 > p.W - 0.5) return;   /* over the part's edge (a notch): drawn as routed, not opened as a hole */
     if (sh.t === 'rect') out.push({ k: 'rect', x: x0, y: y0, w: x1 - x0, h: y1 - y0, n: sh.n });
     else if (sh.t === 'circle') out.push({ k: 'circ', x: (x0 + x1) / 2, y: (y0 + y1) / 2, d: x1 - x0, n: sh.n }); });
   (p.holes || []).forEach(function (h) { if (h.op === 'sketch' && h.through) out.push({ k: 'circ', x: h.x, y: h.y, d: h.d }); });

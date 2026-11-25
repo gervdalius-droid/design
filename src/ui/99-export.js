@@ -7,5 +7,10 @@ window.__nv = {
   go: nvGo, undo: nvUndo, redo: nvRedo, render: function () { render(); },
   S: S, cur: cur, info: function () { return S._info; },
   build: function () { return buildProjectAll(); },
-  topics: function () { return typeof NVTOPICS !== 'undefined' ? NVTOPICS : []; }
+  topics: function () { return typeof NVTOPICS !== 'undefined' ? NVTOPICS : []; },
+  /* the drawing on a part: a program point → where it is on the screen (tests click there) */
+  skScreen: function (x, y) { var X = skCtx(), sv = document.querySelector('.sk-svg'); if (!X || !sv) return null; var d = X.F.to(x, y), pt = sv.createSVGPoint(); pt.x = d[0]; pt.y = -d[1]; var q = pt.matrixTransform(sv.getScreenCTM()); return [q.x, q.y]; },
+  skShapes: function () { var X = skCtx(); return X ? X.list : null; },
+  routeNotes: function (p, n) { return nvqNotes(p, n); },
+  skSnap: function (P, prev, mm, o) { o = o || {}; return nvsSnap(P, skCtx(), prev || null, { altKey: !!o.alt, shiftKey: !!o.shift }, o.excl == null ? null : o.excl, o.drag || null, mm || 2, o.grid || 5); }
 };

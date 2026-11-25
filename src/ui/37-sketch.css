@@ -1,0 +1,30 @@
+/* 37-sketch.css — the drawing takes the window: the part picker narrow on the left, the drawing as large as it gets,
+   what the picked shape is and how it is routed in a column on the right (the live layout stacks all of it in a box) */
+@media (min-width: 1000px) {
+  .skover .skbox { max-width: none; width: calc(100vw - 20px); height: calc(100vh - 20px); max-height: none; display: flex; flex-direction: column; }
+  .skover .skbox > .drwbar, .skover .skbox > .jcfoot { flex: 0 0 auto; }
+  .skover .skbox > .jcbody { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; max-height: none; }
+  .skover .sk-cols { flex: 1 1 auto; min-width: 0; min-height: 0; display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  .skover .sk-left { position: static; overflow: auto; min-height: 0; }
+  .skover .sk-left .ec-msvg { height: 200px; }
+  .skover .sk-right { min-width: 0; min-height: 0; display: flex; }
+  .skover .sk-right > .card { flex: 1 1 auto; }
+  .skover .sk-ed { flex: 1 1 auto; min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 336px; grid-template-rows: auto auto minmax(0, 1fr) auto; column-gap: 14px; }
+  .skover .sk-head, .skover .sk-tools { grid-column: 1 / 3; }
+  .skover .sk-wrap { grid-column: 1; grid-row: 3; min-height: 0; }
+  .skover .sk-svg { height: 100%; }
+  .skover .sk-hint { grid-column: 1; grid-row: 4; margin: 6px 0 0; }
+  .skover .sk-below { grid-column: 2; grid-row: 3 / 5; overflow: auto; min-height: 0; display: block; padding-right: 2px; }
+  .skover .sk-below > .sk-props { margin-top: 0; }
+  .skover .jcfoot { padding-top: 6px; padding-bottom: 6px; }
+  .skover .jcfoot .btn.big { padding-top: 7px; padding-bottom: 7px; }
+  .skover .sk-hint { font-size: 12.5px; line-height: 1.35; }
+  .skover .skbox > .drwbar { padding-top: 9px; padding-bottom: 9px; }
+}
+.skover .sk-ed .f.sk-f input { width: 68px !important; padding: 4px 6px; }
+.skover .sk-props { padding: 9px 11px; }
+.skover .sk-props .sk-row { gap: 6px; margin-bottom: 4px; }
+.skover .sk-ops { gap: 4px; margin: 3px 0 6px; }
+.skover .sk-ops .btn { padding: 4px 8px; font-size: 12.5px; }
+.skover .sk-props .lbl { font-size: 12.5px; }
+.skover .sk-pt .f.sk-f input { width: 62px !important; }
