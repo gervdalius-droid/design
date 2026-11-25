@@ -12,7 +12,7 @@ function nvpName(part, p) {
   for (var i = 0; i < m.length; i++) if (m[i][0].test(r)) return L(m[i][1], m[i][2]);
   return (p && p.short) || r;
 }
-function nvpClose() { if (nvpS.el) { nvpS.el.remove(); nvpS.el = null; } nvpS.part = null; }
+function nvpClose() { if (nvpS.el) { nvpS.el.remove(); nvpS.el = null; } nvpS.part = null; if (typeof nv3Mark === 'function' && typeof NV3 !== 'undefined' && (NV3.mark || NV3.markKey || NV3.markPart)) nv3Mark(null); }
 function nvpOpen(part, x, y) {
   nvpClose();
   var c = cur(), inf = S._info && S._info[S.sel]; if (!c || !inf || !inf.r) return;

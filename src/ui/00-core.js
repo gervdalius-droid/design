@@ -85,13 +85,16 @@ function nvRestore(s) {
   H.mute = true; save(); H.mute = false; H.last = nvSnap(); H.at = 0;
   render();
 }
-function nvUndo() { var H = NV.hist; if (!H.past.length) return false; H.future.push(H.last); nvRestore(H.past.pop()); toast(L('Atšaukta', 'Undone')); return true; }
-function nvRedo() { var H = NV.hist; if (!H.future.length) return false; H.past.push(H.last); nvRestore(H.future.pop()); toast(L('Grąžinta', 'Redone')); return true; }
+function nvUndo() { var H = NV.hist; if (typeof nvpIs === 'function' && nvpIs(S.proj)) return false;   /* a produced project has no way back into its past */
+  if (!H.past.length) return false; H.future.push(H.last); nvRestore(H.past.pop()); toast(L('Atšaukta', 'Undone')); return true; }
+function nvRedo() { var H = NV.hist; if (typeof nvpIs === 'function' && nvpIs(S.proj)) return false;
+  if (!H.future.length) return false; H.past.push(H.last); nvRestore(H.future.pop()); toast(L('Grąžinta', 'Redone')); return true; }
 
 /* the live save(), plus the undo note */
 function save() {
   if (!S.proj) return;
   if (S.ro) { S.roDirty = true; return; }   // view only / not yet confirmed that nobody else edits it (locks.js)
+  if (typeof nvpGuard === 'function' && nvpGuard()) return;   // produced and locked (65-produced.js)
   VER.touched();
   clearTimeout(clibTimer); clibTimer = setTimeout(clibSync, 300);
   if (S.tab !== 'room' && S.roomUndo && S.roomUndo.length) S.roomUndo = [];
@@ -157,7 +160,7 @@ function nvHeader() {
     '<button type="button" class="nv-brand" data-act="home" title="' + esc(L('Visi projektai', 'All projects')) + '"><span class="logo"><span class="dbl" role="img" aria-label="Dėdės Baldai"></span></span><span class="nv-brand-t">' + L('Projektai', 'Projects') + '</span></button>' +
     '<label class="nv-proj" title="' + esc(L('Projekto pavadinimas — juo vadinamos CNC programos ir failai', 'Project name — the CNC programs and files are named after it')) + '">' +
       '<input id="projname" type="text" data-bind="p.name" value="' + esc(S.proj.name) + '" placeholder="' + esc(t('projPh')) + '" autocomplete="off" spellcheck="false"' + (S.proj.name ? '' : ' aria-invalid="true"') + '>' +
-      '<span class="saved" id="saved" title="' + esc(t('autosaveT')) + '">✓ ' + t('autosaved') + '</span></label>' +
+      '<span class="saved" id="saved" title="' + esc(t('autosaveT')) + '">✓ ' + t('autosaved') + '</span></label>' + (typeof nvpPill === 'function' ? nvpPill() : '') +
     '<nav class="nv-stages" aria-label="' + esc(L('Projekto eiga', 'Project steps')) + '">' + NV_STAGES.map(function (s, i) {
       return (i ? '<span class="nv-stage-sep" aria-hidden="true"></span>' : '') + '<button type="button" data-act="tab" data-v="' + s.k + '" class="nv-stage' + (st === s.k ? ' on' : '') + '"' + (st === s.k ? ' aria-current="step"' : '') + '><span class="nv-stage-n">' + (i + 1) + '</span><span class="nv-stage-l">' + L(s.lt, s.en) + '</span><span data-live="stagebadge" data-live-arg="' + s.k + '">' + nvStageBadge(s.k) + '</span></button>';
     }).join('') + '</nav>' +
@@ -183,6 +186,7 @@ function render() {
   var ae = document.activeElement, fx = ae && ae.id, ss = null; try { ss = fx ? ae.selectionStart : null; } catch (e0) {}
   NV.issues = null;
   document.documentElement.lang = S.lang;
+  if (typeof nvpSyncRules === 'function') nvpSyncRules();   // a produced project is built with the rules it was produced with
   if (S.home) {
     app.className = 'nv-app';
     app.innerHTML = nvHomeShell();
@@ -213,7 +217,8 @@ function render() {
   if (S.sk && !S.proj.cabinets[S.sk.cab]) S.sk = null;
   var modal = S.sk ? skModal() : S.jcheck && cur() && cabInfo[S.sel] ? jcModal(cur(), cabInfo[S.sel]) : S.echeck && cur() && cabInfo[S.sel] ? ecModal(cur(), cabInfo[S.sel]) : '';
   app.className = 'nv-app nv-tab-' + S.tab;
-  app.innerHTML = nvHeader() + '<main class="nv-main" id="nv-main">' + body + '</main>' + modal +
+  if (typeof nvpSnap === 'function') nvpSnap();
+  app.innerHTML = nvHeader() + '<main class="nv-main" id="nv-main">' + (typeof nvpBanner === 'function' ? nvpBanner() : '') + body + '</main>' + modal +
     '<datalist id="dl-mat">' + listOpts('mat') + '</datalist><datalist id="dl-edge">' + listOpts('edge') + '</datalist><datalist id="dl-wt">' + listOpts('wt') + '</datalist>';
   mountIso(); mountRoom(); mountAssembly(); mountJc();
   clampNotes();

@@ -117,7 +117,7 @@ function nvmPanel(g, nFiles) {
     nw ? L('Klaidų nėra, įspėjimai peržiūrėti. Failai — iš ką tik patikrinto projekto.', 'No errors, the warnings are reviewed. The files come from the project as just checked.')
        : L('Klaidų ir įspėjimų nėra. Failai — iš ką tik patikrinto projekto.', 'No errors and no warnings. The files come from the project as just checked.'),
     nvmZip(true),
-    (nw ? '<div class="nvm-go"><span class="nvm-acked">' + nvmAckBox(g) + '<span class="nv-muted">' + nvkCnt('warn', nw) + '</span>' + chk + '</span></div>' : '') + nvmFiles(true, nFiles));
+    (nw ? '<div class="nvm-go"><span class="nvm-acked">' + nvmAckBox(g) + '<span class="nv-muted">' + nvkCnt('warn', nw) + '</span>' + chk + '</span></div>' : '') + nvmFiles(true, nFiles) + (typeof nvpStep === 'function' ? nvpStep(g) : ''));
 }
 NVLIVE.mgate = function () { return nvmPanel(nvmGate(), NV.mFiles); };   // follows the project name while it is typed in the top bar
 

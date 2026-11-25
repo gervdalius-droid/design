@@ -349,6 +349,7 @@ function nv3Build() {
     root.add(g);
   });
   nv3Pose();
+  if (NV3.markKey || NV3.markPart) nv3Remark();
   /* outer sizes */
   if (NV3.dims && !focus && !jx) { var lm = new T.LineBasicMaterial({ color: 0x69726c }), pts = [], seg = function (a, b) { pts.push(new T.Vector3().fromArray(a), new T.Vector3().fromArray(b)); }, o = 55, zb = c.hang === true || !(r.legs || []).length ? 0 : -((r.legs[0] || {}).h || 0);
     seg([0, -o, zb], [W, -o, zb]); seg([0, -o + 14, zb], [0, -o - 14, zb]); seg([W, -o + 14, zb], [W, -o - 14, zb]);
@@ -407,7 +408,24 @@ function nv3Click(e) {
     if (key && !NV3.focus) { NV3.focus = key; render(); }
     return;
   }
-  if (part && typeof nvpOpen === 'function') nvpOpen(part, e.clientX, e.clientY);
+  if (part && typeof nvpOpen === 'function') { nvpOpen(part, e.clientX, e.clientY); nv3Mark(h.object); }
+}
+/* the part whose card is open is marked in the model: a blue outline and a light tint, seen through everything else */
+function nv3Mark(obj) {
+  var T = NV3.T; if (!T) return;
+  if (NV3.mark) { if (NV3.mark.parent) NV3.mark.parent.remove(NV3.mark); NV3.mark.traverse(function (o) { if (o.geometry && o.userData.own) o.geometry.dispose(); }); NV3.mark = null; }
+  NV3.markKey = null; NV3.markPart = null;
+  if (!obj || !obj.geometry) return;
+  var g = new T.Group(), eg = new T.EdgesGeometry(obj.geometry, 25);
+  var ln = new T.LineSegments(eg, new T.LineBasicMaterial({ color: 0x1c4fd8, depthTest: false, transparent: true })); ln.renderOrder = 9; ln.userData.own = true; g.add(ln);
+  var ln2 = new T.LineSegments(eg, new T.LineBasicMaterial({ color: 0x1c4fd8, depthTest: false, transparent: true, opacity: 0.55 })); ln2.scale.setScalar(1.004); ln2.renderOrder = 9; g.add(ln2);   // a second pass, a hair larger: a bolder line
+  var fill = new T.Mesh(obj.geometry, new T.MeshBasicMaterial({ color: 0x1c4fd8, transparent: true, opacity: 0.16, depthTest: false })); fill.renderOrder = 8; g.add(fill);
+  obj.add(g); NV3.mark = g; NV3.markKey = obj.userData.key || null; NV3.markPart = obj.userData.part || null;
+}
+function nv3Remark() {   // the model was rebuilt while the card is open: mark the same part again
+  var k = NV3.markKey, pt = NV3.markPart; NV3.mark = null; if (!k && !pt) return;
+  var m = (NV3.pick || []).filter(function (o) { return k ? o.userData.key === k : o.userData.part && pt && o.userData.part.kind === pt.kind && o.userData.part.name === pt.name; })[0];
+  if (m) nv3Mark(m); else { NV3.markKey = null; NV3.markPart = null; }
 }
 document.addEventListener('keydown', function (e) { if (e.key !== 'Escape' || !document.getElementById('nv3')) return; if (NV3.focus) { NV3.focus = null; render(); } else if (NV3.joints && NV3.jSel) { NV3.jSel = null; render(); } else if (NV3.full) { NV3.full = false; render(); } });
 

@@ -154,7 +154,7 @@ function nvhCard(r, t0) {
   return '<article class="nvh-card' + (isCur ? ' cur' : '') + (open ? ' menu-open' : '') + '">' +
     '<button type="button" class="prow-main nvh-open" data-act="popen" data-v="' + id + '" title="' + esc(L('Atidaryti projektą', 'Open the project')) + '">' +
       '<span class="nvh-pics"' + (tile == null ? ' data-wait="' + id + '"' : '') + '>' + (tile == null ? '<span class="nvh-skel"></span>' : tile) + '</span>' +
-      '<b><span class="nvh-name">' + esc(r.name || t('noName')) + '</span>' + (isCur ? '<span class="nv-badge ok">' + t('prOpenNow') + '</span>' : '') + '</b>' +
+      '<b><span class="nvh-name">' + esc(r.name || t('noName')) + '</span>' + (isCur ? '<span class="nv-badge ok">' + t('prOpenNow') + '</span>' : '') + (typeof nvpBadge === 'function' ? nvpBadge(r) : '') + '</b>' +
       '<small title="' + esc(t('prUpdated') + ' ' + ago(r.updated)) + '">' + nvhCabs(r.n || 0) + ' · ' + esc(nvhAgo(r.updated)) + '</small>' +
     '</button>' +
     '<button type="button" class="nv-ic nvh-dots" data-nv="nvhMenu" data-v="' + id + '" aria-haspopup="menu" aria-expanded="' + open + '" title="' + esc(L('Kopijuoti, atsarginė kopija, versijos, ištrinti', 'Copy, backup, versions, delete')) + '" aria-label="' + esc(L('Projekto veiksmai', 'Project actions')) + '">⋯</button>' +

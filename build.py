@@ -114,6 +114,8 @@ def main():
                 t = t.replace(old, new)
         return t
     js += ''.join('<script>' + lib(n) + '</script>\n' for n in LIB)
+    build_id = hashlib.sha1((js + closure).encode('utf-8')).hexdigest()[:10]   # what this page computes with: every module (with its corrections) and the interface
+    js += '<script>window.NV_BUILD="%s"</script>\n' % build_id
     js += '<script>' + closure + '</script>\n'
     # sign-in, cloud saving and "one editor per project" — the live app's own scripts, unchanged, loaded exactly as there
     # (copies next to the page so it also runs outside app.dedesbaldai.lt; tools/sync_legacy.py refreshes them)
@@ -128,6 +130,7 @@ def main():
     print('%s  %.2f MB  ·  ui: %s' % (out, len(page.encode('utf-8')) / 1e6, ' '.join(os.path.basename(p) for p in ui_js + ui_css)))
     print('overrides of live functions (%d): %s' % (len(over), ', '.join(over)))
     print('live app.js sha1 ' + hashlib.sha1(app.encode('utf-8')).hexdigest()[:12])
+    print('build ' + build_id)
     if '--check' in sys.argv:
         check(out)
 
