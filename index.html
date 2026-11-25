@@ -2680,6 +2680,40 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 .nv3-jlab.flash{animation:nv3flash 1.1s ease-out}
 @keyframes nv3flash{0%{box-shadow:0 0 0 0 rgba(240,162,2,.95);background:#ffe08a}60%{background:#fff3c9}100%{box-shadow:0 0 0 16px rgba(240,162,2,0)}}
 
+/* connector pictures; the joint's card */
+.nv3-cpic{display:block;width:100%;height:62px;object-fit:contain;pointer-events:none}
+.nv3-cpic.ico{height:30px;width:60px;margin:16px 0}
+.nv3-conn.card{align-items:stretch;min-height:108px;padding:8px 9px 9px;background:linear-gradient(#fbfaf7,#f1efe9)}
+.nv3-conn.card span{font-size:13px}
+.nv3-conn.card.on{background:var(--ink)}
+.nv3-conn.card.on svg{filter:brightness(0) invert(1)}
+.nv3-jwrap{position:relative}
+.nv3-jcard{position:absolute;left:328px;top:12px;z-index:5;width:344px;max-height:calc(100% - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--nv-shadow-lg);padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
+.nv3-jc-h{display:flex;align-items:center;gap:8px}
+.nv3-jc-h i{width:12px;height:12px;border-radius:50%;flex:none}
+.nv3-jc-h b{font:700 16px/1.2 var(--f-display);flex:1;min-width:0}
+.nv3-jc-x{border:0;background:none;font-size:16px;cursor:pointer;color:var(--muted);min-width:34px;min-height:34px;border-radius:8px}
+.nv3-jc-x:hover{background:var(--sunk);color:var(--ink)}
+.nv3-jc-s>h5{margin:0 0 7px;font:700 12.5px/1.2 var(--f-body);text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+.nv3-jc-s>h5 small{font-weight:400;text-transform:none;letter-spacing:0}
+.nv3-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nv3-tile{display:flex;flex-direction:column;align-items:stretch;gap:4px;border:1.5px solid var(--line2);background:linear-gradient(#fbfaf7,#f1efe9);border-radius:11px;padding:7px 8px 8px;cursor:pointer;font:600 13px/1.2 var(--f-body);color:var(--ink);text-align:left;min-height:104px}
+.nv3-tile:hover{border-color:var(--ink)}
+.nv3-tile.on{border-color:#1c4fd8;box-shadow:0 0 0 3px rgba(28,79,216,.18);background:#fff}
+.nv3-tile.on span::after{content:" ✓";color:#1c4fd8}
+.nv3-jc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.nv3-jc-row:last-child{margin-bottom:0}
+.nv3-jc-l{font-weight:600;font-size:13.5px;flex:1 1 100%}
+.nv3-jc-n{display:block;font-size:12px;line-height:1.35;margin-top:6px;flex:1 1 100%}
+.nv3-jcard .nv3-jpos{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+@media (max-width:900px){
+  .nv3-jcard{position:static;flex:none;width:316px;max-height:none;border-radius:0;border:0;border-right:1px solid var(--line);box-shadow:none}
+  .nv3-jwrap.has-card .nv3-jside{display:none}
+}
+@media (max-width:760px){
+  .nv3-jcard{width:auto;max-height:54%;border-right:0;border-top:1px solid var(--line)}
+}
+
 </style>
 <style>
 /* src/ui/50-check.css */
@@ -19393,6 +19427,119 @@ new MutationObserver(nvaAvBtn).observe(app, { childList: true, subtree: true });
 NVAFTER.push(function () { var a = document.querySelector('.nv-stage.on'), p = a && a.parentNode; if (p && p.scrollWidth > p.clientWidth + 1) p.scrollLeft = Math.max(0, a.offsetLeft - (p.clientWidth - a.offsetWidth) / 2); });
 
 
+/* ======== src/ui/48-conn.js ======== */
+/* 48-conn.js — the connectors themselves: true-size 3-D models (a confirmat screw, a cam housing, its bolt, a dowel),
+   pictures rendered from those same models for the connector library, and the card of the joint in work
+   (which connector, how many, where, and on which side). Used by the joints workspace in 48-view3.js. */
+
+/* ---- models, in mm, axis along +Y. Geometries are built once and shared. */
+function nv3cGeo(key, make) { NV3.cgeo = NV3.cgeo || {}; return NV3.cgeo[key] || (NV3.cgeo[key] = make()); }
+function nv3cLathe(key, pts) { var T = NV3.T; return nv3cGeo(key, function () { return new T.LatheGeometry(pts.map(function (p) { return new T.Vector2(p[0], p[1]); }), 30); }); }
+function nv3cMat(key) {
+  var T = NV3.T; NV3.cmat = NV3.cmat || {}; if (NV3.cmat[key]) return NV3.cmat[key];
+  var m;
+  if (key === 'zinc') m = new T.MeshStandardMaterial({ color: 0xcfd3d6, metalness: 0.95, roughness: 0.3, side: T.DoubleSide });
+  else if (key === 'cast') m = new T.MeshStandardMaterial({ color: 0xb4b8bb, metalness: 0.8, roughness: 0.5, side: T.DoubleSide });
+  else if (key === 'dark') m = new T.MeshStandardMaterial({ color: 0x2c3134, metalness: 0.4, roughness: 0.7 });
+  else {   // beech, with the flutes of a dowel along its length
+    var cv = document.createElement('canvas'); cv.width = 96; cv.height = 4; var g = cv.getContext('2d');
+    for (var i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#c9a06b' : '#e2c594'; g.fillRect(i * 8, 0, 8, 4); }
+    var tx = new T.CanvasTexture(cv); tx.wrapS = T.RepeatWrapping; tx.colorSpace = T.SRGBColorSpace;
+    m = new T.MeshStandardMaterial({ map: tx, metalness: 0, roughness: 0.85, side: T.DoubleSide });
+  }
+  return NV3.cmat[key] = m;
+}
+function nv3ConnModel(kind) {
+  var T = NV3.T, g = new T.Group(), add = function (geo, mat, y) { var m = new T.Mesh(geo, nv3cMat(mat)); if (y) m.position.y = y; g.add(m); return m; };
+  if (kind === 'confirmat') {   // 7 × 50: the head's top at y = 0, the body down to y = −50
+    var p = [[0, -50], [1.3, -48.6], [2.4, -46]], y;
+    for (y = -46; y < -14.5; y += 2.6) p.push([3.45, y + 1.0], [2.4, y + 2.6]);   // the thread
+    p.push([2.4, -13], [3.5, -12], [3.5, -5.2], [5.1, -1.3], [5.1, 0], [0, 0]);
+    add(nv3cLathe('conf', p), 'zinc');
+    add(nv3cGeo('confHex', function () { return new T.CylinderGeometry(2.35, 2.35, 0.7, 6); }), 'dark', 0.02);
+  } else if (kind === 'cam') {   // Ø15 × 12.5 housing: its top face at y = 0
+    add(nv3cLathe('cam', [[0, -12.5], [7, -12.5], [7.5, -12], [7.5, -0.6], [7, 0], [0, 0]]), 'cast');
+    add(nv3cGeo('camSlotA', function () { return new T.BoxGeometry(9.4, 0.7, 1.7); }), 'dark', 0.02);
+    add(nv3cGeo('camSlotB', function () { return new T.BoxGeometry(1.7, 0.7, 9.4); }), 'dark', 0.02);
+    var ar = add(nv3cGeo('camArrow', function () { return new T.CylinderGeometry(1.5, 1.5, 0.7, 3); }), 'dark', 0.02); ar.position.set(5.2, 0.02, 0); ar.rotation.y = Math.PI / 2;
+  } else if (kind === 'bolt') {   // the cam's connecting bolt: screwed in up to its collar (y = 0), the head at y = 34
+    var b = [[0, -7.5], [2.3, -7.5]], yb;
+    for (yb = -7.5; yb < -1.2; yb += 1.5) b.push([3.05, yb + 0.6], [2.3, yb + 1.5]);
+    b.push([2.3, 0], [4.7, 0], [4.7, 1.7], [2.55, 1.7], [2.55, 25.6], [1.75, 26.6], [1.75, 29.2], [3.3, 30.2], [3.3, 33], [2.2, 34.2], [0, 34.2]);
+    add(nv3cLathe('bolt', b), 'zinc');
+  } else if (kind === 'dowel') {   // Ø8 × 30, centred on the origin
+    add(nv3cLathe('dowel', [[0, -15], [3.1, -15], [4, -14], [4, 14], [3.1, 15], [0, 15]]), 'wood');
+  }
+  return g;
+}
+
+/* ---- pictures of the connectors for the library: the models above, rendered once */
+function nv3Thumbs() {
+  if (NV3.thumb) return NV3.thumb;
+  var T = NV3.T, out = {};
+  try {
+    var W = 320, H = 180, R = new T.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    R.setPixelRatio(2); R.setSize(W, H, false); R.toneMapping = T.ACESFilmicToneMapping; R.toneMappingExposure = 1.1; R.outputColorSpace = T.SRGBColorSpace; R.setClearColor(0x000000, 0);
+    var pm = new T.PMREMGenerator(R), env = pm.fromScene(new NV3.RE(), 0.03).texture, cam = new T.PerspectiveCamera(20, W / H, 1, 3000);
+    var lay = function (kind, x, y, z, rz, ry) { var m = nv3ConnModel(kind); m.rotation.set(0, ry || 0, rz || 0); m.position.set(x, y, z); return m; };
+    ['confirmat', 'cam', 'dowel'].forEach(function (k) {
+      var sc = new T.Scene(), g = new T.Group(); sc.environment = env; sc.environmentIntensity = 1.0;
+      var key = new T.DirectionalLight(0xffffff, 2.2); key.position.set(-80, 160, 140); sc.add(key); sc.add(new T.AmbientLight(0xffffff, 0.5));
+      if (k === 'confirmat') g.add(lay('confirmat', 25, 0, 0, -Math.PI / 2));                      // lying, head to the right
+      else if (k === 'cam') { g.add(lay('cam', -16, 6, 0, 0.5)); g.add(lay('bolt', -2, -6, 6, -Math.PI / 2 + 0.12)); g.add(lay('dowel', 16, 9, -12, Math.PI / 2 - 0.25)); }
+      else { g.add(lay('dowel', -3, 5, -6, Math.PI / 2 - 0.2)); g.add(lay('dowel', 4, -5, 6, Math.PI / 2 + 0.12)); }
+      sc.add(g);
+      var bb = new T.Box3().setFromObject(g), c = bb.getCenter(new T.Vector3()), sz = bb.getSize(new T.Vector3()), dir = new T.Vector3(0.28, 0.62, 1).normalize();
+      var half = Math.max(sz.x / cam.aspect, sz.y * 0.75 + sz.z * 0.55) / 2;   // fill the picture: its width for a long part, its height otherwise
+      cam.position.copy(c).addScaledVector(dir, half / Math.tan(cam.fov * Math.PI / 360) * 1.22); cam.lookAt(c); cam.updateProjectionMatrix();
+      R.render(sc, cam); out[k] = R.domElement.toDataURL('image/png');
+    });
+    pm.dispose(); R.dispose(); if (R.forceContextLoss) R.forceContextLoss();
+  } catch (e) { if (window.console) console.warn('connector pictures not rendered', e); out = {}; }
+  return NV3.thumb = out;
+}
+function nv3ConnPic(k, cls) {   // the picture of a connector, or its drawn sign when pictures cannot be rendered / for "none"
+  var th = nv3Thumbs();
+  if (th[k]) return '<img class="nv3-cpic' + (cls ? ' ' + cls : '') + '" src="' + th[k] + '" alt="" draggable="false">';
+  return '<svg class="nv3-cpic ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 40 16" fill="' + (NV3_JC[k] || '#8b9399') + '" style="color:' + (NV3_JC[k] || '#8b9399') + '" aria-hidden="true">' + NV3_ICO[k] + '</svg>';
+}
+
+/* ---- the card of the joint in work: everything about it in one place, beside the model */
+function nv3JCard(c, r, x, sel) {
+  var sd = x.sides ? x.sides[sel.side] || x.sides.L : x, pos = sd.pos || [], w = nv3JWidth(r, x.key, sel.side, x.single), lim = nv3JLimits(sd.type), empty = !pos.length;
+  var tile = function (k, label, on, cmd) { return '<button type="button" class="nv3-tile' + (on ? ' on' : '') + '" data-nv="nv3" data-v="' + cmd + '" aria-pressed="' + !!on + '">' + nv3ConnPic(k) + '<span>' + label + '</span></button>'; };
+  var sect = function (title, hint, body) { return '<section class="nv3-jc-s"><h5>' + title + (hint ? ' <small>' + hint + '</small>' : '') + '</h5>' + body + '</section>'; };
+  var two = function (cur, a, b) {   // a choice of two: the one in force is marked, the other is the command
+    var bt = function (o, on) { return '<button type="button" class="' + (on ? 'on' : '') + '"' + (on ? ' aria-pressed="true"' : o.attr) + '>' + o.label + '</button>'; };
+    return '<span class="seg nv3-jseg">' + bt(a, cur === a.v) + bt(b, cur === b.v) + '</span>'; };
+  var h = '<div class="nv3-jcard" role="group" aria-label="' + esc(nv3JName(x)) + '"><div class="nv3-jc-h"><i style="background:' + (empty ? '#c0392b' : NV3_JC[sd.type] || '#888') + '"></i><b>' + esc(nv3JName(x)) + '</b>' +
+    '<span class="nv-muted">' + fmt(Math.round(w)) + ' mm</span><button type="button" class="nv3-jc-x" data-nv="nv3" data-v="j:none" aria-label="' + esc(t('close')) + '">✕</button></div>';
+  h += sect(L('Kuo jungiama', 'Joined with'), x.custom || x.manual ? L('pakeista', 'changed') : L('pagal taisyklę', 'by the rule'),
+    '<div class="nv3-tiles">' + tile('confirmat', L('Konfirmatas', 'Confirmat'), !empty && sd.type === 'confirmat', 'j:type:confirmat') + tile('cam', L('Ekscentrikas + kaištis', 'Cam + dowel'), !empty && sd.type === 'cam', 'j:type:cam') +
+      tile('dowel', L('Kaištis', 'Dowel'), !empty && sd.type === 'dowel', 'j:type:dowel') + tile('none', L('Be jungties', 'No connector'), empty, 'j:empty') + '</div>');
+  /* on which side */
+  var side = '';
+  if (!x.single) side += '<div class="nv3-jc-row"><span class="nv3-jc-l">' + L('Kuriam šonui', 'For which side') + '</span><span class="seg nv3-jseg"><button type="button" class="' + (NV3.jBoth ? 'on' : '') + '" data-nv="nv3" data-v="j:both:1">' + L('Abiem', 'Both') + '</button>' +
+    '<button type="button" class="' + (!NV3.jBoth && sel.side === 'L' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:L">' + L('Tik kairei', 'Left only') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'R' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:R">' + L('Tik dešinei', 'Right only') + '</button></span></div>';
+  var o = c.cnc || {}, camKey = !c.kind && sd.type === 'cam' && !empty ? (x.key === 'bottom' && o.bottom === 'inside' ? 'bottom' : x.key === 'top' && o.top === 'full' && o.topMount === 'inside' ? 'top'
+    : x.key === 'back' && (o.backs || []).length && (o.backs || []).every(function (b) { return b === 'solid'; }) && o.backMount === 'inside' ? 'back' : null) : null;
+  if (camKey) { var out = !!(o.camOut || {})[camKey], cmd = ' data-act="camside" data-v="' + camKey + '"';
+    side += '<div class="nv3-jc-row"><span class="nv3-jc-l">' + L('Ekscentrikas matomas', 'The cam shows') + '</span>' + two(out ? 'out' : 'in', { v: 'in', label: L('Viduje', 'Inside'), attr: cmd }, { v: 'out', label: L('Išorėje', 'Outside'), attr: cmd }) + '</div>'; }
+  if (c.kind === 'box' && x.box && E.boxPair) { var pk = E.boxPair(x.box.P, x.box.Q), cv = ((r.box || {}).covers || []).filter(function (k) { return k.key === pk; })[0];
+    if (cv && !cv.forced) { var bn = function (id) { var nm = t('bx_' + id); return nm === 'bx_' + id ? id : nm; }, at = function (id) { return ' data-act="boxcover" data-v="' + esc(pk) + '" data-w="' + esc(id) + '"'; };
+      side += '<div class="nv3-jc-row"><span class="nv3-jc-l">' + L('Per kurią plokštę sukama', 'Driven through which board') + '</span>' + two(cv.by, { v: cv.a, label: esc(bn(cv.a)), attr: at(cv.a) }, { v: cv.b, label: esc(bn(cv.b)), attr: at(cv.b) }) +
+        '<small class="nv-muted nv3-jc-n">' + L('Ši plokštė dengia kitos galą: jungtis eina per ją į kitos kraštą. Pakeitus keičiasi ir plokščių ilgiai.', 'This board covers the other one\'s end: the connector goes through it into the other\'s edge. Changing it changes the boards\' lengths too.') + '</small></div>'; } }
+  if (side) h += sect(L('Pusė', 'Side'), '', side);
+  /* how many and where */
+  if (!empty) h += sect(L('Kiek ir kur', 'How many and where'), 'mm',
+    '<div class="nv3-jc-row"><span class="nv-step"><button type="button" data-nv="nv3" data-v="j:n:-1">−</button><b>' + pos.length + '</b><button type="button" data-nv="nv3" data-v="j:n:1">+</button></span>' +
+      '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Pagal taisyklę', 'By the rule') + '</button></div>' +
+    '<span class="nv3-jpos">' + pos.map(function (v, k) { return '<label class="' + (sel.idx === k ? 'on' : '') + '"><input type="text" inputmode="decimal" value="' + fmt(v) + '" data-nv3j="' + k + '" aria-label="' + (k + 1) + '"><button type="button" data-nv="nv3" data-v="j:del:' + k + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></label>'; }).join('') + '</span>' +
+    '<small class="nv-muted nv3-jc-n">' + L('Nuo jungties pradžios; nuo galo ≥ ' + lim.edge + ', tarp jų ≥ ' + lim.gap + '. Tašką galima tempti modelyje, o spustelėjus mėlyną juostą — pridėti dar vieną.', 'From the joint\'s start; from the end ≥ ' + lim.edge + ', apart ≥ ' + lim.gap + '. Drag a point in the model, or click the blue band to add one.') + '</small>');
+  return h + '</div>';
+}
+
+
 /* ======== src/ui/48-view3.js ======== */
 /* 48-view3.js — the 3-D picture of a cabinet, drawn on the graphics card (three.js, the same library the realistic
    room picture loads). Replaces the live software-drawn view in the cabinet workspace: smooth turning at full
@@ -19498,6 +19645,8 @@ function nv3Frame() {
   var st = NV3.R.domElement.parentNode; if (!st) return;
   var w = st.clientWidth, h = st.clientHeight; if (!w || !h) return;
   if (NV3.w !== w || NV3.h !== h) { NV3.w = w; NV3.h = h; NV3.R.setSize(w, h, false); NV3.cam.aspect = w / h; NV3.cam.updateProjectionMatrix(); }
+  var vo = NV3.joints && NV3.jSel && w > 900 ? 178 : 0, vk = vo + '|' + w + '|' + h;
+  if (NV3.vo !== vk) { NV3.vo = vk; if (vo) NV3.cam.setViewOffset(w, h, -vo, 0, w, h); else NV3.cam.clearViewOffset(); }
   if (NV3.fly) { var f = NV3.fly; NV3.cam.position.lerp(f.pos, 0.2); NV3.ctl.target.lerp(f.tg, 0.2); if (NV3.cam.position.distanceTo(f.pos) < 2) { NV3.cam.position.copy(f.pos); NV3.ctl.target.copy(f.tg); NV3.fly = null; } var dd = NV3.cam.position.distanceTo(NV3.ctl.target); NV3.cam.near = dd / 60; NV3.cam.far = dd * 14; NV3.cam.updateProjectionMatrix(); }
   NV3.ctl.update(); NV3.R.render(NV3.scene, NV3.cam);
   var V = new NV3.T.Vector3();
@@ -19599,12 +19748,9 @@ function nv3Screws(r, root, expOff) {
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
       if (expOff) { var eo = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; })); o.x += eo[0]; o.y += eo[1]; o.z += eo[2]; }
       var qn = new T.Quaternion().setFromUnitVectors(up, n), K = expOff ? 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)) : 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // pulled apart: connectors drawn larger than life so they can be told apart
-      if (conf) { put(gHead, '#aeb7bc', 0.6); put(gHex, '#3c4549', 0.9, { metalness: 0.5, roughness: 0.6 });
-        if (expOff) {   // pulled apart: the whole screw, through its board and out towards the edge it goes into
-          var tip = o.clone().addScaledVector(n, -p.T - 62), neck = o.clone().addScaledVector(n, -p.T - 48);
-          root.add(nv3Rod([o.x, o.y, o.z], [neck.x, neck.y, neck.z], 6.5, '#8f999e'));
-          var cg = new T.Mesh(NV3.gTip = NV3.gTip || new T.ConeGeometry(6.5, 14, 16), nv3Mat('#8f999e', steel)); cg.position.copy(neck).add(tip).multiplyScalar(0.5); cg.quaternion.setFromUnitVectors(up, n.clone().negate()); root.add(cg); } }
-      else if (cam) { put(gCam, '#b9c1c6', 0.2); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }); put(gSlot, '#4a5459', 0.5, { metalness: 0.5, roughness: 0.6 }).rotateY(Math.PI / 2); }
+      var model = function (kind, lift) { var g = nv3ConnModel(kind); g.position.copy(o).addScaledVector(n, lift); g.quaternion.copy(qn); g.scale.setScalar(K); root.add(g); return g; };
+      if (conf) model('confirmat', expOff ? 50 * K + 14 : 0);   // pulled apart: the whole screw, out of its hole, on the side it is driven from
+      else if (cam) { if (expOff) put(gCam, '#3a4043', 0.3, { metalness: 0.2, roughness: 0.8 }); model('cam', expOff ? 12.5 * K + 10 : 0); }   // the housing above its pocket
       else put(gPin, '#a4adb2', 3.5);
     }); });
 }
@@ -19845,13 +19991,17 @@ function nv3Seams(r, root, expOff) {
       NV3.jPairs[si] = offs.map(function (f) { return f.key; });
       if (offs.length === 2) { var eB = offs[0].edge ? offs[0] : offs[1].edge ? offs[1] : null, fB = eB === offs[0] ? offs[1] : offs[0], ax = null;
         if (eB) { var v0 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v0.addScaledVector(d, -v0.dot(d)); if (v0.length() > 1) ax = v0.normalize(); }   // from the joint into the board whose edge it is
+        if (eB && q.sd.type === 'cam') (q.sd.dowels || []).forEach(function (pp) {   // the dowels that go with the cams
+          var v1 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v1.addScaledVector(d, -v1.dot(d)); if (v1.length() < 1) return; v1.normalize();
+          var KD = 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)), gd = nv3ConnModel('dowel');
+          gd.position.set(s.o[0] + d.x * pp + eB[0], s.o[1] + d.y * pp + eB[1], s.o[2] + d.z * pp + eB[2]).addScaledVector(v1, -(15 * KD + 8)); gd.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v1); gd.scale.setScalar(KD); root.add(gd); });
         (q.sd.pos || []).forEach(function (pp) { var at = function (o3) { return new T.Vector3(s.o[0] + d.x * pp + o3[0], s.o[1] + d.y * pp + o3[1], s.o[2] + d.z * pp + o3[2]); }, P0 = at(offs[0]), P1 = at(offs[1]), arr = function (v) { return [v.x, v.y, v.z]; };
           root.add(nv3Rod(arr(P0), arr(P1), 1.1, NV3_JC[q.sd.type] || '#444', { roughness: 0.5, transparent: true, opacity: on ? 0.75 : 0.4 }));   // which place meets which
           if (!ax) return; var PF = at(fB), PE = at(eB);
-          if (q.sd.type === 'cam') {   // the bolt stands in the face of one board and goes into the edge of the other, where the cam turns on it
-            root.add(nv3Rod(arr(PF), arr(PF.clone().addScaledVector(ax, 58)), 6, '#a9b2b7')); root.add(nv3Rod(arr(PF), arr(PF.clone().addScaledVector(ax, 8)), 10, '#8d969b'));
-            var hd = new T.Mesh(NV3.gBall = NV3.gBall || new T.SphereGeometry(9, 16, 12), nv3Mat('#a9b2b7', { metalness: 0.9, roughness: 0.3 })); hd.position.copy(PF).addScaledVector(ax, 60); root.add(hd); }
-          else if (q.sd.type === 'dowel') root.add(nv3Rod(arr(PE.clone().addScaledVector(ax, -52)), arr(PE.clone().addScaledVector(ax, 4)), 8, '#c9a36b', { roughness: 0.8, metalness: 0 }));
+          var KM = 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)), upY = new T.Vector3(0, 1, 0);
+          var part = function (kind, at0, shift) { var g = nv3ConnModel(kind); g.position.copy(at0).addScaledVector(ax, shift); g.quaternion.setFromUnitVectors(upY, ax); g.scale.setScalar(KM); root.add(g); };
+          if (q.sd.type === 'cam') part('bolt', PF, 9 * KM + 4);            // the bolt, out of the face it is screwed into, pointing at the edge it enters
+          else if (q.sd.type === 'dowel') part('dowel', PE, -(15 * KM + 8));   // the dowel, in the gap before the edge it sits in
         }); }
     }
     offs.forEach(function (off) {
@@ -19998,8 +20148,8 @@ function nv3JWork(c) {
     '<button type="button" class="nv3-b' + (NV3.jExp !== false ? ' on' : '') + '" data-nv="nv3" data-v="j:exp" aria-pressed="' + (NV3.jExp !== false) + '" title="' + esc(L('Detalės atitraukiamos viena nuo kitos — matyti, kas į ką sukama', 'The boards are pulled apart — you see what goes into what')) + '">⤢ ' + L('Išskleista', 'Exploded') + '</button>' +
     '<span class="nv3-sep"></span>' + vb('front', L('Priekis', 'Front')) + vb('iso', '3D') + vb('under', L('Apačia', 'Below')) + vb('back', L('Galas', 'Back')) + '<span class="nv3-sep"></span>' +
     '<button type="button" class="nv-btn sm ghost" data-act="jcopen">' + L('Sąrašas ir patvirtinimas →', 'List and confirmation →') + '</button><button type="button" class="nv-btn pri" data-nv="nv3" data-v="joints">✓ ' + L('Gerai', 'Done') + '</button></div>';
-  var lib = '<section class="nv3-js"><h4>1. ' + L('Pasirinkite jungtį', 'Take a connector') + '</h4><div class="nv3-lib">' + NV3_LIB.map(function (x) {
-      return '<button type="button" class="nv3-conn card' + (arm === x[0] ? ' on' : '') + '" data-nv3conn="' + x[0] + '" aria-pressed="' + (arm === x[0]) + '"><svg viewBox="0 0 40 16" width="50" height="20" fill="' + (NV3_JC[x[0]] || '#8b9399') + '" style="color:' + (NV3_JC[x[0]] || '#8b9399') + '" aria-hidden="true">' + NV3_ICO[x[0]] + '</svg><span>' + L(x[1], x[2]) + '</span></button>'; }).join('') + '</div>' +
+  var lib = '<section class="nv3-js"><h4>' + L('Jungčių biblioteka', 'Connector library') + ' <small>' + L('tempkite ant jungties', 'drag onto a joint') + '</small></h4><div class="nv3-lib">' + NV3_LIB.map(function (x) {
+      return '<button type="button" class="nv3-conn card' + (arm === x[0] ? ' on' : '') + '" data-nv3conn="' + x[0] + '" aria-pressed="' + (arm === x[0]) + '">' + nv3ConnPic(x[0]) + '<span>' + L(x[1], x[2]) + '</button>'; }).join('') + '</div>' +
     (arm ? '<div class="nv3-armed"><span>' + L('Rankoje: ', 'In hand: ') + '<b>' + L.apply(null, NV3_LIB.filter(function (x) { return x[0] === arm; })[0].slice(1)) + '</b>. ' + L('Spauskite jungtis modelyje arba sąraše.', 'Click the joints in the model or in the list.') + '</span>' +
         '<span class="nv3-armed-b"><button type="button" class="nv-btn sm" data-nv="nv3" data-v="j:all">' + L('Uždėti visoms', 'Put on all') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:disarm">' + L('Padėti atgal', 'Put back') + '</button></span></div>'
       : '<p class="nv-hint">' + L('Tempkite ją ant jungties modelyje — arba spustelėkite ir tada žymėkite jungtis. ', 'Drag it onto a joint in the model — or click it, then mark the joints. ') +
@@ -20009,19 +20159,11 @@ function nv3JWork(c) {
     var on = !!sel && sel.key === x.key, sd0 = x.sides ? x.sides.L : x, n = (x.single ? ['L'] : ['L', 'R']).reduce(function (a, sd) { return a + ((x.sides ? x.sides[sd] || x.sides.L : x).pos || []).length; }, 0);
     var h = '<div class="nv3-jli' + (on ? ' on' : '') + (n ? '' : ' empty') + '" data-seam="' + first(x.key) + '" data-jkey="' + esc(x.key) + '"><button type="button" class="nv3-jli-h" data-nv="nv3" data-v="j:pick:' + esc(x.key) + '" aria-expanded="' + on + '">' +
       '<i style="background:' + (n ? NV3_JC[sd0.type] || '#888' : '#c0392b') + '"></i><span>' + esc(nv3JName(x)) + '</span><b>' + (n ? n : L('nėra', 'none')) + '</b></button>';
-    if (on) { var sd = x.sides ? x.sides[sel.side] || x.sides.L : x, w = nv3JWidth(r, x.key, sel.side, x.single), pos = sd.pos || [], lim = nv3JLimits(sd.type);
-      var ty = function (k, label) { return '<button type="button" class="' + (sd.type === k ? 'on' : '') + '" data-nv="nv3" data-v="j:type:' + k + '"><i style="background:' + NV3_JC[k] + '"></i>' + label + '</button>'; };
-      h += '<div class="nv3-jed"><div class="nv-muted nv3-jmeta">' + fmt(Math.round(w)) + ' mm · ' + (x.custom || x.manual ? L('pakeista', 'changed') : L('pagal taisyklę', 'by the rule')) + '</div>' +
-        (x.single ? '' : '<span class="seg nv3-jseg"><button type="button" class="' + (NV3.jBoth ? 'on' : '') + '" data-nv="nv3" data-v="j:both:1">' + L('Abu šonai', 'Both sides') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'L' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:L">' + L('Kairė', 'Left') + '</button><button type="button" class="' + (!NV3.jBoth && sel.side === 'R' ? 'on' : '') + '" data-nv="nv3" data-v="j:both:R">' + L('Dešinė', 'Right') + '</button></span>') +
-        '<span class="seg nv3-jseg nv3-jtype">' + ty('confirmat', t('jtConf')) + ty('cam', t('jtCam')) + ty('dowel', t('jtDowel')) + '</span>' +
-        '<div class="nv3-jcount"><span class="nv-step"><button type="button" data-nv="nv3" data-v="j:n:-1"' + (pos.length ? '' : ' disabled') + '>−</button><b>' + pos.length + '</b><button type="button" data-nv="nv3" data-v="j:n:1">+</button></span><span class="nv-muted">' + L('vnt.', 'pcs') + '</span>' +
-          '<span class="nv3-grow"></span><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Pagal taisyklę', 'By the rule') + '</button></div>' +
-        '<span class="nv3-jpos">' + pos.map(function (v, k) { return '<label class="' + (sel.idx === k ? 'on' : '') + '"><input type="text" inputmode="decimal" value="' + fmt(v) + '" data-nv3j="' + k + '" aria-label="' + (k + 1) + '"><button type="button" data-nv="nv3" data-v="j:del:' + k + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></label>'; }).join('') + '</span>' +
-        '<span class="nv-muted nv3-jlim">' + L('mm nuo jungties pradžios · nuo galo ≥ ' + lim.edge + ', tarpas ≥ ' + lim.gap + '. Tašką galima tempti modelyje; spustelėjus juostą — pridėti.', 'mm from the start · from the end ≥ ' + lim.edge + ', apart ≥ ' + lim.gap + '. Drag a point in the model; click the band to add one.') + '</span></div>'; }
     return h + '</div>'; }).join('');
-  var list = '<section class="nv3-js"><h4>2. ' + L('Kur ji bus', 'Where it goes') + ' <small>' + joints.length + ' ' + L('jungtys', 'joints') + '</small></h4>' +
+  var list = '<section class="nv3-js"><h4>' + L('Šios spintelės jungtys', 'This cabinet\'s joints') + ' <small>' + joints.length + ' · ' + L('spustelėkite — atsidarys nustatymai', 'click one for its settings') + '</small></h4>' +
     (joints.length ? '<div class="nv3-jlist">' + rows + '</div>' : '<p class="nv-hint">' + L('Šioje spintelėje jungčių nėra.', 'This cabinet has no joints.') + '</p>') + '</section>';
-  return '<div class="nv3 jm" id="nv3">' + head + '<div class="nv3-jwrap"><aside class="nv3-jside">' + lib + list + '</aside>' +
+  var selJ = sel && joints.filter(function (x) { return x.key === sel.key; })[0];
+  return '<div class="nv3 jm" id="nv3">' + head + '<div class="nv3-jwrap' + (selJ ? ' has-card' : '') + '"><aside class="nv3-jside">' + lib + list + '</aside>' + (selJ ? nv3JCard(c, r, selJ, sel) : '') +
     '<div class="nv3-stage" id="nv3-stage"><div class="nv3-cam"><button type="button" data-nv="nv3" data-v="z:0.8" aria-label="+">+</button><button type="button" data-nv="nv3" data-v="z:1.25" aria-label="−">−</button><button type="button" data-nv="nv3" data-v="v:iso" aria-label="reset">↺</button></div>' +
     '<div class="nv3-hint">' + (arm ? L('Spauskite jungtį (spalvotą juostą ar jos pavadinimą) — arba dvi detales, tarp kurių ji turi būti', 'Click a joint (its coloured band or its name) — or the two boards it should join')
       : L('Spustelėkite jungtį — ji priartės · tempkite tašką — perkelsite · spustelėkite dvi detales — rasite jungtį tarp jų', 'Click a joint — it comes close · drag a point to move it · click two boards to find the joint between them')) + '</div></div></div>' +
@@ -20041,7 +20183,8 @@ function nv3JAct(a, el) {
   var j = (r.joints || []).filter(function (x) { return x.key === sel.key; })[0]; if (!j) return;
   var sd = j.sides ? j.sides[sel.side] || j.sides.L : j, pos = (sd.pos || []).slice(), w = nv3JWidth(r, j.key, sel.side, j.single);
   if (p[0] === 'both') { if (p[1] === '1') NV3.jBoth = true; else { NV3.jBoth = false; sel.side = p[1]; var s1 = (r.seams || []).map(function (s, i) { return { s: s, i: i }; }).filter(function (x) { return x.s.key === sel.key && x.s.side === p[1]; })[0]; if (s1) sel.seam = s1.i; } return; }
-  if (p[0] === 'type') { nv3JCommit(j.key, sel.side, p[1], null, true); return false; }   // the type's own standard places
+  if (p[0] === 'type') { nv3JCommit(j.key, sel.side, p[1], null, true); return false; }
+  if (p[0] === 'empty') { nv3JCommit(j.key, sel.side, sd.type, [], true); return false; }   // the type's own standard places
   if (p[0] === 'reset') { pushUndo(); var c = cur(); if (j.single || NV3.jBoth) { if (c.cnc.joints) delete c.cnc.joints[j.key]; } else setJoint(c, j.key, { side: sel.side, type: sd.type, pos: null }); save(); return; }
   if (p[0] === 'del') { pos.splice(+p[1], 1); nv3JCommit(j.key, sel.side, sd.type, pos); return false; }
   if (p[0] === 'n') { var n = Math.max(0, pos.length + (+p[1])), lim = nv3JLimits(sd.type), e0 = Math.max(lim.edge, Math.min(pos.length ? pos[0] : (j.defE || 50), w / 2 - 1));
