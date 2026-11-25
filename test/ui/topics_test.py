@@ -64,6 +64,8 @@ class App:
         c.click_text("Atidaryti pavyzdį")
         c.wait("window.%s && %s.S.proj && %s.S.proj.cabinets.length === 3" % (self.g, self.g, self.g))
         time.sleep(0.3)
+        if self.kind == "new":   # new cabinets get the workshop's default shelf setback here (30-editor.js); the comparison with the live app is about the clicks, so both start alike
+            js(c, "(function(){__nv.S.proj.cabinets.forEach(function(k){delete k.shelfSb});__dbk.saveNow();__nv.render()})()"); time.sleep(0.2)
 
     def render(self):
         js(self.c, "%s.render()" % self.g)

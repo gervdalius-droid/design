@@ -520,6 +520,18 @@ function nveInside(c, inf) {
 }
 nvTopic({ key: 'inside', order: 20, icon: NVE_ICON.inside, label: function () { return L('Vidus', 'Inside'); }, applies: function (c) { return !c.kind && !c.dishwasher; }, body: nveInside });
 
+/* Shelves stand 3 mm back from the carcass front by default — the workshop's usual way. A new cabinet gets it as its own
+   value (c.shelfSb, the live app's field: both apps cut it alike); cabinets made before keep what they had.
+   The live shelf-front control, with 3 mm among its ready values. */
+var NVE_SHELF_SB = 3;
+var nveNewCabinet = newCabinet;
+newCabinet = function (type) { var c = nveNewCabinet(type); if (c && (c.shelfSb == null || c.shelfSb === '')) c.shelfSb = NVE_SHELF_SB; return c; };
+function shelfFront(c) {
+  var v = E.shelfSetSb ? E.shelfSetSb(engineDef(c)) : null, cur0 = v == null ? E.R.shelf.setback : v, pre = [0, 3, 5, 20];
+  return '<div class="shfront"><div class="f"><span>' + t('shFront') + '</span>' +
+    seg('c.shelfSb', pre.indexOf(cur0) >= 0 ? cur0 : 'x', pre.map(function (n) { return [n, n ? '−' + n + ' mm' : t('shFlush')]; })) + '</div>' +
+    fN(t('shOther'), 'c.shelfSb', fmt(cur0), 's') + '<p class="note">' + t('shFrontD') + '</p></div>';
+}
 /* dragging a front grip: the gap follows the pointer in millimetres (the picture's scale), snaps to the same places as
    in the live app (flush, the rule's value, half a board), and is written to c.cnc.fg on release */
 var nveFG = null;

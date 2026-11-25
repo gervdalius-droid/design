@@ -84,7 +84,7 @@ var NVR_SET_CARDS = [
 var NVR_SET_PH = { 's.materials': 'LMDP balta 18\nLMDP antracitas 18\nHDF balta 3', 's.edges': 'ABS balta 0.8\nABS antracitas 1', 's.worktops': 'Stalviršis ąžuolas 38' };   // an empty list shows what a line looks like
 var NVR_NOTE_LONG = 170;   // a note longer than this is folded to two lines behind "Plačiau"
 function nvrSetHtml() {
-  var box = document.createElement('div'); box.innerHTML = viewSet();
+  var box = document.createElement('div'); box.innerHTML = typeof nvuSetNote === 'function' ? nvuSetNote(viewSet()) : viewSet();
   var grid = box.querySelector('.setgrid'); if (!grid) return box.innerHTML;   // the live page lost its frame: show it as it is
   var cards = [].filter.call(grid.children, function (n) { return n.classList && n.classList.contains('card'); });
   var by = {}, nav = '', col = document.createElement('div'), n = 0;

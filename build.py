@@ -3,6 +3,8 @@
 
     python3 build.py            → index.html
     python3 build.py --check    → also loads it in headless Chrome and fails on page errors
+    python3 build.py --out scratch/x/plain.html --plain-engine
+                                → without the corrections to the live engine (PATCHES 'engine'): what the live app drills
     python3 build.py --out scratch/x/index.html --ui 30-editor,31-topics
                                 → a private build: only the shared files (src/ui/0*, 10-checks, 99-*) plus the
                                   named ones — so work in progress in the other src/ui files cannot break it
@@ -45,6 +47,32 @@ PATCHES = [
      "if(V.mode==='assembly')meshFaces('hinge',1,mapH,'#c6cdd1',tf,!right);",
      "if(V.mode==='assembly')meshFaces('hinge',1,mapH,'#c6cdd1',tf,!right);"
      "if(V.mode==='assembly'&&angle>.06){const nvA=[right?x+w-20:x+20,34,hz],nvC=tf([cx,7,hz]),nvM=[(nvA[0]+nvC[0])*.5,(nvA[1]+nvC[1])*.5-10,hz];rod(nvA,nvM,5.5,'#9aa4aa');rod(nvM,nvC,6.5,'#c3cbd0');}"),
+    # ---- Drawer runners, corrected against Blum's planning sheets (docs/RUNNERS.md has the drawings' numbers and sources).
+    # Blum fixes two things to the drawer box's reference line R (the top of the board under the box):
+    #   TANDEMBOX: cabinet profile screws R + 33, front fixing R + 47.5 / 79.5      MERIVOBOX: cabinet profile screws R + 54,
+    #   front fixing R + 33.5 / 65.5, base underside R + 20.
+    # The engine drills every TANDEMBOX front 65.5 / 97.5 above its own bottom edge, i.e. R is 18 mm above a front's bottom edge.
+    # (1) For the lowest drawer the profile row was right (18 + 33). For every drawer above it the row was put 33 above the
+    #     front's bottom edge — 18 mm too low for the holes in its own front: the front ended up 18 mm low, into the one below.
+    ('engine', '"BLUM TANDEMBOX": { marks:[19,28,37,261,293,453], up:33,',
+               '"BLUM TANDEMBOX": { marks:[19,28,37,261,293,453], up:33, fa:18,'),
+    ('engine', "function runnerUp(rt) {",
+               "function runnerFa(rt) { return rt && rt.merivo ? +R.merivo.fa || 0 : rt && +rt.fa || 0; }   /* how far a front's bottom edge hangs below its box's reference line */\nfunction runnerUp(rt) {"),
+    ('engine', "var rt = R.runner[r.type], up = runnerUp(rt); var x = Math.max(up, r.fb + up - t);",
+               "var rt = R.runner[r.type], up = runnerUp(rt); var x = Math.max(up, r.fb + runnerFa(rt) + up - t);"),
+    ('engine', "var rt = R.runner[r.type], up = runnerUp(rt), x = Math.max(up, r.fb + up - t);",
+               "var rt = R.runner[r.type], up = runnerUp(rt), x = Math.max(up, r.fb + runnerFa(rt) + up - t);"),
+    ('engine', "var up = runnerUp(rt), axis = Math.max(zlo + up, fb + up), mks = runnerMarks(rt, rail);",
+               "var up = runnerUp(rt), axis = Math.max(zlo + up, fb + runnerFa(rt) + up), mks = runnerMarks(rt, rail);"),
+    # (1b) the same reference for the holes in the lowest front over a cabinet bottom thicker than 18 mm (the box stands on it)
+    ('engine', "var fc = rt.facade, mk = o.tbFront === 'mark', dyF = Math.max(0, -f.bottom);",
+               "var fc = rt.facade, mk = o.tbFront === 'mark', dyF = Math.max(0, -f.bottom, t - (+rt.fa || 0) - f.bottom);"),
+    # (2) MERIVOBOX had TANDEMBOX's 33 (the live app says so itself: "not verified on a MERIVOBOX"). Blum: 54 above the
+    #     reference, the base's underside 20 above it (34 under the screws); NL 270–350 has its rear screws at 197 / 229.
+    ('engine', "merivo: { up:33, marks:'37, 261, 293', perLen:'', ded:51, shorter:26, boxShorter:10, t:16, below:24,",
+               "merivo: { up:54, fa:18, marks:'37, 261, 293', perLen:'270: 37,197,229; 300: 37,197,229; 350: 37,197,229', ded:51, shorter:26, boxShorter:10, t:16, below:34,"),
+    ('engine', "axis:Math.max(t + up, f.bottom + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop)",
+               "axis:Math.max(t + up, f.bottom + (+R.merivo.fa || 0) + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop)"),
 ]
 
 def arg(name):
@@ -81,7 +109,7 @@ def main():
     def lib(n):
         t = rd('src/lib/%s.js' % n)
         for (m, old, new) in PATCHES:
-            if m == n:
+            if m == n and not (m == 'engine' and '--plain-engine' in sys.argv):   # --plain-engine: the live engine as it is (test/ui/golden_test.py compares the interface alone)
                 if t.count(old) != 1: sys.exit("build.py: patch for src/lib/%s.js no longer matches exactly once — the live app changed there; review PATCHES." % n)
                 t = t.replace(old, new)
         return t

@@ -2705,6 +2705,7 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 .nve-ws.nve-joints .nve-iss{display:none}
 .nvj-sides .nv3-jflip{flex:1 1 0;min-width:130px;flex-direction:column;align-items:flex-start;gap:4px}
 .nvj-sides .nv3-jflip small{line-height:1.3}
+.nvj-sides{align-items:flex-start}
 
 </style>
 <style>
@@ -2977,7 +2978,7 @@ var R = {
   legs: { fromSide:55, fromFront:95, fromBack:55, markD:5, markDepth:2, markOff:14.85, drawD:40 },
   runner: {
     "BLUM TANDEM":    { marks:[37,165,229],          up:37, facade:null },
-    "BLUM TANDEMBOX": { marks:[19,28,37,261,293,453], up:33,
+    "BLUM TANDEMBOX": { marks:[19,28,37,261,293,453], up:33, fa:18,
                         facade:{d:10, depth:12, fromSide:32, ys:[65.5,97.5], yGallery:225.5} },
     /* side-mount 45 mm ball-bearing runners for simple jobs: the marks depend on the runner length (runnerMarks) and
        the drawer is a board box (drawerBox) between them, 12.7 mm clear of each side */
@@ -3007,7 +3008,7 @@ var R = {
      (E = the M side with a gallery railing or a BOXCAP high side), backs 60.5 / 83 / 121 / 184; inner cabinet depth ≥ NL + 3;
      one drilling position for the whole range; the front clips onto screw-on front fixing brackets (no drilling).
      The cabinet profile holes and their height (marks, up, below) are NOT verified on a MERIVOBOX — editable in the settings. */
-  merivo: { up:33, marks:'37, 261, 293', perLen:'', ded:51, shorter:26, boxShorter:10, t:16, below:24, topGap:10, depthPlus:3,
+  merivo: { up:54, fa:18, marks:'37, 261, 293', perLen:'270: 37,197,229; 300: 37,197,229; 350: 37,197,229', ded:51, shorter:26, boxShorter:10, t:16, below:34, topGap:10, depthPlus:3,
             sideH:{ N:68.5, M:91, K:129, E:192 }, backH:{ N:60.5, M:83, K:121, E:184 }, lengths:[270, 300, 350, 400, 450, 500, 550, 600] },
   facade: { sideGap:3, gap:3, zoneGapRails:2, insetGap:2, dishGap:4 },   // dishGap: a dishwasher's front is this much narrower than its niche (600 → 596, 450 → 446)   // insetGap: round an inset front (3D construction)   // facade clearances (zone = H - t under a covering top, H - 2 with rails)
   shelf:  { clearW:2, setback:20 },               // drawn shelves: 1 mm each side, 20 mm back from the front edge
@@ -3055,6 +3056,7 @@ function runnerMarks(rt, rail) {
   if (+b.midFrom > 0 && L >= +b.midFrom) { var m2 = a0 + 32 * Math.round((a1 - a0) / 2 / 32); if (m2 - a0 > 40 && a1 - m2 > 40) pos.splice(1, 0, m2); }
   return pos;
 }
+function runnerFa(rt) { return rt && rt.merivo ? +R.merivo.fa || 0 : rt && +rt.fa || 0; }   /* how far a front's bottom edge hangs below its box's reference line */
 function runnerUp(rt) { return rt && rt.ball ? +R.ball.up : rt && rt.under ? +R.under.up : rt && rt.merivo ? +R.merivo.up : rt ? rt.up : 0; }
 /* MERIVOBOX height for a drawer: the box (from its bottom zs) must stay under `top`. Auto takes the highest of N, M and E
    that fits — E with the gallery railing (the shop's choice over high sides); K and the BOXCAP high side only when chosen.
@@ -3891,7 +3893,7 @@ function buildCabinet(c, idx, projName) {
     var mine = function (j) { return !j.side || j.side === (right ? 'R' : 'L'); }, myCol = right ? cols - 1 : 0;
     SJ.forEach(function (j) { if (mine(j)) hole(p, 'A', j.x, Yf(j.yf), j.d, j.depth, j.through ? { through:true } : null); });
     SB.forEach(function (b) { if (mine(b)) edge(p, right ? 'y0' : 'y1', b.pos, b.d, b.depth); });   // back edge: y = Dside on the left side, y = 0 on the right
-    if (o.runnerMarks !== false) runners.forEach(function (r) { if (r.col !== myCol) return; var rt = R.runner[r.type], up = runnerUp(rt); var x = Math.max(up, r.fb + up - t); runnerMarks(rt, r.rail).forEach(function (m) {
+    if (o.runnerMarks !== false) runners.forEach(function (r) { if (r.col !== myCol) return; var rt = R.runner[r.type], up = runnerUp(rt); var x = Math.max(up, r.fb + runnerFa(rt) + up - t); runnerMarks(rt, r.rail).forEach(function (m) {
       if (m > Dside - 5) { warnOnce('bėgelio ' + r.type + ' L=' + r.rail + ' žymė ' + num(m) + ' mm netelpa šone (' + num(Dside) + ' mm) — praleista, rinkitės trumpesnį bėgelį'); return; }
       var hit = p.holes.some(function (g) { return !g.mark && (g.face === 'A' || g.through) && Math.hypot(g.x - x, g.y - Yf(m)) < g.d/2; });   // mark centre inside a joint hole (touching the rim is fine: the verified SWOOD Tandem cabinet does that)
       if (hit) warnOnce('bėgelio ' + r.type + ' žymė (' + num(x + t) + ' mm aukštyje, ' + num(m) + ' nuo priekio) patenka į ekscentriko skylę — bėgelio varžtas kliūs už jungties; patikrinkite (pvz. rinkitės konfirmatus)');
@@ -3988,7 +3990,7 @@ function buildCabinet(c, idx, projName) {
       var face = fc[0], colk = fc[1], isA = fc[2];
       var meets = function (x, y, d, depth) { return p.holes.some(function (g) { return g.face !== face && !g.through && !g.mark && Math.hypot(g.x - x, g.y - y) < (g.d + d)/2 + 0.5 && g.depth + depth > t - 2; }); };   // a blind hole from the other face
       var free = function (x, y, d, depth) { return !p.holes.some(function (g) { return (g.face === face || g.through) && Math.hypot(g.x - x, g.y - y) < (g.d + d)/2 + 1.5; }) && !meets(x, y, d, depth || 0); };
-      if (o.runnerMarks !== false) runners.forEach(function (r) { if (r.col !== colk) return; var rt = R.runner[r.type], up = runnerUp(rt), x = Math.max(up, r.fb + up - t);
+      if (o.runnerMarks !== false) runners.forEach(function (r) { if (r.col !== colk) return; var rt = R.runner[r.type], up = runnerUp(rt), x = Math.max(up, r.fb + runnerFa(rt) + up - t);
         runnerMarks(rt, r.rail).forEach(function (m) { if (!(m - y0p > 0 && m - y0p < Dp)) return;
           if (p.holes.some(function (g) { return !g.mark && (g.face === face || g.through) && Math.hypot(g.x - x, g.y - (m - y0p)) < g.d/2; })) warnOnce('bėgelio ' + r.type + ' žymė pertvaroje (' + num(x + t) + ' mm aukštyje, ' + num(m) + ' nuo priekio) patenka į ekscentriko skylę — bėgelio varžtas kliūs už jungties; patikrinkite (pvz. rinkitės konfirmatus)');
           hole(p, face, x, m - y0p, R.legs.markD, R.legs.markDepth, { mark:true }); }); });
@@ -4096,7 +4098,7 @@ function buildCabinet(c, idx, projName) {
     var p = panel(nm('FASADAS' + (i + 1)), 'FASADAS', f.w, f.h, fT, 'galinė (vidinė) pusė viršuje, apatinis kraštas Y=0'); p.drawer = true;
     var rt = R.runner[f.hw];
     if (rt && rt.facade && o.tbFront !== 'off') {
-      var fc = rt.facade, mk = o.tbFront === 'mark', dyF = Math.max(0, -f.bottom);   // a front reaching below the carcass bottom: the box stays above it, so do its fixing holes
+      var fc = rt.facade, mk = o.tbFront === 'mark', dyF = Math.max(0, -f.bottom, t - (+rt.fa || 0) - f.bottom);   // a front reaching below the carcass bottom: the box stays above it, so do its fixing holes
       fc = Object.assign({}, fc, { ys:fc.ys.map(function (y) { return y + dyF; }), yGallery:fc.yGallery + dyF });
       var fh = function (x, y) { if (y > f.h - 1) { warnOnce('fasadas ' + num(f.w) + '×' + num(f.h) + ': per žemas TANDEMBOX tvirtinimo skylei ' + num(y) + ' mm — praleista'); return; } if (mk) hole(p, 'A', x, y, R.legs.markD, R.legs.markDepth, { mark:true }); else hole(p, 'A', x, y, fc.d, fc.depth); };
       [fc.fromSide, f.w - fc.fromSide].forEach(function (x) { fc.ys.forEach(function (y) { fh(x, y); }); if (f.h >= 250) fh(x, fc.yGallery); });
@@ -4190,7 +4192,7 @@ function buildCabinet(c, idx, projName) {
     var k = f.col || 0, s2 = (c.sections || []).filter(function (q) { return Math.min(cols - 1, Math.max(0, Math.floor(+q.col || 0))) === k; })[f.sec] || {}, rail = +s2.rail || 500;
     var lbl2 = 'stalčius ' + (cols > 1 ? (k + 1) + '.' : '') + (f.sec + 1) + '.' + (f.idx + 1), up = +R.merivo.up;
     var innerTop = (topFull ? H - t : (rl.front === 'v' ? H - rw : H - t)) - 3, nb = nBox + 1;
-    var res = merivoParts({ x0:ix0(k), x1:ix1(k), y0:0, axis:Math.max(t + up, f.bottom + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop), room:Dside - clearBackK(k), rail:rail,
+    var res = merivoParts({ x0:ix0(k), x1:ix1(k), y0:0, axis:Math.max(t + up, f.bottom + (+R.merivo.fa || 0) + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop), room:Dside - clearBackK(k), rail:rail,
       want:s2.mvH, ext:s2.mvExt, name:function (q) { return nm('STALC' + nb + '_' + q); }, mat:mDrw, matOwn:!!mat.drawer, carcT:t, eb:eCarc, pname:f.pname, lbl:lbl2 }, warnOnce);
     if (!res) { hw.push({ item:'BLUM MERIVOBOX L=' + rail, qty:1, unit:'kompl.' }); return; }
     nBox++; res.parts.forEach(function (q) { out.push(q); }); res.hw.forEach(function (h) { hw.push(h); });
@@ -4656,7 +4658,7 @@ function buildBox(c, idx, projName) {
         var f = { w:FW, h:hD, bottom:fb, x:x0, hw:hwN, rail:rail, col:col, sec:fi, idx:j, pname:p.name, box:true, ox0:cx[0], ox1:cx[1], inset:inset };
         vDrawers.push(f); if (!(rt && rt.merivo)) hw.push({ item:hwN + ' L=' + rail, qty:1, unit:'kompl.' });
         if (!rt) continue;
-        var up = runnerUp(rt), axis = Math.max(zlo + up, fb + up), mks = runnerMarks(rt, rail);
+        var up = runnerUp(rt), axis = Math.max(zlo + up, fb + runnerFa(rt) + up), mks = runnerMarks(rt, rail);
         if (rail > roomD + 0.01) warnOnce(lbl + ': bėgelis ' + rail + ' mm ilgesnis nei telpa (' + num(roomD) + ' mm) — rinkitės trumpesnį');
         if (o.runnerMarks !== false) [[Lb, cx[0]], [Rb, cx[1]]].forEach(function (q) { if (!q[0]) { warnOnce(lbl + ': šone nėra plokštės bėgeliui — žymės nepridėtos'); return; }
           mks.forEach(function (m) { if (m + back > roomD - 5) return; markOn(q[0], q[1], yF + back + m, axis, 'bėgelio'); }); });
@@ -16845,6 +16847,25 @@ NVSTAGE.drw = function () { return viewDrw(); };
 NVSTAGE.set = function () { return viewSet(); };
 
 
+/* ======== src/ui/05-guard.js ======== */
+/* 05-guard.js — numbers no cabinet can have never reach the engine.
+   The fields of the interface keep counts in range (shelves 0–12, drawers 1–12, doors 1–6), but a project that was edited
+   by hand, damaged, or imported can carry anything — and the engine loops over these counts: 1e308 shelves hang the page.
+   The same limits are applied to what is handed to the engine; the project itself is not touched. */
+var nvgDef = engineDef;
+engineDef = function (c) {
+  var d = nvgDef(c);
+  try {
+    (Array.isArray(d && d.sections) ? d.sections : []).forEach(function (s) {
+      if (!s || typeof s !== 'object') return;
+      [['shelves', 12], ['nDrawers', 12], ['nDoors', 6], ['hang', 2]].forEach(function (q) { var v = +s[q[0]]; if (v > q[1]) s[q[0]] = q[1]; });   // Infinity too; NaN is left to the engine's own "|| default"
+    });
+    if (d && +d.cols > 4) d.cols = 4;
+  } catch (e) { if (window.console) console.error(e); }
+  return d;
+};
+
+
 /* ======== src/ui/10-checks.js ======== */
 /* =====================================================================
    10-checks.js — the check engine: nvComputeIssues(proj, info) → the structured issue list of docs/ARCHITECTURE.md.
@@ -18408,6 +18429,18 @@ function nveInside(c, inf) {
 }
 nvTopic({ key: 'inside', order: 20, icon: NVE_ICON.inside, label: function () { return L('Vidus', 'Inside'); }, applies: function (c) { return !c.kind && !c.dishwasher; }, body: nveInside });
 
+/* Shelves stand 3 mm back from the carcass front by default — the workshop's usual way. A new cabinet gets it as its own
+   value (c.shelfSb, the live app's field: both apps cut it alike); cabinets made before keep what they had.
+   The live shelf-front control, with 3 mm among its ready values. */
+var NVE_SHELF_SB = 3;
+var nveNewCabinet = newCabinet;
+newCabinet = function (type) { var c = nveNewCabinet(type); if (c && (c.shelfSb == null || c.shelfSb === '')) c.shelfSb = NVE_SHELF_SB; return c; };
+function shelfFront(c) {
+  var v = E.shelfSetSb ? E.shelfSetSb(engineDef(c)) : null, cur0 = v == null ? E.R.shelf.setback : v, pre = [0, 3, 5, 20];
+  return '<div class="shfront"><div class="f"><span>' + t('shFront') + '</span>' +
+    seg('c.shelfSb', pre.indexOf(cur0) >= 0 ? cur0 : 'x', pre.map(function (n) { return [n, n ? '−' + n + ' mm' : t('shFlush')]; })) + '</div>' +
+    fN(t('shOther'), 'c.shelfSb', fmt(cur0), 's') + '<p class="note">' + t('shFrontD') + '</p></div>';
+}
 /* dragging a front grip: the gap follows the pointer in millimetres (the picture's scale), snaps to the same places as
    in the live app (flush, the rule's value, half a board), and is written to c.cnc.fg on release */
 var nveFG = null;
@@ -19008,6 +19041,33 @@ var nvwLimit = numLimit;
 numLimit = function (bind) { if (/^c\.sections\.\d+\.hang$/.test(bind)) return { min: 0, max: 2, int: true }; return nvwLimit(bind); };
 
 
+/* ======== src/ui/36-runners.js ======== */
+/* 36-runners.js — drawer runners. The positions themselves are corrected in the engine at build time (build.py PATCHES,
+   docs/RUNNERS.md): TANDEMBOX rows above the lowest drawer, and MERIVOBOX throughout.
+   Here: workshop settings saved before still carry the live app's old, unverified MERIVOBOX numbers (33 / 24, no holes
+   for the short lengths) — they are moved to Blum's (54 / 34, NL 270–350: 37, 197, 229) wherever they were never changed. */
+var nvuApply = applyRules;
+applyRules = function () {
+  try {
+    var m = S.settings && S.settings.rules && S.settings.rules.merivo;
+    if (m) {
+      if (+m.up === 33 && +m.below === 24) { m.up = RULE_DEF.merivo.up; m.below = RULE_DEF.merivo.below; }
+      if (!String(m.perLen || '').trim()) m.perLen = RULE_DEF.merivo.perLen;
+    }
+  } catch (e) { if (window.console) console.error(e); }
+  return nvuApply.apply(this, arguments);
+};
+applyRules();
+/* the settings page says what the numbers are now */
+function nvuSetNote(html) {
+  return String(html)
+    .replace('Korpuso profilio skylės ir jų aukštis — NEPATIKRINTI su tikru MERIVOBOX, pamatuokite ir pataisykite čia.',
+             'Korpuso profilio skylės ir jų aukštis — pagal Blum planavimo lapą: varžtų eilė 54 mm virš dėžės atskaitos (lentos po dėže viršaus), dugno apačia 20 mm virš jos; skylės nuo priekio 37 / 261 / 293 mm (NL 270–350: 37 / 197 / 229).')
+    .replace('The cabinet profile holes and their height are NOT yet verified on a real MERIVOBOX — measure one and correct them here.',
+             'The cabinet profile holes and their height follow Blum\'s planning sheet: the screw row 54 mm above the box\'s reference (the top of the board under it), the base\'s underside 20 mm above it; holes from the front 37 / 261 / 293 mm (NL 270–350: 37 / 197 / 229).');
+}
+
+
 /* ======== src/ui/40-room.js ======== */
 /* =====================================================================
    40-room.js — the layout stage (Išdėstymas), the settings page (⚙), and the few helpers the re-skin of the
@@ -19095,7 +19155,7 @@ var NVR_SET_CARDS = [
 var NVR_SET_PH = { 's.materials': 'LMDP balta 18\nLMDP antracitas 18\nHDF balta 3', 's.edges': 'ABS balta 0.8\nABS antracitas 1', 's.worktops': 'Stalviršis ąžuolas 38' };   // an empty list shows what a line looks like
 var NVR_NOTE_LONG = 170;   // a note longer than this is folded to two lines behind "Plačiau"
 function nvrSetHtml() {
-  var box = document.createElement('div'); box.innerHTML = viewSet();
+  var box = document.createElement('div'); box.innerHTML = typeof nvuSetNote === 'function' ? nvuSetNote(viewSet()) : viewSet();
   var grid = box.querySelector('.setgrid'); if (!grid) return box.innerHTML;   // the live page lost its frame: show it as it is
   var cards = [].filter.call(grid.children, function (n) { return n.classList && n.classList.contains('card'); });
   var by = {}, nav = '', col = document.createElement('div'), n = 0;
@@ -19666,7 +19726,7 @@ function nv3Screws(r, root, expOff) {
       var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
       if (expOff) { var eo = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; })); o.x += eo[0]; o.y += eo[1]; o.z += eo[2]; }
-      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = expOff ? 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)) : 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // pulled apart: connectors drawn larger than life so they can be told apart
+      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // true size, also when pulled apart: what is seen beside a board's edge is what will be drilled there
       var model = function (kind, lift) { var g = nv3ConnModel(kind); g.position.copy(o).addScaledVector(n, lift); g.quaternion.copy(qn); g.scale.setScalar(K); root.add(g); return g; };
       if (conf) model('confirmat', expOff ? 50 * K + 14 : 0);   // pulled apart: the whole screw, out of its hole, on the side it is driven from
       else if (cam) { if (expOff) put(gCam, '#3a4043', 0.3, { metalness: 0.2, roughness: 0.8 }); model('cam', expOff ? 12.5 * K + 10 : 0); }   // the housing above its pocket
@@ -19911,12 +19971,12 @@ function nv3Seams(r, root, expOff) {
         if (eB) { var v0 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v0.addScaledVector(d, -v0.dot(d)); if (v0.length() > 1) ax = v0.normalize(); }   // from the joint into the board whose edge it is
         if (eB && q.sd.type === 'cam') (q.sd.dowels || []).forEach(function (pp) {   // the dowels that go with the cams
           var v1 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v1.addScaledVector(d, -v1.dot(d)); if (v1.length() < 1) return; v1.normalize();
-          var KD = 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)), gd = nv3ConnModel('dowel');
+          var KD = 1, gd = nv3ConnModel('dowel');
           gd.position.set(s.o[0] + d.x * pp + eB[0], s.o[1] + d.y * pp + eB[1], s.o[2] + d.z * pp + eB[2]).addScaledVector(v1, -(15 * KD + 8)); gd.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v1); gd.scale.setScalar(KD); root.add(gd); });
         (q.sd.pos || []).forEach(function (pp) { var at = function (o3) { return new T.Vector3(s.o[0] + d.x * pp + o3[0], s.o[1] + d.y * pp + o3[1], s.o[2] + d.z * pp + o3[2]); }, P0 = at(offs[0]), P1 = at(offs[1]), arr = function (v) { return [v.x, v.y, v.z]; };
           root.add(nv3Rod(arr(P0), arr(P1), 1.1, NV3_JC[q.sd.type] || '#444', { roughness: 0.5, transparent: true, opacity: on ? 0.75 : 0.4 }));   // which place meets which
           if (!ax) return; var PF = at(fB), PE = at(eB);
-          var KM = 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)), upY = new T.Vector3(0, 1, 0);
+          var KM = 1, upY = new T.Vector3(0, 1, 0);
           var part = function (kind, at0, shift) { var g = nv3ConnModel(kind); g.position.copy(at0).addScaledVector(ax, shift); g.quaternion.setFromUnitVectors(upY, ax); g.scale.setScalar(KM); root.add(g); };
           if (q.sd.type === 'cam') part('bolt', PF, 9 * KM + 4);            // the bolt, out of the face it is screwed into, pointing at the edge it enters
           else if (q.sd.type === 'dowel') part('dowel', PE, -(15 * KM + 8));   // the dowel, in the gap before the edge it sits in
@@ -19926,12 +19986,12 @@ function nv3Seams(r, root, expOff) {
     var a = new T.Vector3(s.o[0] + off[0], s.o[1] + off[1], s.o[2] + off[2]), b = a.clone().addScaledVector(d, s.w), so = [a.x, a.y, a.z];
     (NV3.jGeom[si] = NV3.jGeom[si] || []).push([a.x, a.y, a.z], [b.x, b.y, b.z]);
     var band = on ? '#1c4fd8' : (NV3_JC[q.sd.type] || '#7f93a8'), empty = !(q.sd.pos || []).length;   // a joint is a band you can see and hit: its connector's colour, red when it has none
-    var hit = nv3Rod(so, [b.x, b.y, b.z], on ? 6 : 5, empty && !on ? '#c0392b' : band, { transparent: true, opacity: on ? 0.72 : sel ? 0.14 : 0.4, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si, o: so }; root.add(hit); NV3.jpick.push(hit);
+    var hit = nv3Rod(so, [b.x, b.y, b.z], on ? 2.4 : 5, empty && !on ? '#c0392b' : band, { transparent: true, opacity: on ? 0.72 : sel ? 0.14 : 0.4, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si, o: so }; root.add(hit); NV3.jpick.push(hit);
     (q.sd.pos || []).forEach(function (pp, k) {
       if (sel && !on) return;   // a joint is in work: the others keep only their faint band
       var m = new T.Mesh(NV3.gDot = NV3.gDot || new T.SphereGeometry(1, 20, 14), new T.MeshBasicMaterial({ color: new T.Color(NV3_JC[q.sd.type] || '#444'), depthTest: false }));
-      var dr = expOff ? 0.8 : 1; m.scale.setScalar((on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5) * dr); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
-      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar((on ? 9.5 : 7.5) * dr + (expOff ? 1.4 : 2.2)); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
+      var dr = expOff ? 0.8 : 1; m.scale.setScalar(on && expOff ? (sel.idx === k && sel.seam === si ? 6.5 : 4.6) : (on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5) * dr); /* the joint in work is seen close up: small points, beside life-size connectors */ m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
+      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar(on && expOff ? (sel.idx === k && sel.seam === si ? 7.7 : 5.6) : (on ? 9.5 : 7.5) * dr + (expOff ? 1.4 : 2.2)); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
     });
     });
     if (st && (!sel || on)) {   // its name, at the middle of the joint: a big thing to click, or to drop a connector on
@@ -19971,7 +20031,10 @@ function nv3JAlong(e, s, o) {   // where along the seam the pointer is: the seam
   var w0 = P.clone().sub(O), b = D.dot(R), dd = D.dot(w0), ee = R.dot(w0), den = 1 - b * b; if (Math.abs(den) < 1e-6) return null;
   return (b * ee - dd) / den;
 }
-function nv3JLimits(type) { return { edge: type === 'cam' ? 12 : 9, gap: type === 'cam' ? 24 : 16 }; }
+/* how near a board's end a connector may be put, and how near another one. A cam's Ø15 housing 12 mm from the end (the engine's
+   own floor) leaves 4.5 mm of board beside it; here it is kept 20 mm in — 12.5 mm of board. */
+var NV3_CAM_END = 20;
+function nv3JLimits(type) { return { edge: type === 'cam' ? NV3_CAM_END : 9, gap: type === 'cam' ? 24 : 16 }; }
 function nv3JWidth(r, key, side, single) { var ws = (r.seams || []).filter(function (s) { return s.key === key && (single || NV3.jBoth || !side || s.side === side); }).map(function (s) { return s.w; }); return ws.length ? Math.min.apply(null, ws) : 0; }
 /* write a joint: its type and places, for both sides or the selected one; refused (with the reason) when a place breaks the limits */
 function nv3JCommit(key, side, type, pos, keepSel) {
@@ -20183,6 +20246,28 @@ NVAFTER.push(function () {   // a joint picked in the model: its settings are br
   var k = NV.topic === 'joints' && NV3.jSel ? NV3.jSel.key + '|' + NV3.jSel.side + '|' + NV3.jSel.idx : null; if (k === NV.jShown) return; NV.jShown = k;
   var e = k && document.getElementById('nvj-card'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'nearest' });
 });
+
+/* checks: a cam whose housing would sit at the very end of its board */
+var nvjIssues = nvComputeIssues;
+nvComputeIssues = function (proj, info) {
+  var list = nvjIssues(proj, info) || [];
+  ((proj && proj.cabinets) || []).forEach(function (c, i) {
+    var r = info && info[i] && info[i].r; if (!r) return;
+    (r.joints || []).forEach(function (x) {
+      var near = null;
+      (x.single || !x.sides ? [x.sides ? x.sides.L : x] : [x.sides.L, x.sides.R]).forEach(function (sd) { if (!sd || sd.type !== 'cam') return;
+        (sd.pos || []).forEach(function (p) { var e = Math.min(p, x.w - p); if (e < NV3_CAM_END - 0.05 && (near == null || e < near)) near = e; }); });
+      if (near == null) return;
+      var mm = function (v) { var s0 = String(Math.round(v * 10) / 10); return S.lang === 'en' ? s0 : s0.replace('.', ','); };
+      list.push({ id: 'joint.camEnd.' + x.key, sev: 'warn', cab: i, topic: 'joints', field: null,
+        msg: L('Jungtis „' + nv3JName(x) + '“: ekscentrikas tik ' + mm(near) + ' mm nuo detalės galo — šalia lizdo lieka ' + mm(Math.max(0, near - 7.5)) + ' mm plokštės',
+               'Joint “' + nv3JName(x) + '”: a cam only ' + mm(near) + ' mm from the board\'s end — ' + mm(Math.max(0, near - 7.5)) + ' mm of board left beside its housing'),
+        hint: L('Patraukite jį bent ' + NV3_CAM_END + ' mm nuo galo (Jungtys → ši jungtis → „Kur“).', 'Move it at least ' + NV3_CAM_END + ' mm in from the end (Jungtys → this joint → “Where”).'),
+        act: { label: L('Atidaryti jungtis', 'Open the joints'), act: 'jcroom', i: i } });
+    });
+  });
+  return list;
+};
 
 
 /* ======== src/ui/49-partops.js ======== */

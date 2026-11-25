@@ -31,3 +31,4 @@
 .nve-ws.nve-joints .nve-iss{display:none}
 .nvj-sides .nv3-jflip{flex:1 1 0;min-width:130px;flex-direction:column;align-items:flex-start;gap:4px}
 .nvj-sides .nv3-jflip small{line-height:1.3}
+.nvj-sides{align-items:flex-start}

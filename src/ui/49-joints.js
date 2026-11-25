@@ -61,3 +61,25 @@ NVAFTER.push(function () {   // a joint picked in the model: its settings are br
   var k = NV.topic === 'joints' && NV3.jSel ? NV3.jSel.key + '|' + NV3.jSel.side + '|' + NV3.jSel.idx : null; if (k === NV.jShown) return; NV.jShown = k;
   var e = k && document.getElementById('nvj-card'); if (e && e.scrollIntoView) e.scrollIntoView({ block: 'nearest' });
 });
+
+/* checks: a cam whose housing would sit at the very end of its board */
+var nvjIssues = nvComputeIssues;
+nvComputeIssues = function (proj, info) {
+  var list = nvjIssues(proj, info) || [];
+  ((proj && proj.cabinets) || []).forEach(function (c, i) {
+    var r = info && info[i] && info[i].r; if (!r) return;
+    (r.joints || []).forEach(function (x) {
+      var near = null;
+      (x.single || !x.sides ? [x.sides ? x.sides.L : x] : [x.sides.L, x.sides.R]).forEach(function (sd) { if (!sd || sd.type !== 'cam') return;
+        (sd.pos || []).forEach(function (p) { var e = Math.min(p, x.w - p); if (e < NV3_CAM_END - 0.05 && (near == null || e < near)) near = e; }); });
+      if (near == null) return;
+      var mm = function (v) { var s0 = String(Math.round(v * 10) / 10); return S.lang === 'en' ? s0 : s0.replace('.', ','); };
+      list.push({ id: 'joint.camEnd.' + x.key, sev: 'warn', cab: i, topic: 'joints', field: null,
+        msg: L('Jungtis „' + nv3JName(x) + '“: ekscentrikas tik ' + mm(near) + ' mm nuo detalės galo — šalia lizdo lieka ' + mm(Math.max(0, near - 7.5)) + ' mm plokštės',
+               'Joint “' + nv3JName(x) + '”: a cam only ' + mm(near) + ' mm from the board\'s end — ' + mm(Math.max(0, near - 7.5)) + ' mm of board left beside its housing'),
+        hint: L('Patraukite jį bent ' + NV3_CAM_END + ' mm nuo galo (Jungtys → ši jungtis → „Kur“).', 'Move it at least ' + NV3_CAM_END + ' mm in from the end (Jungtys → this joint → “Where”).'),
+        act: { label: L('Atidaryti jungtis', 'Open the joints'), act: 'jcroom', i: i } });
+    });
+  });
+  return list;
+};

@@ -201,7 +201,7 @@ function nv3Screws(r, root, expOff) {
       var face = conf ? (outA ? 'A' : (h.face === 'B' ? 'A' : 'B')) : (h.face || 'A'), sg = face === 'B' ? -1 : 1, n = new T.Vector3(pl.n[0] * sg, pl.n[1] * sg, pl.n[2] * sg);
       var o = new T.Vector3(pl.o[0] + pl.u[0] * h.x + pl.v[0] * h.y + pl.n[0] * (face === 'B' ? -p.T : 0), pl.o[1] + pl.u[1] * h.x + pl.v[1] * h.y + pl.n[1] * (face === 'B' ? -p.T : 0), pl.o[2] + pl.u[2] * h.x + pl.v[2] * h.y + pl.n[2] * (face === 'B' ? -p.T : 0));
       if (expOff) { var eo = expOff([0, 1, 2].map(function (i) { return pl.o[i] + pl.u[i] * p.L / 2 + pl.v[i] * p.W / 2 - pl.n[i] * p.T / 2; })); o.x += eo[0]; o.y += eo[1]; o.z += eo[2]; }
-      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = expOff ? 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)) : 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // pulled apart: connectors drawn larger than life so they can be told apart
+      var qn = new T.Quaternion().setFromUnitVectors(up, n), K = 1, put = function (g, color, off, opt) { var m = new T.Mesh(g, nv3Mat(color, opt || steel)); m.position.copy(o).addScaledVector(n, off * K); m.quaternion.copy(qn); m.scale.setScalar(K); root.add(m); return m; };   // true size, also when pulled apart: what is seen beside a board's edge is what will be drilled there
       var model = function (kind, lift) { var g = nv3ConnModel(kind); g.position.copy(o).addScaledVector(n, lift); g.quaternion.copy(qn); g.scale.setScalar(K); root.add(g); return g; };
       if (conf) model('confirmat', expOff ? 50 * K + 14 : 0);   // pulled apart: the whole screw, out of its hole, on the side it is driven from
       else if (cam) { if (expOff) put(gCam, '#3a4043', 0.3, { metalness: 0.2, roughness: 0.8 }); model('cam', expOff ? 12.5 * K + 10 : 0); }   // the housing above its pocket
@@ -446,12 +446,12 @@ function nv3Seams(r, root, expOff) {
         if (eB) { var v0 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v0.addScaledVector(d, -v0.dot(d)); if (v0.length() > 1) ax = v0.normalize(); }   // from the joint into the board whose edge it is
         if (eB && q.sd.type === 'cam') (q.sd.dowels || []).forEach(function (pp) {   // the dowels that go with the cams
           var v1 = new T.Vector3(eB.cen[0] - M[0], eB.cen[1] - M[1], eB.cen[2] - M[2]); v1.addScaledVector(d, -v1.dot(d)); if (v1.length() < 1) return; v1.normalize();
-          var KD = 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)), gd = nv3ConnModel('dowel');
+          var KD = 1, gd = nv3ConnModel('dowel');
           gd.position.set(s.o[0] + d.x * pp + eB[0], s.o[1] + d.y * pp + eB[1], s.o[2] + d.z * pp + eB[2]).addScaledVector(v1, -(15 * KD + 8)); gd.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), v1); gd.scale.setScalar(KD); root.add(gd); });
         (q.sd.pos || []).forEach(function (pp) { var at = function (o3) { return new T.Vector3(s.o[0] + d.x * pp + o3[0], s.o[1] + d.y * pp + o3[1], s.o[2] + d.z * pp + o3[2]); }, P0 = at(offs[0]), P1 = at(offs[1]), arr = function (v) { return [v.x, v.y, v.z]; };
           root.add(nv3Rod(arr(P0), arr(P1), 1.1, NV3_JC[q.sd.type] || '#444', { roughness: 0.5, transparent: true, opacity: on ? 0.75 : 0.4 }));   // which place meets which
           if (!ax) return; var PF = at(fB), PE = at(eB);
-          var KM = 2.4 * Math.max(1, Math.min(1.8, Math.max(+r.dims.W || 0, +r.dims.H || 0) / 1300)), upY = new T.Vector3(0, 1, 0);
+          var KM = 1, upY = new T.Vector3(0, 1, 0);
           var part = function (kind, at0, shift) { var g = nv3ConnModel(kind); g.position.copy(at0).addScaledVector(ax, shift); g.quaternion.setFromUnitVectors(upY, ax); g.scale.setScalar(KM); root.add(g); };
           if (q.sd.type === 'cam') part('bolt', PF, 9 * KM + 4);            // the bolt, out of the face it is screwed into, pointing at the edge it enters
           else if (q.sd.type === 'dowel') part('dowel', PE, -(15 * KM + 8));   // the dowel, in the gap before the edge it sits in
@@ -461,12 +461,12 @@ function nv3Seams(r, root, expOff) {
     var a = new T.Vector3(s.o[0] + off[0], s.o[1] + off[1], s.o[2] + off[2]), b = a.clone().addScaledVector(d, s.w), so = [a.x, a.y, a.z];
     (NV3.jGeom[si] = NV3.jGeom[si] || []).push([a.x, a.y, a.z], [b.x, b.y, b.z]);
     var band = on ? '#1c4fd8' : (NV3_JC[q.sd.type] || '#7f93a8'), empty = !(q.sd.pos || []).length;   // a joint is a band you can see and hit: its connector's colour, red when it has none
-    var hit = nv3Rod(so, [b.x, b.y, b.z], on ? 6 : 5, empty && !on ? '#c0392b' : band, { transparent: true, opacity: on ? 0.72 : sel ? 0.14 : 0.4, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si, o: so }; root.add(hit); NV3.jpick.push(hit);
+    var hit = nv3Rod(so, [b.x, b.y, b.z], on ? 2.4 : 5, empty && !on ? '#c0392b' : band, { transparent: true, opacity: on ? 0.72 : sel ? 0.14 : 0.4, depthTest: false }); hit.renderOrder = 4; hit.userData = { seam: si, o: so }; root.add(hit); NV3.jpick.push(hit);
     (q.sd.pos || []).forEach(function (pp, k) {
       if (sel && !on) return;   // a joint is in work: the others keep only their faint band
       var m = new T.Mesh(NV3.gDot = NV3.gDot || new T.SphereGeometry(1, 20, 14), new T.MeshBasicMaterial({ color: new T.Color(NV3_JC[q.sd.type] || '#444'), depthTest: false }));
-      var dr = expOff ? 0.8 : 1; m.scale.setScalar((on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5) * dr); m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
-      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar((on ? 9.5 : 7.5) * dr + (expOff ? 1.4 : 2.2)); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
+      var dr = expOff ? 0.8 : 1; m.scale.setScalar(on && expOff ? (sel.idx === k && sel.seam === si ? 6.5 : 4.6) : (on ? (sel.idx === k && (sel.seam === si) ? 12 : 9.5) : 7.5) * dr); /* the joint in work is seen close up: small points, beside life-size connectors */ m.position.copy(a).addScaledVector(d, pp); m.renderOrder = 6; m.userData = { seam: si, dot: k, o: so }; root.add(m); NV3.jpick.push(m);
+      var ring = new T.Mesh(NV3.gDot, new T.MeshBasicMaterial({ color: 0xffffff, depthTest: false })); ring.scale.setScalar(on && expOff ? (sel.idx === k && sel.seam === si ? 7.7 : 5.6) : (on ? 9.5 : 7.5) * dr + (expOff ? 1.4 : 2.2)); ring.position.copy(m.position); ring.renderOrder = 5.5; root.add(ring);
     });
     });
     if (st && (!sel || on)) {   // its name, at the middle of the joint: a big thing to click, or to drop a connector on
@@ -506,7 +506,10 @@ function nv3JAlong(e, s, o) {   // where along the seam the pointer is: the seam
   var w0 = P.clone().sub(O), b = D.dot(R), dd = D.dot(w0), ee = R.dot(w0), den = 1 - b * b; if (Math.abs(den) < 1e-6) return null;
   return (b * ee - dd) / den;
 }
-function nv3JLimits(type) { return { edge: type === 'cam' ? 12 : 9, gap: type === 'cam' ? 24 : 16 }; }
+/* how near a board's end a connector may be put, and how near another one. A cam's Ø15 housing 12 mm from the end (the engine's
+   own floor) leaves 4.5 mm of board beside it; here it is kept 20 mm in — 12.5 mm of board. */
+var NV3_CAM_END = 20;
+function nv3JLimits(type) { return { edge: type === 'cam' ? NV3_CAM_END : 9, gap: type === 'cam' ? 24 : 16 }; }
 function nv3JWidth(r, key, side, single) { var ws = (r.seams || []).filter(function (s) { return s.key === key && (single || NV3.jBoth || !side || s.side === side); }).map(function (s) { return s.w; }); return ws.length ? Math.min.apply(null, ws) : 0; }
 /* write a joint: its type and places, for both sides or the selected one; refused (with the reason) when a place breaks the limits */
 function nv3JCommit(key, side, type, pos, keepSel) {
