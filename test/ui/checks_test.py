@@ -293,14 +293,16 @@ def main():
         todo = json.loads(c.eval("JSON.stringify(T.brief(__nv.issues().filter(function(x){return x.cab===1&&x.sev==='todo'})))"))
         ok(sorted(x['id'] for x in todo) == ['confirm.edges', 'confirm.joints'], 'confirmations of cabinet 2 are open')
         ok(sorted(x['act'] for x in todo) == ['ecroom:', 'jcroom:'], 'confirmations carry the live commands jcroom / ecroom')
-        ok(all(x['topic'] == 'review' for x in todo), 'confirmations belong to the review topic')
-        for act, flag, okact, rid in (('jcroom', 'jcheck', 'jcok', 'confirm.joints'), ('ecroom', 'echeck', 'ecok', 'confirm.edges')):
+        ok(sorted(x['topic'] for x in todo) == ['joints', 'review'], 'the joints confirmation belongs to the topic Jungtys, the edges one to the review')
+        for act, flag, okact, rid in (('jcroom', None, '[data-nv=nvjOk]', 'confirm.joints'), ('ecroom', 'echeck', '[data-act=ecok]', 'confirm.edges')):
             c.eval("(function(){var b=document.createElement('button');b.setAttribute('data-act',%s);b.setAttribute('data-i','1');document.getElementById('nv-main').appendChild(b);b.click()})()" % json.dumps(act)); time.sleep(0.5)
-            ok(c.eval("__nv.S.%s===true && __nv.S.sel===1" % flag), '%s opens the modal for cabinet 2' % act)
-            if act == 'jcroom':
-                c.shot(os.path.join(SHOTS, 'modal-joints.png'))
-            ok(c.eval("!!document.querySelector('[data-act=%s]')" % okact), 'the modal has its confirm button (%s)' % okact)
-            c.click('[data-act=%s]' % okact); time.sleep(0.5)
+            if act == 'jcroom':   # joints have one place: the command lands in the topic "Jungtys" of that cabinet, no window opens
+                ok(c.eval("__nv.S.jcheck!==true && __nv.S.sel===1 && __nv.S.tab==='cab' && __nv.NV.topic==='joints' && !document.querySelector('.jcbox')"), 'jcroom opens the topic Jungtys of cabinet 2')
+                c.shot(os.path.join(SHOTS, 'topic-joints.png'))
+            else:
+                ok(c.eval("__nv.S.%s===true && __nv.S.sel===1" % flag), '%s opens the modal for cabinet 2' % act)
+            ok(c.eval("!!document.querySelector(%s)" % json.dumps(okact)), 'the confirm button is there (%s)' % okact)
+            c.click(okact); time.sleep(0.5)
             ok(c.eval("__nv.issues().filter(function(x){return x.cab===1&&x.id===%s}).length" % json.dumps(rid)) == 0, rid + ' is closed after confirming')
         c.eval("__nv.S.proj.cabinets[1].cnc.joinery='cam'; __nv.render()"); time.sleep(0.4)
         again = json.loads(c.eval("JSON.stringify(T.brief(__nv.issues().filter(function(x){return x.cab===1&&x.sev==='todo'})))"))
@@ -321,7 +323,7 @@ def main():
             ok(k is not None, 'catalogue %s is recognised: %s' % (row[0], row[2][:90]))
             if k:
                 ok(k[1] in SEV_OF.get(row[1], ('error', 'warn', 'info')), 'catalogue %s (class %s) → %s %s' % (row[0], row[1], k[0], k[1]))
-                ok(k[2] in ('size', 'inside', 'body', 'mats', 'addons', 'cnc', 'review', 'fronts'), 'catalogue %s has a topic (%s)' % (row[0], k[2]))
+                ok(k[2] in ('size', 'inside', 'body', 'joints', 'mats', 'addons', 'cnc', 'review', 'fronts'), 'catalogue %s has a topic (%s)' % (row[0], k[2]))
         cls = json.loads(c.eval("JSON.stringify(%s.map(function(r){var k=__nvc.classify(r[0]);return k?[k.id,k.sev]:null}))" % json.dumps(MACHINE, ensure_ascii=False)))
         for row, k in zip(MACHINE, cls):
             ok(k == [row[1], row[2]], 'machine sentence → %s %s (got %s): %s' % (row[1], row[2], k, row[0][:70]))
@@ -331,7 +333,7 @@ def main():
         ok(len(unv) >= 2 and all(x['sev'] == 'info' for x in unv), 'the "NEPATIKRINTA" reminders are notes (%d)' % len(unv))
         res = json.loads(c.eval("T.run('ex',1,%s)" % json.dumps(TALL + "c.H=2100;c.cnc.back='top';c.cnc.backs=['solid'];c.cnc.backJoint='confirmat';c.mat.back=c.mat.carc")))
         x = find(res, 'eng.backConf', 1)
-        ok(x and x[0]['sev'] == 'error' and x[0]['topic'] == 'body' and x[0]['field'] == 'f-c-cnc-backJoint' and 'ekscentrik' in x[0]['hint'] and x[0]['act'] == 'nvcfix:backcam', 'tall side + confirmat back: error on the back joint with the way out — %s' % json.dumps(x, ensure_ascii=False)[:300])
+        ok(x and x[0]['sev'] == 'error' and x[0]['topic'] == 'joints' and 'ekscentrik' in x[0]['hint'] and x[0]['act'] == 'nvcfix:backcam', 'tall side + confirmat back: error on the back joint with the way out — %s' % json.dumps(x, ensure_ascii=False)[:300])
         ok(not find(res, 'eng.longEdge', 1), 'the machine line about the same holes is folded into it')
         res = json.loads(c.eval("T.run('ex',0,%s)" % json.dumps("c.D=300")))
         ok(not find(res, 'eng.runnerMarkOut', 0) and find(res, 'drawer.rail', 0), 'an engine line that an own rule says better is dropped')

@@ -1,0 +1,31 @@
+/* the topic "Jungtys" — the one place for connectors */
+.nvj-dot{display:inline-block;width:11px;height:11px;border-radius:50%;flex:none}
+.nvj-card{border:1.5px solid #1c4fd8;border-radius:12px;padding:12px 14px;margin:0 0 16px;background:#f5f8ff;box-shadow:0 0 0 3px rgba(28,79,216,.1);display:flex;flex-direction:column;gap:12px}
+.nvj-card-h{display:flex;align-items:center;gap:8px}
+.nvj-card-h b{font:700 16px/1.2 var(--f-display)}
+.nvj-card-h span{flex:1;font-size:12.5px}
+.nvj-x{border:0;background:none;font-size:15px;cursor:pointer;color:var(--muted);min-width:34px;min-height:34px;border-radius:8px}
+.nvj-x:hover{background:var(--sunk);color:var(--ink)}
+.nvj-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.nvj-l{flex:1 1 100%;font-weight:600;font-size:13px;color:var(--muted)}
+.nvj-n{flex:1 1 100%;font-size:12px}
+.nvj-type button{display:inline-flex;align-items:center;gap:6px}
+.nvj-card .nv3-jpos{display:flex;flex-wrap:wrap;gap:6px}
+.nvj-pick{border:1px dashed var(--line2);border-radius:12px;padding:14px;margin:0 0 16px;color:var(--muted);font-size:13.5px;background:var(--sunk)}
+.nvj-list{display:flex;flex-direction:column;gap:6px}
+.nvj-li{display:flex;align-items:center;gap:9px;width:100%;border:1px solid var(--line2);background:var(--panel);border-radius:10px;padding:8px 10px;min-height:42px;cursor:pointer;text-align:left;font:600 13.5px/1.25 var(--f-body);color:var(--ink)}
+.nvj-li span{flex:1;min-width:0}
+.nvj-li small{font-weight:400;color:var(--muted);font-size:12.5px;white-space:nowrap}
+.nvj-li:hover{border-color:var(--ink)}
+.nvj-li.on{border-color:#1c4fd8;box-shadow:0 0 0 2px rgba(28,79,216,.16)}
+.nvj-li.empty small{color:var(--bad)}
+.nvj-ok{display:flex;align-items:center;gap:12px;border-radius:12px;padding:12px 14px;margin-top:16px;border:1px solid var(--line2)}
+.nvj-ok>div{flex:1;min-width:0}
+.nvj-ok b{display:block;font-size:14px}
+.nvj-ok small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.nvj-ok.todo{background:var(--accent-soft);border-color:transparent}
+.nvj-ok.ok{background:var(--ok-bg);border-color:var(--ok-line)}
+/* the old 3-D widget (a free construction's board editor) has no connector editor of its own */
+.nv-app .av [data-connectors]{display:none}
+/* while joints are worked on the model has the whole picture: the cabinet's other notes wait in Patikra */
+.nve-ws.nve-joints .nve-iss{display:none}

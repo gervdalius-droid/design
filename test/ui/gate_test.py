@@ -77,7 +77,7 @@ def run(c):
     ok(c.eval("document.getElementById('nvk-head').getAttribute('data-state')") == 'blocked', 'check head is blocked')
     todo = c.eval("[].map.call(document.querySelectorAll('.nvk-row.todo'),function(r){return r.closest('[data-cab]').getAttribute('data-cab')+':'+r.getAttribute('data-id')})")
     ok(len(todo) == 6 and len(set(todo)) == 6, 'six confirmations, none twice: ' + str(todo))
-    ok(all(c.eval("document.querySelectorAll('.nvk-row.todo [data-act=%s]').length" % a) == 3 for a in ('jcroom', 'ecroom')), 'every confirmation opens its live modal')
+    ok(all(c.eval("document.querySelectorAll('.nvk-row.todo [data-act=%s]').length" % a) == 3 for a in ('jcroom', 'ecroom')), 'every confirmation has its command')
     ok(c.eval("document.getElementById('nvk-next').disabled") is True, '"Toliau: Gamyba" is disabled while something blocks')
     ok('6' in (c.text('#nvk-why') or ''), 'the reason is next to the button')
     ok('6 dalykai stabdo gamybą' in c.text('#nvk-head'), 'big state sentence: ' + c.text('#nvk-head .nv-h1'))
@@ -133,12 +133,18 @@ def run(c):
         if not row:
             break
         c.click('.nvk-row.todo [data-act]'); time.sleep(0.7)
-        ok(c.eval("__nv.S.sel") == row[1] and c.eval("__nv.S.tab") == 'chk', 'the modal opens for cabinet %d, on the check stage' % (row[1] + 1))
-        okb = '[data-act=jcok]' if row[0] == 'jcroom' else '[data-act=ecok]'
-        ok(c.eval("!!document.querySelector(%s)" % json.dumps(okb)), 'live modal %s is open' % row[0])
+        if row[0] == 'jcroom':   # joints have one place: the cabinet's topic "Jungtys"; confirmed there, then back to the check
+            ok(c.eval("__nv.S.sel") == row[1] and c.eval("__nv.S.tab") == 'cab' and c.eval("__nv.NV.topic") == 'joints', 'the joints row leads to Jungtys of cabinet %d' % (row[1] + 1))
+            okb = '[data-nv=nvjOk]'
+        else:
+            ok(c.eval("__nv.S.sel") == row[1] and c.eval("__nv.S.tab") == 'chk', 'the edges window opens for cabinet %d, on the check stage' % (row[1] + 1))
+            okb = '[data-act=ecok]'
+        ok(c.eval("!!document.querySelector(%s)" % json.dumps(okb)), 'the confirm button of %s is there' % row[0])
         if k == 0:
             c.shot(os.path.join(SHOTS, 't-modal.png'))
         c.click(okb); time.sleep(0.6)
+        if row[0] == 'jcroom':
+            go(c, 'chk')
     ok(c.eval("document.querySelectorAll('.nvk-row.todo').length") == 0, 'no confirmation left')
     ok(c.eval("__nv.S.proj.cabinets.every(function(k){return !!k.jointsOk && !!k.edgesOk})"), 'the live jointsOk / edgesOk are set')
     ok(c.eval("document.getElementById('nvk-head').getAttribute('data-state')") == 'warn', 'check head: can be made, warnings to review')

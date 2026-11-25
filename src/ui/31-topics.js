@@ -139,7 +139,7 @@ NVLIVE.nvtbotd = function (c) {   // a bottom shorter than the cabinet: what is 
 function nvtBottom(c) {
   var o = c.cnc, b = 'c.cnc.', bIn = o.bottom === 'inside', camO = o.camOut || {}, jtB = jointTypeOf(c, 'bottom') || o.joinery;
   var bCam = bIn && jtB === 'cam' ? (camO.bottom ? 'out' : 'in') : null, v = num(o.bottomD) > 0 ? num(o.bottomD) : '';
-  return '<div class="nvt-picrow">' + nvtSegF(L('Kaip tvirtinamas', 'How it is fixed'), b + 'bottom', bIn ? 'inside' : 'under', [['under', t('botUnder')], ['inside', t('botInside')]]) + camPick('bottom', bottomPic(bIn, bCam), bCam) + '</div>' +
+  return '<div class="nvt-picrow">' + nvtSegF(L('Kaip tvirtinamas', 'How it is fixed'), b + 'bottom', bIn ? 'inside' : 'under', [['under', t('botUnder')], ['inside', t('botInside')]]) + camPick('bottom', bottomPic(bIn, bCam), null) + '</div>' +
     (bIn ? '<div class="nv-fields">' + fN(t('botZ') + ', mm', b + 'bottomZ', o.bottomZ || 0, 's') + '</div>' : '') +
     nvtAdv('bottom', L('Trumpesnis dugnas (vamzdžiams)', 'A shorter bottom (for pipes)'),
       '<div class="nv-fields">' + nvtNE(t('botD') + ', mm', b + 'bottomD', v === '' ? '' : fmt(v), t('botDFull')) + '<span class="nvt-side" data-live="nvtbotd">' + NVLIVE.nvtbotd(c) + '</span></div>' +
@@ -159,7 +159,7 @@ function nvtTop(c, inf) {
   var h = nvtSegF(t('topKind'), b + 'top', o.top, [['rails', t('topRails')], ['full', t('topFull')]]);
   if (!full) return h + nvtRails(c, inf);
   var ov = num(o.topOvF) || num(o.topOvS) || num(o.topOvB);
-  return h + '<div class="nvt-picrow">' + nvtSegF(L('Kaip tvirtinamas', 'How it is fixed'), b + 'topMount', inside ? 'inside' : 'over', [['over', t('topOn')], ['inside', t('topInside')]]) + camPick('top', topPic(inside, tCam), tCam) + '</div>' +
+  return h + '<div class="nvt-picrow">' + nvtSegF(L('Kaip tvirtinamas', 'How it is fixed'), b + 'topMount', inside ? 'inside' : 'over', [['over', t('topOn')], ['inside', t('topInside')]]) + camPick('top', topPic(inside, tCam), null) + '</div>' +
     (inside ? '' : '<div class="nv-fields">' + chk(b + 'topOverFacade', o.topOverFacade, t('topOver')) + '</div>' +
       nvtAdv('topov', L('Viršaus užlaidos', 'Top overhangs'), '<div class="nv-fields">' + fN(o.topOverFacade ? t('topOvFf') : t('topOvF'), b + 'topOvF', o.topOvF || 0, 's') + fN(t('topOvS'), b + 'topOvS', o.topOvS || 0, 's') + fN(t('topOvB'), b + 'topOvB', o.topOvB || 0, 's') + '</div>' + nvtNote(t('topOvNote')), !!ov));
 }
@@ -170,6 +170,12 @@ function nvtVis(c) {
     '<div class="nv-fields nvt-chks nvt-gap">' + chk(b + 'cnc.sideFull', sideFullOf(c), t('sideFull')) + '</div>' +
     '<p class="nv-hint">' + L('Pažymėjus dugnas ir viršus dedami tarp šonų.', 'When ticked, the bottom and the top go between the sides.') + '</p>';
 }
+/* connectors are chosen in one place — the topic "Jungtys": the live back block's connector select and its
+   click-to-flip cam picture are taken out here (the picture stays, as a picture) */
+function nvtNoJoints(html) {
+  return html.replace(/<label class="f dd" for="f-c-cnc-backJoint">[\s\S]*?<\/label>/, '')
+    .replace(/<button type="button" class="botpic campick"[^>]*>([\s\S]*?)<span class="camcap">[\s\S]*?<\/span><\/button>/, '<figure class="botpic" aria-hidden="true">$1</figure>');
+}
 function nvtBody(c, inf) {
   var o = c.cnc, sup = !o.legs ? 'none' : o.feet ? 'feet' : 'legs';
   var hasJ = inf && inf.r && inf.r.joints && inf.r.joints.length;
@@ -177,11 +183,8 @@ function nvtBody(c, inf) {
     '<p class="nvt-sum" data-live="nvtsum">' + nvtSum(c) + '</p>' +
     nvtGrp(t('botMount'), '', nvtBottom(c)) +
     nvtGrp(t('top'), L('juostos — dvi siauros lentos vietoj pilno viršaus', 'rails — two narrow boards instead of a full top'), nvtTop(c, inf)) +
-    nvtGrp(t('backOf'), '', '<div class="nvt-back">' + backBlock(c).replace(/^<div class="lbl"[^>]*>[^<]*<\/div>/, '') + '</div>') +   // the live block, without its own heading
+    nvtGrp(t('backOf'), '', '<div class="nvt-back">' + nvtNoJoints(backBlock(c).replace(/^<div class="lbl"[^>]*>[^<]*<\/div>/, '')) + '</div>') +   // the live block, without its own heading and without its connector choices
     nvtGrp(L('Matomi šonai', 'Visible sides'), L('iš fasadų medžiagos', 'in the front material'), nvtVis(c)) +
-    nvtGrp(L('Jungimas', 'Joinery'), '',
-      '<div class="choices nvt-choices">' + choice('c.cnc.joinery', o.joinery, 'confirmat', artOf('confirmat'), t('jConf'), t('jConfD')) + choice('c.cnc.joinery', o.joinery, 'cam', artOf('cam'), t('jCam'), t('jCamD')) + '</div>' +
-      '<p class="nv-hint">' + t('jMainL') + (hasJ ? ' ' + L('Atskirą jungtį galima pakeisti', 'A single joint can be changed in') + ' <button type="button" class="nvt-link" data-act="jcopen">' + L('sujungimų peržiūroje', 'the joints review') + '</button>.' : '') + '</p>') +
     nvtGrp(t('supL'), L('ant ko stovi spintelė', 'what the cabinet stands on'),
       nvtSegF('', 'c.cnc.support', sup, [['legs', t('supLegs')], ['feet', t('supFeet')], ['none', t('supNone')]]) + (o.legs ? nvtLegs(c, inf) : '') + nvtPlinth(c)) +
     '</div>';
@@ -406,11 +409,6 @@ function nvtBoxDims(c) {
       '<div class="nvt-add"><button type="button" class="nv-btn" data-nv="nvtbox3d">' + t('bx3d') + '</button></div>') +
     nvtGrp(L('Veiksmai', 'Actions'), '', nvtCabActs(c)));
 }
-function nvtBoxJoints(c, inf) {
-  var r = inf && inf.r;
-  return nvtBoxWrap('bx-joints', t('bxS4l'), nvtGrp(t('bxDefJ'), '', '<div class="choices nvt-choices">' + choice('c.cnc.joinery', c.cnc.joinery, 'confirmat', artOf('confirmat'), t('jConf'), t('jConfD')) + choice('c.cnc.joinery', c.cnc.joinery, 'cam', artOf('cam'), t('jCam'), t('jCamD')) + '</div>') +
-    (r && r.joints && r.joints.length ? nvtGrp(L('Kiekviena jungtis', 'Every joint'), '', '<div class="nvt-joints">' + jointsBlock(c, r).replace(/^<div class="lbl"[^>]*>[^<]*<\/div>/, '') + '</div>') : ''));
-}
 
 /* ================================================================= the topics */
 nvTopic({ key: 'panel', order: 10, icon: nvtIcon('<rect x="8.5" y="3" width="7" height="18" rx="1"/>'), label: function () { return L('Plokštė', 'Panel'); }, applies: nvtFor('panel'), body: function (c) { return nvtPanel(c); } });
@@ -419,7 +417,6 @@ nvTopic({ key: 'bx-boards', order: 12, icon: nvtIcon('<rect x="4" y="4" width="1
 nvTopic({ key: 'bx-inner', order: 14, icon: nvtIcon('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 4v16M4 12h8"/>'), label: function () { return t('bxS3'); }, applies: nvtFor('box'), body: function (c) { return nvtBoxWrap('bx-inner', t('bxS3l'), nvtBoxStep(c, 'inner')); } });
 nvTopic({ key: 'bx-fronts', order: 16, icon: nvtIcon('<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M12 4v16M9.5 11v2M14.5 11v2"/>'), label: function () { return L('Fasadai', 'Fronts'); }, applies: nvtFor('box'),
   body: function (c, inf) { var r = inf && inf.r; return nvtBoxWrap('bx-fronts', t('bxS5l'), boxFrontsBlock(c, r && r.box ? r.box : { boards: [], covers: [], comps: [[0, 0]] })); } });
-nvTopic({ key: 'bx-joints', order: 18, icon: nvtIcon('<path d="M5 5h6v14H5zM11 9h8v6h-8z"/><circle cx="8" cy="12" r="1.2"/>'), label: function () { return t('bxS4'); }, applies: nvtFor('box'), body: function (c, inf) { return nvtBoxJoints(c, inf); } });
 nvTopic({ key: 'body', order: 30, icon: nvtIcon('<rect x="4.5" y="3.5" width="15" height="14" rx="1"/><path d="M4.5 7h15M7 17.5V21M17 17.5V21"/>'), label: function () { return L('Korpusas', 'Carcass'); }, applies: nvtFor('normal'), body: function (c, inf) { return nvtBody(c, inf); } });
 nvTopic({ key: 'mats', order: 40, icon: nvtIcon('<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5M3 16l9 5 9-5"/>'), label: function () { return L('Medžiagos', 'Materials'); }, applies: nvtFor('normal', 'dish', 'box'), body: function (c) { return nvtMats(c); } });
 nvTopic({ key: 'addons', order: 50, icon: nvtIcon('<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 8v8M8 12h8"/>'), label: function () { return L('Priedai', 'Add-ons'); }, applies: nvtFor('normal', 'dish', 'box'), body: function (c) { return nvtAddons(c); } });

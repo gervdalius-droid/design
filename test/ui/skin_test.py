@@ -182,10 +182,10 @@ def s_cab_boards_off(c):   # the 3-D view back in its plain mode for whoever loo
     return "#assembly-preview .av"
 
 
-def s_jc(c):   # opened from the layout stage (the live "jcroom" way), cabinet 1
+def s_jc(c):   # the live "jcroom" way from the layout stage: it lands in the one place for joints, the topic "Jungtys" of cabinet 1
     js(c, go("room", "S.sel=0;")); time.sleep(0.3)
     js(c, "__nv.S.jcheck=true;__nv.S.echeck=false;__nv.render()"); time.sleep(0.8)
-    return ".jcover .jcbox"
+    return ".nve-ws.nve-joints .nvj"
 
 
 def s_ec(c):
@@ -291,8 +291,8 @@ def checks(c, name, lang):
         if not js(c, "!!document.querySelector('#nvr-set-admin [data-bind=\"pr.cut\"]')"):
             fail(name, "the price fields are missing")
     if name == "jc":
-        if not js(c, "!!document.querySelector('.jcover [data-act=jcok], .jcover .btn.pri')"):
-            fail(name, "no confirm button in the joints check")
+        if not js(c, "!!document.querySelector('.nvj [data-nv=nvjOk]') && !document.querySelector('.jcover')"):
+            fail(name, "no confirm button in the topic Jungtys")
 
 
 def run(mode, lang, only):

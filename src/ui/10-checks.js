@@ -204,8 +204,8 @@ var NVC_ENG = [
   ['eng.ledShort', /per trumpa detalė uždaram grioveliui/, 'error', 'addons'],
   ['eng.ledMoved', /LED griovelis kirto .*perkeltas ([\d.]+) → ([\d.]+)/, 'warn', 'addons', { dyn: function (m) { return Math.abs(parseFloat(m[1]) - parseFloat(m[2])) <= 5 ? 'info' : 'warn'; } }],
   ['eng.ledClash', /LED griovelis kerta .*perkelti nėra kur/, 'error', 'addons'],
-  ['eng.holesOverlap', /(jungčių|krašto) skylės persidengia/, 'error', 'review', { act: NVC_JC, hint: NVC_H.joints }],
-  ['eng.backConf', /nugaros (konfirmatų|viduje) Ø5 skylės .*negali būti gręžiamos/, 'error', 'body', { f: 'c.cnc.backJoint', hint: NVC_H.back, act: { label: ['Nugarą jungti ekscentrikais', 'Fix the back with cam locks'], nv: 'nvcfix', v: 'backcam' } }],
+  ['eng.holesOverlap', /(jungčių|krašto) skylės persidengia/, 'error', 'joints', { act: NVC_JC, hint: NVC_H.joints }],
+  ['eng.backConf', /nugaros (konfirmatų|viduje) Ø5 skylės .*negali būti gręžiamos/, 'error', 'joints', { hint: NVC_H.back, act: { label: ['Nugarą jungti ekscentrikais', 'Fix the back with cam locks'], nv: 'nvcfix', v: 'backcam' } }],
   ['eng.unverJoints', /naujos jungtys, dar nepatikrintos su SWOOD modeliu/, 'info', 'review', { hint: NVC_H.first }],
   /* --- per part */
   ['eng.plateOut', /lanksto plokštelės skylė už šono ribų/, 'error', 'inside'],
@@ -595,7 +595,7 @@ function nvcCabinet(out, proj, i, inf, G) {
   if (r && !X.P.length && !out.slice(from).some(function (x) { return x.sev === 'error'; })) nvcAdd(out, { id: 'cab.noparts', cab: i, c: c, topic: 'size', msg: L('Iš šios spintelės nepagaminama nė viena detalė', 'No part at all is made from this cabinet'), hint: L('Patikrinkite matmenis ir konstrukciją.', 'Check its size and construction.') });
   /* the two confirmations of the live app (app.js jcNeeded / ecNeeded): open until the person has looked and confirmed */
   if (r) nvcRun(out, 'confirm', i, function () {
-    if (jcNeeded(c, r)) nvcAdd(out, { id: 'confirm.joints', cab: i, c: c, topic: c.kind === 'box' ? 'joints' : 'review',
+    if (jcNeeded(c, r)) nvcAdd(out, { id: 'confirm.joints', cab: i, c: c, topic: 'joints',
       msg: c.jointsOk ? L('Sujungimai pasikeitė — patvirtinkite iš naujo', 'The joints changed — confirm them again') : L('Sujungimai dar nepatvirtinti', 'The joints are not confirmed yet'),
       hint: L('Peržiūrėkite, kur ir kuo jungiamos detalės, ir patvirtinkite.', 'Look where and with what the parts are joined, then confirm.'), act: { label: L('Peržiūrėti sujungimus', 'Review the joints'), act: 'jcroom', i: i } });
     if (ecNeeded(c, r)) nvcAdd(out, { id: 'confirm.edges', cab: i, c: c, topic: 'review',

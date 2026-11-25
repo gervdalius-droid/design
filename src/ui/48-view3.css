@@ -43,19 +43,8 @@
 
 .nv-btn.on{background:var(--ink);border-color:var(--ink);color:#fff}
 
-/* connector library (joints mode) */
-.nv3-pal{padding-bottom:8px;border-bottom:1px dashed var(--line2)}
-.nv3-pal-t{font-weight:700;font-size:13px}
-.nv3-pal-r{font-size:12.5px;flex:1 1 220px}
-.nv3-conn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line2);background:var(--panel);border-radius:9px;min-height:34px;padding:5px 11px;font-weight:600;font-size:13.5px;cursor:grab;color:var(--ink);touch-action:none;user-select:none}
-.nv3-conn i{width:12px;height:12px;border-radius:50%;flex:none}
-.nv3-conn:hover{border-color:var(--ink)}
-.nv3-conn.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.nv3-ghost{position:fixed;left:0;top:0;z-index:2000;pointer-events:none;box-shadow:var(--nv-shadow-lg);opacity:.92;cursor:grabbing}
-.nv3-ghost.ok{border-color:#f0a202;background:#fff7e0}
-
-/* joints mode: a taller picture, joints named in the model */
-.nv3-jlab{position:absolute;left:0;top:0;z-index:2;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);background:rgba(255,255,255,.94);border-radius:999px;padding:2px 8px 2px 6px;font:600 12px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* joints mode: joints named in the model */
+.nv3-jlab{position:absolute;left:0;top:0;z-index:2;margin-top:-26px;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line2);background:rgba(255,255,255,.94);border-radius:999px;padding:2px 8px 2px 6px;font:600 12px/1.3 var(--f-body);color:var(--ink);white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .nv3-jlab i{width:9px;height:9px;border-radius:50%;flex:none}
 .nv3-jlab b{font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .nv3-jlab:hover,.nv3-jlab.hot{border-color:#f0a202;background:#fff7e0;z-index:3}
@@ -101,39 +90,5 @@
   .nv3-jhead{gap:6px;padding:8px}
 }
 
-.nv3-jlab.flash{animation:nv3flash 1.1s ease-out}
-@keyframes nv3flash{0%{box-shadow:0 0 0 0 rgba(240,162,2,.95);background:#ffe08a}60%{background:#fff3c9}100%{box-shadow:0 0 0 16px rgba(240,162,2,0)}}
-
-/* connector pictures; the joint's card */
-.nv3-cpic{display:block;width:100%;height:62px;object-fit:contain;pointer-events:none}
-.nv3-cpic.ico{height:30px;width:60px;margin:16px 0}
-.nv3-conn.card{align-items:stretch;min-height:108px;padding:8px 9px 9px;background:linear-gradient(#fbfaf7,#f1efe9)}
-.nv3-conn.card span{font-size:13px}
-.nv3-conn.card.on{background:var(--ink)}
-.nv3-conn.card.on svg{filter:brightness(0) invert(1)}
-.nv3-jwrap{position:relative}
-.nv3-jcard{position:absolute;left:328px;top:12px;z-index:5;width:344px;max-height:calc(100% - 24px);overflow:auto;background:var(--panel);border:1px solid var(--line2);border-radius:14px;box-shadow:var(--nv-shadow-lg);padding:12px 14px 14px;display:flex;flex-direction:column;gap:12px}
-.nv3-jc-h{display:flex;align-items:center;gap:8px}
-.nv3-jc-h i{width:12px;height:12px;border-radius:50%;flex:none}
-.nv3-jc-h b{font:700 16px/1.2 var(--f-display);flex:1;min-width:0}
-.nv3-jc-x{border:0;background:none;font-size:16px;cursor:pointer;color:var(--muted);min-width:34px;min-height:34px;border-radius:8px}
-.nv3-jc-x:hover{background:var(--sunk);color:var(--ink)}
-.nv3-jc-s>h5{margin:0 0 7px;font:700 12.5px/1.2 var(--f-body);text-transform:uppercase;letter-spacing:.4px;color:var(--muted);display:flex;gap:8px;align-items:baseline}
-.nv3-jc-s>h5 small{font-weight:400;text-transform:none;letter-spacing:0}
-.nv3-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.nv3-tile{display:flex;flex-direction:column;align-items:stretch;gap:4px;border:1.5px solid var(--line2);background:linear-gradient(#fbfaf7,#f1efe9);border-radius:11px;padding:7px 8px 8px;cursor:pointer;font:600 13px/1.2 var(--f-body);color:var(--ink);text-align:left;min-height:104px}
-.nv3-tile:hover{border-color:var(--ink)}
-.nv3-tile.on{border-color:#1c4fd8;box-shadow:0 0 0 3px rgba(28,79,216,.18);background:#fff}
-.nv3-tile.on span::after{content:" ✓";color:#1c4fd8}
-.nv3-jc-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-.nv3-jc-row:last-child{margin-bottom:0}
-.nv3-jc-l{font-weight:600;font-size:13.5px;flex:1 1 100%}
-.nv3-jc-n{display:block;font-size:12px;line-height:1.35;margin-top:6px;flex:1 1 100%}
-.nv3-jcard .nv3-jpos{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
-@media (max-width:900px){
-  .nv3-jcard{position:static;flex:none;width:316px;max-height:none;border-radius:0;border:0;border-right:1px solid var(--line);box-shadow:none}
-  .nv3-jwrap.has-card .nv3-jside{display:none}
-}
-@media (max-width:760px){
-  .nv3-jcard{width:auto;max-height:54%;border-right:0;border-top:1px solid var(--line)}
-}
+.nv3-jflip{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nv3-jflip small{font-size:12.5px}

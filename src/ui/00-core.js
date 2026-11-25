@@ -193,6 +193,7 @@ function render() {
   }
   if (!(S.sel >= 0 && S.sel < S.proj.cabinets.length)) S.sel = Math.max(0, S.proj.cabinets.length - 1);
   if (!NVSTAGE[S.tab]) S.tab = 'cab';
+  if (S.jcheck) { S.jcheck = false; if (typeof nvjHas === 'function' && nvjHas(cur())) { S.tab = 'cab'; S.picking = false; NV.topic = 'joints'; NV.secSel = null; } }   // joints have one place: the topic "Jungtys" (49-joints.js)
   nvHistBase();
   if (window.DBLook) window.DBLook.set(S.proj.look);
   S.proj.cabinets.forEach(function (c) {   // cutouts drawn in an earlier builder2 (c.nvCuts) → the live app's part operations (c.sketch)

@@ -23,7 +23,7 @@ from cdp import Chrome  # noqa: E402
 
 URL = os.environ.get("NV_URL", "http://127.0.0.1:8765/scratch/topics/index.html")
 LEGACY = os.environ.get("NV_LEGACY", "http://127.0.0.1:8765/legacy/")
-MINE = r"/^(panel|bx-|body$|mats$|addons$|cnc$|review$)/"
+MINE = r"/^(panel|bx-|body$|joints$|mats$|addons$|cnc$|review$)/"
 FAIL, DONE = [], [0]
 
 
@@ -80,7 +80,11 @@ class App:
 
     def place(self, topic, step=None):
         if self.kind == "new":
-            js(self.c, "__nv.NV.topic=%s;__nv.NV.secSel=null" % json.dumps(topic))
+            key = None
+            if topic.startswith("joints:"):   # connectors have one place: the topic "Jungtys", with this joint picked
+                topic, key = topic.split(":")
+            js(self.c, "__nv.NV.topic=%s;__nv.NV.secSel=null;__nv.NV3.jSel=%s" % (json.dumps(topic), "null" if key is None else
+               "{key:%s,side:'L',seam:(function(){var k=-1;(__nv.info()[__nv.S.sel].r.seams||[]).some(function(s,i){if(s.key===%s){k=i;return true}return false});return k})(),idx:null}" % (json.dumps(key), json.dumps(key))))
         else:
             js(self.c, "__dbk.S.stepKey=%s" % json.dumps(step))
         self.render()
@@ -156,8 +160,8 @@ def walk(a, name, expect):
     js(a.c, "__nv.S.lang='lt';__nv.NV.view='front'")
 
 
-NORMAL = ["body", "mats", "addons", "cnc", "review"]
-BOX = ["bx-dims", "bx-boards", "bx-inner", "bx-fronts", "bx-joints", "mats", "addons", "review"]
+NORMAL = ["body", "joints", "mats", "addons", "cnc", "review"]
+BOX = ["bx-dims", "bx-boards", "bx-inner", "bx-fronts", "joints", "mats", "addons", "review"]
 
 
 # ---------------------------------------------------------------- 1. walk
@@ -234,11 +238,14 @@ def test_body(a):
     a.set("c.cnc.backInset", "12"); ok(a.cab("c.cnc.backInset") == 12, "back inset")
     a.c.type("#f-bk-front", "500"); time.sleep(0.15)
     ok(a.cab("c.cnc.backInset") == a.cab("Math.round((+document.querySelector('#f-bk-front').getAttribute('data-bkfront')-500)*10)/10"), "back's front face → inset")
-    a.set("c.cnc.backJoint", "cam"); ok(a.cab("(c.cnc.joints.back||{}).type") == "cam", "back fixed with cams")
-    a.act("camside", "back"); ok(a.cab("c.cnc.camOut.back") is True, "cam side switched from the picture")
+    ok(not has(a, "[data-bind='c.cnc.backJoint'], [data-bind='c.cnc.joinery'], [data-act=camside]"), "Korpusas edits no connectors")
+    a.place("joints:back"); a.set("c.cnc.backJoint", "cam"); ok(a.cab("(c.cnc.joints.back||{}).type") == "cam", "back fixed with cams — in Jungtys")
+    a.act("camside", "back"); ok(a.cab("c.cnc.camOut.back") is True, "cams on the other face — \"Pakeisti puses\" in Jungtys")
+    a.place("body")
     a.set("c.vis.L", True); ok(a.cab("c.vis.L") is True, "visible left side")
     a.set("c.cnc.sideFull", True); ok(a.cab("[c.cnc.bottom,c.cnc.bottomZ]") == ["inside", 0], "full-height sides")
-    a.set("c.cnc.joinery", "cam"); ok(a.cab("c.cnc.joinery") == "cam", "joinery: cams"); ok("kscentrikai" in (txt(a, ".nvt-sum") or ""), "summary names the joinery")
+    a.place("joints"); a.set("c.cnc.joinery", "cam"); ok(a.cab("c.cnc.joinery") == "cam", "joinery: cams — in Jungtys")
+    a.place("body"); ok("kscentrikai" in (txt(a, ".nvt-sum") or ""), "Korpusas' summary names the joinery")
     page_ok(a, "Korpusas after the changes")
     a.sel(2); a.place("body")   # the wall cabinet
     ok(not has(a, "[data-act=plinth]"), "wall cabinet: no plinth"); ok(has(a, '[data-bind="c.vis.B"]'), "wall cabinet: visible bottom")
@@ -333,19 +340,19 @@ def test_review(a):
     ok(js(a.c, "document.querySelectorAll('.nvt-review .nv-issue.warn').length") == n["warn"], "every warning of the cabinet is listed (%d)" % n["warn"])
     ok(js(a.c, "document.querySelectorAll('.nvt-review .nv-issue.error').length") == n["error"], "every error of the cabinet is listed (%d)" % n["error"])
     ok(has(a, "#nvt-cf-jc.todo") and has(a, "#nvt-cf-ec.todo"), "both confirmations open"); ok(not has(a, ".nvt-ready"), "not ready yet")
-    a.c.click("#nvt-cf-jc [data-act=jcopen]"); time.sleep(0.4); ok(js(a.c, "__nv.S.jcheck") is True and has(a, "[data-act=jcok]"), "the joints check opens")
-    a.c.click("[data-act=jcok]"); time.sleep(0.4); ok(bool(a.cab("c.jointsOk")) and has(a, "#nvt-cf-jc.ok"), "joints confirmed")
+    a.c.click("#nvt-cf-jc [data-act=jcopen]"); time.sleep(0.4); ok(js(a.c, "__nv.NV.topic") == "joints" and not js(a.c, "__nv.S.jcheck") and has(a, "[data-nv=nvjOk]"), "the joints review leads to the topic Jungtys")
+    a.c.click("[data-nv=nvjOk]"); time.sleep(0.4); a.place("review"); ok(bool(a.cab("c.jointsOk")) and has(a, "#nvt-cf-jc.ok"), "joints confirmed in Jungtys")
     a.c.click("#nvt-cf-ec [data-act=ecopen]"); time.sleep(0.4); ok(js(a.c, "__nv.S.echeck") is True and has(a, "[data-act=ecok]"), "the edges check opens")
     a.c.click("[data-act=ecok]"); time.sleep(0.4); ok(bool(a.cab("c.edgesOk")) and has(a, "#nvt-cf-ec.ok"), "edges confirmed")
     n = json.loads(js(a.c, "JSON.stringify(__nv.counts(__nv.issues().filter(function(x){return x.cab===1})))"))
     ok(has(a, ".nvt-ready") == (n["error"] + n["todo"] + n["warn"] == 0), "'ready' only when nothing is open")
     ok(js(a.c, "document.querySelectorAll('.nvt-stats > div').length") == 3, "counts shown")
-    a.place("body"); a.set("c.cnc.joinery", "cam"); a.place("review")
+    a.place("joints"); a.set("c.cnc.joinery", "cam"); a.place("review")
     ok(has(a, "#nvt-cf-jc.todo") and "po patvirtinimo" in (txt(a, "#nvt-cf-jc") or ""), "a change after the confirmation asks for it again")
     page_ok(a, "Patikra")
     # a cabinet with nothing open is calmly green (materials set, both confirmed, engine notes only)
     a.sel(0); a.place("review")
-    js(a.c, "(function(){var c=__nv.cur(),r=__nv.info()[0].r;__nv.S.jcheck=true;})()"); a.render(); a.c.click("[data-act=jcok]"); time.sleep(0.3)
+    a.place("joints"); a.c.click("[data-nv=nvjOk]"); time.sleep(0.3); a.place("review")
     a.c.click("#nvt-cf-ec [data-act=ecopen]"); time.sleep(0.3); a.c.click("[data-act=ecok]"); time.sleep(0.3)
     n = json.loads(js(a.c, "JSON.stringify(__nv.counts(__nv.issues().filter(function(x){return x.cab===0})))"))
     ok(has(a, ".nvt-ready") == (n["error"] + n["todo"] + n["warn"] == 0), "example 1: 'ready' matches the issue list")
@@ -384,10 +391,11 @@ def test_kinds(a):
     a.act("boxrm", i=1); ok(a.cab("c.box.inner.length") == 1, "partition removed")
     a.place("bx-fronts"); a.act("boxfadd", "doors"); ok(a.cab("c.box.fronts.length") == 1 and a.cab("c.box.fronts[0].kind") == "doors", "doors added")
     a.set("c.box.fronts.0.inset", "true"); a.set("c.box.fronts.0.nDoors", "2"); ok(a.cab("[c.box.fronts[0].inset,c.box.fronts[0].nDoors]") == [True, 2], "door fields")
-    a.place("bx-joints"); a.set("c.cnc.joinery", "cam"); ok(a.cab("c.cnc.joinery") == "cam", "construction joinery")
-    jk = js(a.c, "(function(){var b=document.querySelector('.nvt-joints [data-act=set][data-v=dowel]');return b?b.getAttribute('data-bind'):null})()")
-    if ok(bool(jk), "joint rows listed"):
-        a.set(jk, "dowel"); ok(a.cab("c." + jk[2:]) == "dowel", "one joint changed to dowels")
+    a.place("joints"); a.set("c.cnc.joinery", "cam"); ok(a.cab("c.cnc.joinery") == "cam", "construction joinery")
+    jk = js(a.c, "(function(){var b=document.querySelector('.nvj-li');return b?b.getAttribute('data-v').split(':')[2]:null})()")
+    if ok(bool(jk) and js(a.c, "document.querySelectorAll('.nvj-li').length") >= 4, "joint rows listed"):
+        a.c.click(".nvj-li"); time.sleep(0.3); a.c.click("#nvj-card [data-v='j:type:dowel']"); time.sleep(0.3)
+        ok(a.cab("(c.cnc.joints[%s]||{}).type" % json.dumps(jk)) == "dowel", "one joint changed to dowels")
     a.place("mats"); ok(has(a, '#f-c-mat-facade[required]') and not has(a, '[data-bind="c.mat.top"]'), "construction with doors: fronts required")
     a.place("addons"); ok(has(a, '[data-bind="c.worktop.on"]') and has(a, "[data-act=addx]") and not has(a, "[data-act=ledadd]"), "construction: worktop and extra parts")
     a.act("addx", "plinth"); ok(has(a, '[data-bind="c.extras.0.W"]'), "construction: the plinth is an ordinary row")
@@ -404,9 +412,9 @@ STEPS = [   # (topic in the new interface, step of the live editor, verb, args)
     ("body", "build", "set", ("c.extras.0.yf", "35")), ("body", "build", "set", ("c.cnc.bottomD", "500")),
     ("body", "build", "set", ("c.cnc.top", "full")), ("body", "build", "set", ("c.cnc.topMount", "over")), ("body", "build", "set", ("c.cnc.topOverFacade", True)),
     ("body", "build", "set", ("c.cnc.topOvF", "2")), ("body", "build", "set", ("c.cnc.topOvS", "1")),
-    ("body", "build", "set", ("c.cnc.backs.0", "solid")), ("body", "build", "set", ("c.cnc.backMount", "inside")), ("body", "build", "set", ("c.cnc.backJoint", "cam")),
-    ("body", "build", "set", ("c.cnc.backInset", "12")), ("body", "build", "act", ("camside", "back")), ("body", "build", "set", ("c.cnc.backCover.bottom", "true")),
-    ("body", "build", "set", ("c.vis.L", True)), ("body", "build", "set", ("c.cnc.joinery", "cam")), ("body", "build", "act", ("camside", "bottom")),
+    ("body", "build", "set", ("c.cnc.backs.0", "solid")), ("body", "build", "set", ("c.cnc.backMount", "inside")), ("joints:back", "build", "set", ("c.cnc.backJoint", "cam")),
+    ("body", "build", "set", ("c.cnc.backInset", "12")), ("joints:back", "build", "act", ("camside", "back")), ("body", "build", "set", ("c.cnc.backCover.bottom", "true")),
+    ("body", "build", "set", ("c.vis.L", True)), ("joints", "build", "set", ("c.cnc.joinery", "cam")), ("joints:bottom", "build", "act", ("camside", "bottom")),
     ("body", "build", "set", ("c.cnc.topMount", "inside")), ("body", "build", "set", ("c.cnc.top", "rails")), ("body", "build", "set", ("c.cnc.rails.front", "v")),
     ("body", "build", "set", ("c.cnc.rails.back", "hv")), ("body", "build", "set", ("c.cnc.rails.bottom", True)), ("body", "build", "set", ("c.cnc.railW", "90")),
     ("mats", "mats", "set", ("c.mat.carc", "LMDP pilka 18")), ("mats", "mats", "set", ("c.mat.back", "LMDP pilka 18")), ("mats", "mats", "set", ("c.edge.facade", "ABS juoda 1")),

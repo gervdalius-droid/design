@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""The connector library in the 3-D joints mode (src/ui/48-view3.js), on a free 3-D construction:
-drag a connector onto a joint, click-to-place, "no connector", "on every joint", two boards → their joint.
+"""Connectors have ONE place: the topic "Jungtys" of a cabinet (src/ui/49-joints.js; the model beside it: 48-view3.js;
+swapped cams: 49-flip.js). This test: the topic and its model, a joint's settings, "Pakeisti puses", the confirmation,
+and that nothing else edits joints — Korpusas, the review, the check stage and the old commands all lead here.
     python3 test/ui/conn_test.py [URL]        default http://127.0.0.1:8765/index.html"""
 import sys, os, json, time
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools'))
@@ -12,71 +13,88 @@ def ok(cond, what):
     if not cond: FAIL.append(what); print('  FAIL  ' + what)
 def clk(c, sel): return c.eval("(function(){var e=document.querySelector(%s);if(!e)return false;e.click();return true})()" % json.dumps(sel))
 def J(c, expr): return json.loads(c.eval("JSON.stringify(%s)" % expr))
+def topic(c, k): clk(c, '[data-nv=topic][data-v=%s]' % k); time.sleep(.9)
 TYPES = "(function(){var o={};(__nv.S._info[__nv.S.sel].r.joints||[]).forEach(function(j){o[j.key]=[j.type,j.pos.length]});return o})()"
-SEAM = """(function(k){var N=__nv.NV3,rc=N.R.domElement.getBoundingClientRect(),r=__nv.S._info[__nv.S.sel].r,out=[];
-  N.jpick.forEach(function(m){if(m.userData.dot!=null)return;var s=r.seams[m.userData.seam],d=new N.T.Vector3().fromArray(s.d).normalize();
-    var P=function(f){var w=N.root.localToWorld(new N.T.Vector3().fromArray(m.userData.o).addScaledVector(d,s.w*f)).project(N.cam);return [rc.left+(w.x+1)/2*rc.width, rc.top+(1-w.y)/2*rc.height]};
-    var a=P(0.1),b=P(0.9);out.push({len:Math.hypot(a[0]-b[0],a[1]-b[1]),seam:m.userData.seam,key:s.key,p:P(0.43)})});
-  out.sort(function(a,b){return b.len-a.len});return out[k]})(%d)"""
+CAMS = """(function(){var r=__nv.S._info[__nv.S.sel].r,o=[];r.panels.forEach(function(p){(p.holes||[]).forEach(function(h){if(!h.op&&!h.mark&&!h.through&&Math.abs(h.d-15)<.2)o.push(p.key+':'+(h.face||'A')+':'+Math.round(h.x)+','+Math.round(h.y))})});return o.sort()})()"""
+def faces(c): return [x.split(':')[1] for x in J(c, CAMS)]
+OPEN = "__nv.issues().some(function(x){return x.cab===__nv.S.sel&&x.id==='confirm.joints'})"
 with Chrome(1500, 1000) as c:
     c.goto(URL, wait=1.5); c.eval("localStorage.clear()"); c.goto(URL, wait=2)
     c.type("#np-name", "JUNGTYS", commit=False); c.key("Enter")
     c.wait("window.__nv && __nv.S.proj && !__nv.S.home"); time.sleep(.4)
-    box = J(c, "__dbk.PRESETS.findIndex(function(p){return p.box})")
-    clk(c, '[data-nv=nvhPreset][data-i="%d"]' % box); time.sleep(4)
-    ok(c.eval("!!document.getElementById('nv3-stage')"), 'a free construction opens in the new 3-D view')
-    clk(c, '[data-nv=nv3][data-v="joints"]'); time.sleep(.8)
-    ok(c.eval("document.querySelectorAll('[data-nv3conn]').length") == 4, 'joints mode shows the connector library (three connectors and "none")')
-    t0 = J(c, TYPES); ok(len(t0) >= 4 and all(v[0] == 'confirmat' and v[1] >= 1 for v in t0.values()), 'every contact between boards has connectors by the rule')
-    s1 = J(c, SEAM % 0); r = J(c, "(function(){var b=document.querySelector('[data-nv3conn=cam]').getBoundingClientRect();return [b.left+b.width/2,b.top+b.height/2]})()")
-    c.drag(r[0], r[1], s1['p'][0], s1['p'][1], steps=16); time.sleep(.8)
-    t1 = J(c, TYPES); ok(t1[s1['key']][0] == 'cam' and t1[s1['key']][1] >= 1 and sum(1 for v in t1.values() if v[0] == 'cam') == 1, 'dragging "cam" onto a joint changes that joint only, placed by the rule')
-    ok(J(c, "__nv.NV3.jSel && __nv.NV3.jSel.key") == s1['key'], 'after a drop the joint is the one in work (the camera goes to it)')
-    c.click('[data-nv3conn=dowel]'); time.sleep(1.4)
-    ok(J(c, "__nv.NV3.jSel") is None, 'taking a connector in hand returns to the whole cabinet')
-    ok(J(c, "__nv.NV3.jArm") == 'dowel', 'a click keeps the connector in hand')
-    s2 = J(c, SEAM % 2); c.click_at(s2['p'][0], s2['p'][1]); time.sleep(.8)
-    ok(J(c, TYPES)[s2['key']][0] == 'dowel', 'a click on a joint puts the connector in hand on it')
-    c.click('[data-nv3conn=none]'); time.sleep(1.0); s3 = J(c, SEAM % 3); c.click_at(s3['p'][0], s3['p'][1]); time.sleep(.8)
-    ok(J(c, TYPES)[s3['key']][1] == 0, '"no connector" empties a joint')
-    ok(c.eval("__nv.issues().some(function(x){return x.cab===__nv.S.sel&&/nesuri|not tied/i.test(x.msg+(x.raw||''))})"), 'an empty joint is reported in the checks')
-    ok(c.eval("document.querySelector('.nv3.jm') !== null && document.querySelectorAll('.nv3-jli').length >= 4 && document.querySelectorAll('.nv3-jlab').length >= 4"), 'joints is a workspace of its own: the list at the side, the names in the model')
-    c.click('[data-nv3conn=confirmat]'); time.sleep(.4); clk(c, '[data-nv=nv3][data-v="j:all"]'); time.sleep(.8)
-    ok(all(v[0] == 'confirmat' and v[1] >= 1 for v in J(c, TYPES).values()), '"on every joint" sets them all, each by its rule')
-    clk(c, '[data-nv=nv3][data-v="j:disarm"]'); time.sleep(.4)
-    pts = J(c, """(function(){var N=__nv.NV3,rc=N.R.domElement.getBoundingClientRect(),pr=N.jPairs[Object.keys(N.jPairs)[0]];
-      return pr.map(function(k){var m=N.pick.filter(function(o){return o.userData.key===k})[0];var w=m.getWorldPosition(new N.T.Vector3()).project(N.cam);return [rc.left+(w.x+1)/2*rc.width, rc.top+(1-w.y)/2*rc.height,k]})})()""")
-    c.click_at(pts[0][0], pts[0][1]); time.sleep(.5)
-    ok(J(c, "__nv.NV3.jA") == pts[0][2], 'a click on a board marks it')
-    c.click_at(pts[1][0], pts[1][1]); time.sleep(.6)
-    ok(J(c, "__nv.NV3.jSel && __nv.NV3.jSel.seam") == int(J(c, "Object.keys(__nv.NV3.jPairs)[0]")), 'a second board selects the joint between the two')
-    # the joint's card: pictures, "none", and which board the connector is driven through
-    ok(c.eval("document.querySelectorAll('.nv3-lib img.nv3-cpic').length") == 3, 'the library shows pictures rendered from the connector models')
-    ok(c.eval("!!document.querySelector('.nv3-jcard') && document.querySelectorAll('.nv3-jcard .nv3-tile').length === 4"), 'the joint in work has a card with four connector tiles')
-    key = J(c, "__nv.NV3.jSel.key")
-    clk(c, '.nv3-tile[data-v="j:type:cam"]'); time.sleep(.9)
-    ok(J(c, TYPES)[key][0] == 'cam' and c.eval("!!document.querySelector('.nv3-tile.on[data-v=\"j:type:cam\"]')"), 'a tile sets the connector and is marked')
-    clk(c, '.nv3-tile[data-v="j:empty"]'); time.sleep(.9)
-    ok(J(c, TYPES)[key][1] == 0 and c.eval("!!document.querySelector('.nv3-tile.on[data-v=\"j:empty\"]')"), 'the "none" tile empties the joint')
-    clk(c, '.nv3-tile[data-v="j:type:confirmat"]'); time.sleep(.9)
-    cov = J(c, "(function(){var b=document.querySelector('.nv3-jcard [data-act=boxcover]');return b?[b.getAttribute('data-v'),b.getAttribute('data-w')]:null})()")
-    ok(cov is not None, 'a corner joint offers the board the connector is driven through')
-    if cov:
-        clk(c, '.nv3-jcard [data-act=boxcover]'); time.sleep(1.0)
-        ok(J(c, "__nv.cur().box.cover[%s]" % json.dumps(cov[0])) == cov[1] and c.eval("!!document.querySelector('.nv3-jcard')"), 'choosing the other board swaps the cover; the card stays open')
-    # an ordinary cabinet: both / left / right, and the cam's face
-    clk(c, '[data-nv=nv3][data-v="joints"]'); time.sleep(.5); clk(c, '[data-act=pick]'); time.sleep(.5)
-    clk(c, '[data-nv=nvhPreset][data-i="1"]'); time.sleep(1.5)
-    c.eval("(function(){var c=__nv.cur();c.cnc.bottom='inside';__dbk.saveNow();__dbk.render()})()"); time.sleep(.5)
-    clk(c, '[data-nv=nv3][data-v="joints"]'); time.sleep(1.2); clk(c, '[data-nv=nv3][data-v="j:pick:bottom"]'); time.sleep(1.2)
-    clk(c, '.nv3-tile[data-v="j:type:cam"]'); time.sleep(1.0)
-    rows = c.eval("[].map.call(document.querySelectorAll('.nv3-jc-l'),function(e){return e.textContent}).join('|')")
-    ok('Kuriam šonui' in rows and 'Ekscentrikas matomas' in rows, 'a two-sided cam joint shows both side choices — ' + rows)
-    clk(c, '.nv3-jcard [data-act=camside]'); time.sleep(1.0)
-    ok(J(c, "(__nv.cur().cnc.camOut||{}).bottom") is True and c.eval("!!document.querySelector('.nv3-jcard')"), 'the cam is moved to the other face; the card stays open')
-    clk(c, '[data-nv=nv3][data-v="j:both:R"]'); time.sleep(.8); clk(c, '[data-nv=nv3][data-v="j:n:1"]'); time.sleep(.9)
-    jb = J(c, "__nv.cur().cnc.joints.bottom"); ok(isinstance(jb, dict) and 'R' in jb and len(jb['R'].get('pos', [])) == 4 and 'pos' not in jb.get('L', {}), '"right only" changes the right side alone')
-    clk(c, '[data-nv=undo]'); time.sleep(.5)
+    # ---- an ordinary cabinet: the topic, and the model that goes with it
+    clk(c, '[data-nv=nvhPreset][data-i="1"]'); time.sleep(4)
+    ok(c.eval("!!document.querySelector('[data-nv=topic][data-v=joints]')") and J(c, "__nv.NV3.joints") is not True, 'the rail has "Jungtys"; elsewhere the model shows no joints')
+    topic(c, 'joints')
+    ok(J(c, "__nv.NV3.joints") is True and J(c, "__nv.NV.view") == '3d' and c.eval("document.querySelectorAll('.nvj-li').length") >= 3, 'Jungtys: the model shows the joints, the inspector lists them')
+    ok(c.eval("!document.querySelector('.nv3-bar, .nv3.full, [data-nv3conn], .jcbox')"), 'no bar over the picture, no window, no library')
+    ok(c.eval("!!document.querySelector('.nvj [data-bind=\\'c.cnc.joinery\\']')"), 'the cabinet\'s usual connector is chosen here')
+    clk(c, '[data-nv=nv3][data-v="j:pick:bottom"]'); time.sleep(1.2)
+    ok(c.eval("!!document.querySelector('#nvj-card .nvj-type') && !!document.querySelector('#nvj-card [data-v=\\'j:n:1\\']') && document.querySelectorAll('#nvj-card [data-nv3j]').length >= 2"), 'a picked joint: its card with type, count and places')
+    ok(c.eval("document.querySelector('.nv3-jflip button').disabled") is True, 'confirmats: "Pakeisti puses" is not offered')
+    clk(c, '[data-nv=nv3][data-v="j:type:cam"]'); time.sleep(1.2)
+    ok(J(c, TYPES)['bottom'][0] == 'cam', 'the type is set to cams')
+    f0 = faces(c); ok(len(f0) >= 4 and len(set(f0)) == 1, 'the cams are all in one face — %s' % f0)
+    # ---- the confirmation is here
+    ok(c.eval(OPEN) and c.eval("!!document.querySelector('.nvj-ok.todo [data-nv=nvjOk]')"), 'not confirmed yet: the button is in the topic')
+    clk(c, '[data-nv=nvjOk]'); time.sleep(.8)
+    ok(not c.eval(OPEN) and c.eval("!!document.querySelector('.nvj-ok.ok')"), 'confirmed here: the open confirmation is gone')
+    # ---- "Pakeisti puses"
+    clk(c, '[data-nv=nv3][data-v="j:flip"]'); time.sleep(1.2)
+    f1 = faces(c); ok(len(f1) == len(f0) and all(a != b for a, b in zip(f0, f1)), 'no cam picked: all of the joint\'s cams go to the other face — %s' % f1)
+    ok(J(c, "__nv.cur().nvFlip") == {'bottom|L': 'all', 'bottom|R': 'all'} and c.eval("document.querySelector('.nv3-jflip button').classList.contains('on')"), 'kept with the cabinet, the button is marked')
+    ok(c.eval(OPEN), 'another drilling: the joints have to be confirmed again')
+    clk(c, '[data-nv=nv3][data-v="j:flip"]'); time.sleep(1.0)
+    ok(faces(c) == f0 and J(c, "__nv.cur().nvFlip") == {}, 'again: back where they were')
+    pt = J(c, """(function(){var N=__nv.NV3,rc=N.R.domElement.getBoundingClientRect();var m=N.jpick.filter(function(o){return o.userData.dot===1&&o.userData.seam===N.jSel.seam})[0];var v=m.getWorldPosition(new N.T.Vector3()).project(N.cam);return [rc.left+(v.x+1)/2*rc.width, rc.top+(1-v.y)/2*rc.height]})()""")
+    c.click_at(pt[0], pt[1]); time.sleep(1.0)
+    ok(J(c, "__nv.NV3.jSel.idx") == 1, 'a click on a fastener in the model picks it')
+    clk(c, '[data-nv=nv3][data-v="j:flip"]'); time.sleep(1.2)
+    f2 = faces(c); ok(sum(1 for a, b in zip(f0, f2) if a != b) == 2 and J(c, "__nv.cur().nvFlip") == {'bottom|L': [1], 'bottom|R': [1]}, 'only the picked cam (on both sides of the cabinet) changes its face')
+    clk(c, '[data-nv=nv3][data-v="j:both:R"]'); time.sleep(.8); clk(c, '[data-nv=nv3][data-v="j:flip"]'); time.sleep(1.0)
+    fl = J(c, "__nv.cur().nvFlip"); ok(fl == {'bottom|L': [1]}, '"Dešinei": the picked cam is put back on the right side only — %s' % fl)
+    clk(c, '[data-nv=undo]'); time.sleep(.8)
+    ok(J(c, "__nv.cur().nvFlip") == {'bottom|L': [1], 'bottom|R': [1]}, 'undo takes the swap back')
+    clk(c, '[data-nv=nv3][data-v="j:type:confirmat"]'); time.sleep(1.0)
+    ok(J(c, "__nv.cur().nvFlip") == {'bottom|L': [1]} and len(faces(c)) == len(f0) // 2, 'the right side gets another type: its swap is forgotten, the left side keeps its own')
+    clk(c, '[data-nv=nv3][data-v="j:both:1"]'); time.sleep(.8); clk(c, '[data-nv=nv3][data-v="j:reset"]'); time.sleep(1.0)
+    ok(J(c, "__nv.cur().nvFlip") == {}, '"Standartas" clears the swaps')
+    # ---- where the live app has "cams on the other face" itself, its own setting is used (a bottom between the sides)
+    c.eval("(function(){var c=__nv.cur();c.cnc.bottom='inside';__dbk.saveNow();__dbk.render()})()"); time.sleep(.6)
+    clk(c, '[data-nv=nv3][data-v="j:none"]'); time.sleep(.4); clk(c, '[data-nv=nv3][data-v="j:pick:bottom"]'); time.sleep(.9); clk(c, '[data-nv=nv3][data-v="j:type:cam"]'); time.sleep(1.0)
+    ok(c.eval("!!document.querySelector('.nv3-jflip [data-act=camside][data-v=bottom]')"), 'bottom between the sides, with cams: "Pakeisti puses" is the live setting')
+    b0 = faces(c); clk(c, '.nv3-jflip [data-act=camside]'); time.sleep(1.0)
+    b1 = faces(c); ok(J(c, "(__nv.cur().cnc.camOut||{}).bottom") is True and len(b1) == len(b0) and all(a != b for a, b in zip(b0, b1)) and c.eval("!!document.getElementById('nvj-card')"), 'the cams move, the setting is the live one, the card stays')
+    # ---- nothing else edits joints; every old door leads here
+    topic(c, 'body')
+    ok(J(c, "__nv.NV3.joints") is False and c.eval("!document.querySelector('.nve-body [data-bind=\\'c.cnc.joinery\\'], .nve-body [data-bind=\\'c.cnc.backJoint\\'], .nve-body [data-act=camside], .nve-body [data-act=jcopen]')"), 'Korpusas: no connector choices, and the model shows no joints')
+    clk(c, '[data-nv=nv3][data-v="joints"]'); time.sleep(.9)
+    ok(J(c, "__nv.NV.topic") == 'joints' and J(c, "__nv.NV3.joints") is True, 'the 3-D toolbar\'s "Jungtys" opens the topic')
+    clk(c, '[data-nv=nv3][data-v="joints"]'); time.sleep(.9)
+    ok(J(c, "__nv.NV.topic") == 'body' and J(c, "__nv.NV3.joints") is False, 'and closes it, back to where one was')
+    c.eval("(function(){var c=__nv.cur();delete c.jointsOk;__dbk.saveNow();__dbk.render()})()"); topic(c, 'review')
+    clk(c, '#nvt-cf-jc [data-act=jcopen]'); time.sleep(.9)
+    ok(J(c, "__nv.NV.topic") == 'joints' and c.eval("!document.querySelector('.jcbox') && !__nv.S.jcheck"), 'the review\'s "joints" button leads to the topic, no window')
+    c.eval("__nv.go({tab:'chk'})"); time.sleep(.9)
+    ok(clk(c, '.nvk-row.todo [data-act=jcroom]'), 'the check stage has the joints row'); time.sleep(.9)
+    ok(J(c, "__nv.S.tab") == 'cab' and J(c, "__nv.NV.topic") == 'joints', 'the check stage\'s joints row leads to the topic')
+    # ---- a free 3-D construction: the same topic, no joints topic of its own
+    clk(c, '[data-act=pick]'); time.sleep(.5)
+    box = J(c, "__dbk.PRESETS.findIndex(function(p){return p.box})"); clk(c, '[data-nv=nvhPreset][data-i="%d"]' % box); time.sleep(1.5)
+    tps = J(c, "[].map.call(document.querySelectorAll('[data-nv=topic]'),function(b){return b.getAttribute('data-v')})")
+    ok('joints' in tps and 'bx-joints' not in tps, 'a free construction has the same "Jungtys" — %s' % tps)
+    topic(c, 'joints')
+    t0 = J(c, TYPES); ok(len(t0) >= 4 and c.eval("document.querySelectorAll('.nvj-li').length") == len(t0) and all(v[0] == 'confirmat' and v[1] >= 1 for v in t0.values()), 'every contact between its boards is a joint in the list, with connectors by the rule')
+    lab = J(c, "(function(){var l=document.querySelector('.nv3-jlab').getBoundingClientRect();return [l.left+l.width/2,l.top+l.height/2]})()")
+    c.click_at(lab[0], lab[1]); time.sleep(1.2)
+    ok(J(c, "!!__nv.NV3.jSel") is True and c.eval("!!document.getElementById('nvj-card')"), 'a joint picked by its name in the model opens its card')
+    corner = J(c, """(function(){var r=__nv.S._info[__nv.S.sel].r,k=null;(r.joints||[]).some(function(j){var pk=j.box&&window.DBEngine.boxPair(j.box.P,j.box.Q),cv=(r.box.covers||[]).filter(function(q){return q.key===pk})[0];if(cv&&!cv.forced){k=[j.key,pk,cv.by];return true}return false});return k})()""")
+    ok(corner is not None, 'there is a corner whose cover can be chosen')
+    if corner:
+        clk(c, '[data-nv=nv3][data-v="j:none"]'); time.sleep(.5); clk(c, '[data-nv=nv3][data-v="j:pick:%s"]' % corner[0]); time.sleep(1.2)
+        ok(c.eval("!!document.querySelector('.nv3-jflip [data-act=boxcover]')"), 'a corner with confirmats: "Pakeisti puses" drives them through the other board')
+        clk(c, '.nv3-jflip [data-act=boxcover]'); time.sleep(1.2)
+        ok(J(c, "__nv.cur().box.cover[%s]" % json.dumps(corner[1])) not in (None, corner[2]), 'the cover is swapped')
     errs = [l for l in c.drain_logs() if 'favicon' not in l and ('[pageerror]' in l or '[error]' in l)]
     ok(not errs, 'no page errors — %s' % errs[:2])
 print('conn_test: %d checks, %d failed' % (DONE[0], len(FAIL)))

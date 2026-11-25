@@ -314,7 +314,7 @@ NVSTAGE.cab = function (info) {
   var box = c.kind === 'box', view3 = box || NV.view === '3d', body;
   try { body = tp ? tp.body(c, inf) : '<div class="editor nve-live">' + (c.kind ? '' : cabBar(c)) + stepNav(c, inf) + oneStep(viewEditor(c), c, inf) + '</div>'; } catch (e) { if (window.console) console.error(e); body = '<div class="nv-issue error">' + L('Šios temos parodyti nepavyko: ', 'This topic could not be shown: ') + esc(String(e && e.message || e)) + '</div>'; }
   var pic = view3 ? null : nvePicture(c, inf);
-  return '<div class="nve-ws">' +
+  return '<div class="nve-ws' + (NV.topic === 'joints' ? ' nve-joints' : '') + '">' +
     '<aside class="nve-strip" aria-label="' + esc(t('cabs')) + '"><div class="nve-strip-h"><span>' + t('cabs') + '</span><b class="nv-num">' + cabs.length + '</b></div>' +
       '<div class="nve-cards" id="nve-cards" data-live="estrip">' + nveStrip(info) + '</div>' +
       '<button type="button" class="nve-new" data-act="pick">' + t('newCab') + '</button></aside>' +
