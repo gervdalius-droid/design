@@ -104,6 +104,15 @@ with Chrome(1366, 768) as c:
     s3 = J(c, "(function(){__nv.S.sk.draft={t:'line',pts:[[100,520]]};var r=__nv.skSnap([203,548],[100,520],1.8,{shift:true});__nv.S.sk.draft=null;return r})()")
     ok(s3['p'][1] == 520, 'Shift: level or upright whatever the pointer does — %s' % s3['p'])
 
+    n0 = len(shapes()); tool('line'); click(100, 520); click(330, 16); click(330, 16); time.sleep(.5)
+    last = shapes()[-1]
+    ok(len(shapes()) == n0 + 1 and len(last['pts']) == 2 and not J(c, "__nv.S.sk.draft"), 'the same spot clicked twice finishes the line there (from the new last point the edge below would be caught, square) — %s' % last['pts'])
+    c.eval("(function(){var S=__nv.S,c=S.proj.cabinets[S.sk.cab];c.sketch[S.sk.key].pop();__dbk.render()})()"); time.sleep(.3)
+    s4 = J(c, "(function(){__nv.S.sk.draft={t:'line',pts:[[100,200]]};var r=__nv.skSnap([699,250],[100,200],1.8,{shift:true});__nv.S.sk.draft=null;return r})()")
+    ok(s4['p'][1] == 200, 'Shift next to an edge: still level, not onto the edge — %s' % s4['p'])
+    c.eval("(function(){var i=document.createElement('input');i.id='t-out';document.body.appendChild(i);i.focus()})()"); c.eval("__dbk.render()"); time.sleep(.3)
+    ok(J(c, "document.activeElement.id") == 't-out', 'a field outside the page (the hub\'s notices, the sign-in form) keeps the keyboard while the drawing is open')
+    c.eval("document.getElementById('t-out').remove()")
     # ------------------------------------------------------------ dragging
     tool('sel'); a = scr(300, 480); b = scr(400, 300)
     c.drag(a[0] - 3, a[1] + 2, b[0] + 6, b[1] + 6, steps=14); time.sleep(.5)
@@ -120,7 +129,7 @@ with Chrome(1366, 768) as c:
     def prog(sh):
         o = J(c, """(function(){var S=__nv.S,c=JSON.parse(JSON.stringify(S.proj.cabinets[0]));c.sketch={KAIRE:[%s]};
           var E=window.DBEngine,r=E.buildCabinet(c),p=r.panels.filter(function(q){return q.key==='KAIRE'})[0],pr=E.programs(p);
-          return {L:p.L,W:p.W,T:p.T,paths:p.paths.map(function(g){return {n:g.name,f:g.face,d:g.depth,op:g.op,cam:g.cam,pts:g.pts}}),warn:(r.warnings||[]).filter(function(w){return /eskiz/.test(w)}),files:(pr.files||[]).map(function(f){return f.text})}})()""" % json.dumps(dict(sh, id=1)))
+          return {L:p.L,W:p.W,T:p.T,paths:p.paths.map(function(g){return {n:g.name,f:g.face,d:g.depth,op:g.op,cam:g.cam,pts:g.pts}}),warn:(r.warnings||[]).filter(function(w){return /eskiz/.test(w)}),allw:(r.warnings||[]).filter(function(w){return /KAIRE/.test(w)}),files:(pr.files||[]).map(function(f){return f.text})}})()""" % json.dumps(dict(sh, id=1)))
         mv = []
         for l in '\n'.join(o['files']).split('\r\n'):
             l = l.strip()
@@ -140,6 +149,7 @@ with Chrome(1366, 768) as c:
             dxy = math.hypot(b[1] - a[1], b[2] - a[2]); dz = b[3] - a[3]; air = a[1] < -r or a[1] > L + r or a[2] < -r or a[2] > W + r
             if dz < -1e-6 and dxy < 1e-6 and b[3] < -1e-6 and not air: bad.append('a straight plunge into the board')
             if not (-20 - 1e-6 <= b[1] <= L + 20 + 1e-6 and -20 - 1e-6 <= b[2] <= W + 20 + 1e-6): bad.append('too far outside')
+            if dz < -0.05 and b[3] < -1e-6 and not air and math.degrees(math.atan2(-dz, dxy)) > 46.5: bad.append('goes down steeper than 45°')
         if mv[-1][3] < 9.99: bad.append('ends below the safe height')
         return sorted(set(bad))
     RECT = {'t': 'rect', 'x': 200, 'y': 150, 'w': 200, 'h': 120, 'face': 'A', 'depth': 8}
@@ -199,6 +209,46 @@ with Chrome(1366, 768) as c:
     o, mv = prog(dict(RECT, op='in', cam={'feed': 3000, 'feedIn': 1500}))
     ok(set(m[4] for m in mv[1:-1]) == {3000.0, 1500.0}, 'the feeds asked for are the feeds written')
 
+    # ------------------------------------------------------------ what the reviews found
+    def segd(a, b, c, d):   # least distance between two segments
+        def o(p, q, r): return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+        d1, d2, d3, d4 = o(c, d, a), o(c, d, b), o(a, b, c), o(a, b, d)
+        if ((d1 > 0 > d2) or (d1 < 0 < d2)) and ((d3 > 0 > d4) or (d3 < 0 < d4)): return 0.0
+        def ps(q, u, v):
+            dx, dy = v[0] - u[0], v[1] - u[1]; l2 = dx * dx + dy * dy; t = max(0, min(1, ((q[0] - u[0]) * dx + (q[1] - u[1]) * dy) / l2)) if l2 > 1e-12 else 0
+            return math.hypot(u[0] + dx * t - q[0], u[1] + dy * t - q[1])
+        return min(ps(a, c, d), ps(b, c, d), ps(c, a, b), ps(d, a, b))
+    def clearance(pts, mv):   # how near the cutter's centre comes to the drawn outline, below the surface
+        n = len(pts); best = 1e9
+        for a, b in zip(mv, mv[1:]):
+            if b[0] != 'XL2P' or (a[3] >= -1e-9 and b[3] >= -1e-9): continue
+            for j in range(n): best = min(best, segd((a[1], a[2]), (b[1], b[2]), pts[j], pts[(j + 1) % n]))
+        return best
+    ELL = [[213, 222], [213, 241], [132, 241], [132, 354], [67, 354], [67, 222]]
+    o, mv = prog({'t': 'line', 'pts': ELL, 'closed': True, 'op': 'in', 'face': 'A', 'depth': 8, 'cam': {'ain': 'line', 'amul': 6}})
+    ok(rules(o, mv) == [] and clearance(ELL, mv) >= 7.75 - 0.03, 'a long straight lead-in in an L-shaped cut-out does not pass through the kept inside corner — clear by %.2f' % clearance(ELL, mv))
+    ZED = [[133, 175], [232, 175], [232, 251], [330, 251], [330, 298], [212, 298], [212, 268], [133, 268]]
+    o, mv = prog({'t': 'line', 'pts': ZED, 'closed': True, 'op': 'in', 'face': 'A', 'depth': 8, 'cam': {'rout': 'line', 'rmul': 6}})
+    ok(rules(o, mv) == [] and clearance(ZED, mv) >= 7.75 - 0.03, 'nor a long lead-out — clear by %.2f' % clearance(ZED, mv))
+    NECK = [[100, 100], [200, 100], [200, 145], [260, 145], [260, 100], [360, 100], [360, 200], [260, 200], [260, 155], [200, 155], [200, 200], [100, 200]]
+    o, mv = prog({'t': 'line', 'pts': NECK, 'closed': True, 'op': 'in', 'face': 'A', 'depth': 8})
+    ok(not o['paths'] and len(o['warn']) == 1 and 'siauresnis' in o['warn'][0], 'an outline with a neck narrower than the cutter is refused (the live path ran 5 mm into both walls) — %s' % o['warn'])
+    o, mv = prog({'t': 'rect', 'x': 100, 'y': 100, 'w': 45.3, 'h': 45.3, 'op': 'pocket', 'face': 'A', 'through': True, 'depth': 8})
+    ok(rules(o, mv) == [] and all(len(set(map(tuple, g['pts']))) > 1 for g in o['paths']), 'a pocket whose innermost ring is a dot: that ring is left out, the first one is gone down on as a spiral — %d rings' % len(o['paths']))
+    o, mv = prog({'t': 'rect', 'x': 100, 'y': 100, 'w': 15.5004, 'h': 15.5004, 'op': 'in', 'face': 'A', 'depth': 16})
+    ok(not o['paths'] and len(o['warn']) == 1 and 'per mažas' in o['warn'][0], 'a cut-out the cutter\'s own size would be a plunge: refused — %s' % o['warn'])
+    o, mv = prog({'t': 'line', 'pts': [[300, 300], [312, 300]], 'closed': False, 'op': 'on', 'face': 'A', 'depth': 16})
+    ok(rules(o, mv) == [] and len([m for m in mv if m[3] < 0 and m[4] == 2000.0]) >= 3, 'a 12 mm line 16 deep: down there and back along it, not in one steep go — %s' % [(m[1], m[3]) for m in mv[:6]])
+    o, mv = prog(dict(RECT, op='in', depth=16, cam={'ain': 'arc', 'aang': 10, 'amul': 0.5, 'dang': 5}))
+    nt = J(c, "(function(){var S=__nv.S,c=JSON.parse(JSON.stringify(S.proj.cabinets[0]));c.sketch={KAIRE:[%s]};var r=window.DBEngine.buildCabinet(c),p=r.panels.filter(function(q){return q.key==='KAIRE'})[0];return __nv.routeNotes(p,1)})()" % json.dumps(dict(RECT, id=1, op='in', depth=16, cam={'ain': 'arc', 'aang': 10, 'amul': 0.5, 'dang': 5})))
+    steep = max(math.degrees(math.atan2(a[3] - b[3], math.hypot(b[1] - a[1], b[2] - a[2]))) for a, b in zip(mv, mv[1:]) if b[0] == 'XL2P' and b[3] < a[3] - 0.01 and b[3] < -1e-6)
+    ok('inSteep' in nt and steep <= 5.2 and rules(o, mv) == [], 'a lead-in too short to go down on at 5°: said so, and it goes down along the outline at 5° — %.1f° %s' % (steep, nt))
+    o, mv = prog({'t': 'rect', 'x': -3, 'y': -3, 'w': 708, 'h': 566, 'op': 'out', 'face': 'A', 'through': True, 'depth': 8})
+    ok(not o['paths'] and not any('kiaurai' in w.lower() for w in o['allw']), 'an operation that is not made gives no "through cut" note either — %s' % o['allw'])
+    o, mv = prog({'t': 'line', 'pts': [[100, 100], [500, 100]], 'closed': False, 'op': 'on', 'face': 'A', 'depth': 10, 'cam': {'step': 5}})
+    first_cut = J(c, "(function(){var S=__nv.S,c=JSON.parse(JSON.stringify(S.proj.cabinets[0]));c.sketch={KAIRE:[{t:'line',pts:[[100,100],[500,100]],closed:false,id:1,op:'on',face:'A',depth:10,cam:{step:5}}]};var E=window.DBEngine,r=E.buildCabinet(c),p=r.panels.filter(function(q){return q.key==='KAIRE'})[0];var m=E.nvRoute(p.paths[0].pts,10,p.paths[0],E.R.rout,{DX:p.L,DY:p.W});var i=m.findIndex(function(x){return x.k==='cut'});return [m[i-1].x,m[i].x]})()")
+    ok(first_cut[1] > first_cut[0], 'the first cutting move of an open line with options runs the way the pass runs (the arrow on the drawing follows it) — %s' % first_cut)
+
     # ------------------------------------------------------------ a shape that reaches past the part is cut off at the part
     o, mv = prog({'t': 'line', 'pts': [[-80, 200], [800, 200]], 'closed': False, 'op': 'on', 'face': 'A', 'depth': 8})
     ok(o['paths'][0]['pts'] == [[-12.75, 200], [714.75, 200]] and not o['warn'] and rules(o, mv) == [] and (mv[0][1], mv[0][2]) == (-12.75, 200.0) and max(m[1] for m in mv) == 714.75,
@@ -233,6 +283,16 @@ with Chrome(1366, 768) as c:
     clk(c, '[data-nv=nvqSet][data-v="amode:quote"]'); time.sleep(.4)
     ok('gylyje' in (c.eval("(function(){var n=document.querySelector('.nvq-note');return n?n.textContent:''})()") or '') and any(x['id'].startswith('route.quoteIn.KAIRE.1') and x['sev'] == 'info' for x in J(c, "__nv.issues().map(function(x){return {id:x.id,sev:x.sev}})")),
        'what cannot be done as asked is said beside the shape and in the check list (as a note, not an error)')
+    clk(c, '[data-nv=nvqSet][data-v="ain:line"]'); time.sleep(.4); c.type('[data-nv-change=nvqNum][data-k=aang]', '0'); time.sleep(.4)
+    ok(shapes()[0]['cam'].get('aang') == 0 and c.eval("document.querySelector('[data-nv-change=nvqNum][data-k=aang]').value") == '0', '0° (straight on) can be asked for — %s' % shapes()[0]['cam'])
+    c.type('[data-nv-change=nvqNum][data-k=aang]', '120'); time.sleep(.4)
+    ok(shapes()[0]['cam'].get('aang') == 90 and c.eval("document.querySelector('[data-nv-change=nvqNum][data-k=aang]').value") == '90', 'a line\'s angle beyond 90° is kept and shown as 90°')
+    before = json.dumps(shapes()[0]['cam'], sort_keys=True); clk(c, '[data-nv=nvqSet][data-v="ain:line"]'); time.sleep(.4)
+    ok(json.dumps(shapes()[0]['cam'], sort_keys=True) == before, 'clicking the choice that is already on changes nothing')
+    clk(c, '[data-nv=nvqSet][data-v="rout:up"]'); time.sleep(.4)
+    ok(shapes()[0]['cam'].get('over') == 5 and 'rout' not in shapes()[0]['cam'], 'the overlap stays when the lead-out goes back to "straight up" (it is run before lifting)')
+    c.type('[data-nv-change=nvqNum][data-k=feed]', '4'); time.sleep(.4)
+    ok(shapes()[0]['cam'].get('feed') == 300, 'a feed of 4 mm/min is a slip: the lowest kept is 300 — %s' % shapes()[0]['cam'].get('feed'))
     c.eval("__nv.undo && 0"); clk(c, '[data-nv=nvqReset]'); time.sleep(.4)
     ok(shapes()[0].get('cam') is None and marks() == [0, 0, 1], 'back to the usual routing with one button')
     clk(c, '[data-act=skop][data-v=on]'); time.sleep(.4)

@@ -24,6 +24,7 @@
 
 var NVQ_DEF = { ain: 'ramp', amode: 'down', amul: 2, rout: 'up', rmul: 2, over: 0, step: 0, dang: 0, rev: 0, feed: 0, feedIn: 0 };
 var NVQ_LIM = { amul: [0.5, 6], rmul: [0.5, 6], aang: [0, 180], rang: [0, 180], over: [0, 60], step: [0, 40], dang: [0, 45], feed: [0, 12000], feedIn: [0, 8000] };
+var NVQ_FEED_MIN = 300;   // mm/min: a typed 4 is a slip of the hand, not a feed
 function nvqAngDef(type) { return type === 'arc' ? 90 : 45; }
 function nvqOpt(cam) {
   cam = cam || {}; var o = {}, k; for (k in NVQ_DEF) o[k] = cam[k] != null ? cam[k] : NVQ_DEF[k];
@@ -32,6 +33,7 @@ function nvqOpt(cam) {
   for (k in NVQ_LIM) { var v = +o[k]; o[k] = isFinite(v) ? Math.max(NVQ_LIM[k][0], Math.min(NVQ_LIM[k][1], v)) : (NVQ_DEF[k] || 0); }
   if (o.ain === 'line') o.aang = Math.min(o.aang, 90); if (o.rout === 'line') o.rang = Math.min(o.rang, 90);
   if (o.ain === 'arc') o.aang = Math.max(o.aang, 10); if (o.rout === 'arc') o.rang = Math.max(o.rang, 10);
+  if (o.feed > 0) o.feed = Math.max(o.feed, NVQ_FEED_MIN); if (o.feedIn > 0) o.feedIn = Math.max(o.feedIn, NVQ_FEED_MIN);
   return o;
 }
 function nvqRoutable(op) { return op === 'on' || op === 'in' || op === 'out' || op === 'pocket'; }
@@ -41,7 +43,7 @@ function nvqPut(sh, k, v) {
   var cam = sh.cam = sh.cam || {};
   if (v == null || v === '' || v === NVQ_DEF[k] || ((k === 'aang' || k === 'rang') && +v === nvqAngDef(cam[k === 'aang' ? 'ain' : 'rout'] || 'ramp'))) delete cam[k]; else cam[k] = v;
   if (k === 'ain') { delete cam.aang; if (v === 'ramp') { delete cam.amul; delete cam.amode; } }
-  if (k === 'rout') { delete cam.rang; if (v === 'up') { delete cam.rmul; delete cam.over; } }
+  if (k === 'rout') { delete cam.rang; if (v === 'up') delete cam.rmul; }   /* the overlap stays: it is run before lifting straight up too */
   if (!Object.keys(cam).length) delete sh.cam;
 }
 
@@ -108,11 +110,30 @@ function nvqClip(pts, x0, y0, x1, y1) {   // → the stretches of the path insid
     if (D(f[0], pts[0]) < 1e-6 && D(l[l.length - 1], pts[0]) < 1e-6) { runs[0] = l.concat(f.slice(1)); runs.pop(); } }
   return runs.filter(function (r) { return r.length > 1; });
 }
-E.nvClip = function (loops, L, W, C0) {
-  var r = C0.dia / 2, m = Math.min(C0.air, r + C0.leadIn), out = [];
-  (loops || []).forEach(function (lp) { nvqClip(lp, -m, -m, L + m, W + m).forEach(function (run) {
+function nvqSegDist(a, b, c, d) {   // the least distance between the segments a–b and c–d
+  var X = nvqSegX(a, b, c, d); if (X) return 0;
+  var ps = function (q, u, v) { var dx = v[0] - u[0], dy = v[1] - u[1], l2 = dx * dx + dy * dy, t = l2 > 1e-12 ? Math.max(0, Math.min(1, ((q[0] - u[0]) * dx + (q[1] - u[1]) * dy) / l2)) : 0; return Math.hypot(u[0] + dx * t - q[0], u[1] + dy * t - q[1]); };
+  return Math.min(ps(a, c, d), ps(b, c, d), ps(c, a, b), ps(d, a, b));
+}
+function nvqSegX(a, b, c, d) { var o = function (p, q, r) { return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]); }, d1 = o(c, d, a), d2 = o(c, d, b), d3 = o(a, b, c), d4 = o(a, b, d); return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)); }
+/* loops: the cutter centre's paths of one shape as the engine made them (closed ones with their first point repeated; a
+   pocket's rings from the middle outwards). → { loops, why }: what is left to route, and why nothing is ('small' | 'neck' | 'outside') */
+E.nvClip = function (loops, L, W, C0, op, outline, type) {
+  var r = C0.dia / 2, m = Math.min(C0.air, r + C0.leadIn), out = [], per = function (lp) { var c = nvqCum(lp); return c[c.length - 1]; };
+  loops = (loops || []).slice();
+  if (op === 'pocket') loops = loops.filter(function (lp, i) {   // a ring so small that the next one out clears all of it: left out (it would be gone down on the spot)
+    if (i === loops.length - 1) return true; var in1 = null; try { in1 = E.offsetPoly(lp, r * 0.05); } catch (e) { in1 = lp; } return !!in1; });
+  if (loops.some(function (lp) { return per(lp) < 1; })) return { loops: [], why: 'small' };   // a dot, or a shape the cutter's own size: routing it would be a plunge
+  if (op === 'in' || op === 'out' || op === 'pocket') {
+    if (type === 'line' && outline && outline.length > 2) {   // a drawn outline may be narrower than the cutter somewhere: the path would run into its walls
+      var O = outline, lim = r - 0.02;
+      for (var li = 0; li < loops.length; li++) { var lp = loops[li];
+        for (var i = 0; i < lp.length - 1; i++) for (var j = 0; j < O.length; j++) if (nvqSegDist(lp[i], lp[i + 1], O[j], O[(j + 1) % O.length]) < lim) return { loops: [], why: 'neck' }; }
+    }
+  }
+  loops.forEach(function (lp) { nvqClip(lp, -m, -m, L + m, W + m).forEach(function (run) {
     for (var i = 0; i < run.length - 1; i++) if (nvqClipSeg(run[i], run[i + 1], -r, -r, L + r, W + r)) { out.push(run); return; } }); });   // it reaches the board somewhere
-  return out;
+  return { loops: out, why: out.length ? '' : 'outside' };
 };
 
 /* ---------------------------------------------------------------- the moves
@@ -140,7 +161,9 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
   var rampLen = function (dz) { return cam.dang > 0 ? Math.max(1, dz / Math.tan(cam.dang * Math.PI / 180)) : C0.ramp; };
   var R3 = function (v) { return Math.round(v * 1000) / 1000; }, cur = null;
   var go = function (q) { mv.push({ t: 'G0', x: R3(q[0]), y: R3(q[1]), z: C0.safeZ, k: 'rapid' }); cur = q; };
-  var to = function (q, z, v, k) { mv.push({ t: 'L', x: R3(q[0]), y: R3(q[1]), z: R3(z), v: v, k: k }); cur = q; };
+  var to = function (q, z, v, k) { var x = R3(q[0]), y = R3(q[1]), zz = R3(z), l = mv[mv.length - 1]; cur = q;
+    if (l && l.t === 'L' && Math.abs(l.x - x) < 0.0045 && Math.abs(l.y - y) < 0.0045 && Math.abs(l.z - zz) < 0.0045) { l.x = x; l.y = y; l.z = zz; return; }   /* a step of a few thousandths (where two stretches meet): the move before it ends there instead */
+    mv.push({ t: 'L', x: x, y: y, z: zz, v: v, k: k }); };
   var run = function (pts, z0, z1, v, k) { var len = 0, i, acc = 0; for (i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
     for (i = 1; i < pts.length; i++) { acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); to(pts[i], len > 1e-9 ? z0 + (z1 - z0) * acc / len : z1, v, k); } };
   var plen = function (pts) { var l = 0; for (var i = 1; i < pts.length; i++) l += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return l; };
@@ -149,7 +172,12 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
   var onRing = function (q) { for (var i = 0; i < ring.length; i++) { var a = ring[i], b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 > 1e-12 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)) : 0;
       if (Math.hypot(a[0] + dx * t - q[0], a[1] + dy * t - q[1]) < 1e-4) return true; } return false; };
   var inWaste = function (q) { return onRing(q) || nvqInside(q, ring) === (op === 'in'); };   // on the path itself counts: it is cut anyway
-  var leadOk = function (pts, skip) { for (var i = 0; i < pts.length; i++) { if (i === skip) continue; var o = pts[i === 0 ? 1 : i - 1], q = pts[i];
+  var crosses = function (a, b) {   // does a–b meet the path anywhere but at its own two ends?
+    for (var i = 0; i < ring.length; i++) { var c = ring[i], d = ring[(i + 1) % ring.length], rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1], den = rx * sy - ry * sx; if (Math.abs(den) < 1e-9) continue;
+      var t = ((c[0] - a[0]) * sy - (c[1] - a[1]) * sx) / den, u = ((c[0] - a[0]) * ry - (c[1] - a[1]) * rx) / den; if (t > 1e-6 && t < 1 - 1e-6 && u > -1e-9 && u < 1 + 1e-9) return true; }
+    return false; };
+  var leadOk = function (pts, skip) { for (var j = 1; j < pts.length; j++) if (crosses(pts[j - 1], pts[j])) return false;
+    for (var i = 0; i < pts.length; i++) { if (i === skip) continue; var o = pts[i === 0 ? 1 : i - 1], q = pts[i];
       if (q[0] < -air || q[0] > dim.DX + air || q[1] < -air || q[1] > dim.DY + air) return false;
       var mid = [(q[0] + o[0]) / 2, (q[1] + o[1]) / 2]; if (!inWaste(q) || !inWaste(mid)) return false; } return true; };
   var fit = function (make, mul, skipLast, short) { var fs = [1, 0.75, 0.5, 0.35]; for (var i = 0; i < fs.length; i++) { var pts = make(mul * fs[i]); if (leadOk(pts, skipLast ? pts.length - 1 : 0)) { if (i) notes.push(short); return pts; } } return null; };
@@ -163,7 +191,10 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
   var LI = null;
   if (lin !== 'ramp') { var A0 = nvqAt(P, cum, 0), nW0 = normal(A0.t);
     LI = fit(function (m) { return nvqLead(A0.p, A0.t, nW0, lin, m, cam.aang, r, side, false); }, cam.amul, true, 'inShort');
-    if (!LI) { notes.push('inNone'); lin = 'ramp'; } }
+    if (!LI) { notes.push('inNone'); lin = 'ramp'; }
+    else { var S9 = LI[0], out9 = S9[0] < -r || S9[0] > dim.DX + r || S9[1] < -r || S9[1] > dim.DY + r;
+      if (!(cam.amode === 'quote' && out9) && plen(LI) * 15 < rampLen(depth) - 1e-9) { notes.push('inSteep'); lin = 'ramp'; LI = null; } } }
+  over = Math.min(over, T);
 
   if (lin !== 'ramp') {   // every pass: in along the lead, once round (and the overlap), out, up
     var S0 = LI[0], ll = plen(LI), back = LI.slice().reverse(), outside = S0[0] < -r || S0[0] > dim.DX + r || S0[1] < -r || S0[1] > dim.DY + r;
@@ -171,7 +202,7 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
     for (var k = 1; k <= nP; k++) { var zk = -depth * k / nP;
       go(S0);
       if (quote) { to(S0, zk, feedIn, 'in'); run(LI, zk, zk, feed, 'in'); }
-      else { to(S0, 0, feedIn, 'in'); var m = Math.max(1, Math.ceil(rampLen(-zk) / ll - 1e-9)); if (m % 2 === 0) m++; m = Math.min(m, 15);
+      else { to(S0, 0, feedIn, 'in'); var m = Math.max(1, Math.ceil(rampLen(-zk) / ll - 1e-9)); if (m % 2 === 0) m++; m = Math.min(m, 17);
         for (var j = 0; j < m; j++) run(j % 2 ? back : LI, zk * j / m, zk * (j + 1) / m, feedIn, 'in'); }
       run(nvqSub(P, cum, true, 0, T + over), zk, zk, feed, 'cut');
       leave(over, zk);
@@ -179,7 +210,8 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
     }
   } else if (closed) {   // down along the outline itself, round, deeper along the next stretch, round … no lifting in between
     go(P[0]); to(P[0], 0, feedIn, 'in'); var s = 0, zp = 0;
-    for (var k2 = 1; k2 <= nP; k2++) { var z2 = -depth * k2 / nP, rl = Math.min(rampLen(zp - z2), T);
+    for (var k2 = 1; k2 <= nP; k2++) { var z2 = -depth * k2 / nP, want2 = rampLen(zp - z2), rl = Math.min(want2, T * 60);   /* a ring shorter than the way down: round and round (a spiral), never steeper */
+      if (rl < want2 - 1e-6 && notes.indexOf('steep') < 0) notes.push('steep');
       run(nvqSub(P, cum, true, s, s + rl), zp, z2, feedIn, 'in');
       run(nvqSub(P, cum, true, s + rl, s + rl + T), z2, z2, feed, 'cut');
       s += rl; zp = z2; }
@@ -188,20 +220,32 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
     to(cur, C0.safeZ, feed, 'lift');
   } else {   // an open line: down along it, back, to the far end; the next pass comes back the same way
     var Q = P, cq = cum; go(Q[0]); to(Q[0], 0, feedIn, 'in'); var zq = 0;
-    for (var k3 = 1; k3 <= nP; k3++) { var z3 = -depth * k3 / nP, rl3 = Math.min(rampLen(zq - z3), T), head = nvqSub(Q, cq, false, 0, rl3);
-      run(head, zq, z3, feedIn, 'in'); run(head.slice().reverse(), z3, z3, feed, 'cut'); run(nvqSub(Q, cq, false, 0, T), z3, z3, feed, 'cut');
-      zq = z3; Q = Q.slice().reverse(); cq = nvqCum(Q); }
+    for (var k3 = 1; k3 <= nP; k3++) { var z3 = -depth * k3 / nP, want3 = rampLen(zq - z3), Qr = Q.slice().reverse();
+      if (T >= want3 - 1e-9) { var head = nvqSub(Q, cq, false, 0, want3);
+        run(head, zq, z3, feedIn, 'in'); run(head.slice().reverse(), z3, z3, feed, 'in'); run(nvqSub(Q, cq, false, 0, T), z3, z3, feed, 'cut');   /* the way back over the ramp belongs to going in (the arrow shows the pass itself) */
+        Q = Qr; cq = nvqCum(Q); }
+      else {   /* a line shorter than the way down: down along it there and back as often as it takes, then once along it at depth */
+        var m3 = Math.min(60, Math.max(1, Math.ceil(want3 / T - 1e-9))); if (m3 * T < want3 - 1e-6 && notes.indexOf('steep') < 0) notes.push('steep');
+        for (var j3 = 0; j3 < m3; j3++) run(j3 % 2 ? Qr : Q, zq + (z3 - zq) * j3 / m3, zq + (z3 - zq) * (j3 + 1) / m3, feedIn, 'in');
+        run(m3 % 2 ? Qr : Q, z3, z3, feed, 'cut');
+        if (m3 % 2 === 0) { Q = Qr; cq = nvqCum(Q); } }
+      zq = z3; }
     to(cur, C0.safeZ, feed, 'lift');
   }
   return { moves: mv, notes: notes, passes: nP, start: [mv[0].x, mv[0].y] };
 }
-E.nvRoute = function (P, depth, g, C0, dim) {   // the engine asks here for every path that has options; null = its own moves
-  try { var o = nvqMoves(P, depth, g.op, g.cam, C0, dim); return o ? o.moves : null; } catch (e) { if (window.console) console.error(e); return null; }
+function nvqShortRing(P, C0) {   // a path shorter than the way down: the live ramp along all of it and back would be close to a plunge
+  if (!P || P.length < 2) return false; var c = nvqCum(P); return c[c.length - 1] < C0.ramp - 1e-9;
+}
+E.nvRoute = function (P, depth, g, C0, dim) {   // the engine asks here for every path; null = its own (the live) moves
+  try { if (!g.cam && !nvqShortRing(P, C0)) return null;
+    var o = nvqMoves(P, depth, g.op, g.cam, C0, dim); return o ? o.moves : null; } catch (e) { if (window.console) console.error(e); return null; }
 };
 
 /* the same moves in the part's own frame (as drawn): a path worked from face B is mirrored for its program and back */
 function nvqPreview(p, g) {
-  if (!g || !g.cam) return null; var C0 = E.R.rout, B = g.face === 'B', DY = p.W;
+  if (!g) return null; var C0 = E.R.rout, B = g.face === 'B', DY = p.W;
+  if (!g.cam && !nvqShortRing(g.pts, C0)) return null;
   var P = g.pts.map(function (q) { return [q[0], B ? DY - q[1] : q[1]]; }); if (B) P.reverse();
   var o = null; try { o = nvqMoves(P, Math.min(g.depth, p.T - C0.skin), g.op, g.cam, C0, { DX: p.L, DY: p.W }); } catch (e) { o = null; }
   if (!o) return null;
@@ -210,6 +254,8 @@ function nvqPreview(p, g) {
 function nvqPathsOf(p, n) { return (p.paths || []).filter(function (g) { var m = /^ESKIZAS_(\d+)/.exec(g.name || ''); return m && +m[1] === n; }); }
 var NVQ_NOTE = {
   inShort: ['Įėjimas sutrumpintas — atliekoje jam per mažai vietos.', 'The lead-in was shortened — the waste has no room for it.'],
+  steep: ['Kontūras per trumpas nusileisti nurodytu kampu — leidžiamasi stačiau.', 'The path is too short to go down on at the angle asked — it goes down more steeply.'],
+  inSteep: ['Įėjimas per trumpas nusileisti nurodytu kampu — freza leidžiasi pačiu kontūru.', 'The lead-in is too short to go down on at the angle asked — the cutter goes down along the outline itself.'],
   inNone: ['Įėjimui linija ar lanku atliekoje vietos nėra — freza leidžiasi pačiu kontūru.', 'No room in the waste for a line or arc lead-in — the cutter goes down along the outline itself.'],
   outShort: ['Išėjimas sutrumpintas — atliekoje jam per mažai vietos.', 'The lead-out was shortened — the waste has no room for it.'],
   outNone: ['Išėjimui atliekoje vietos nėra — freza kyla tiesiai aukštyn.', 'No room in the waste for the lead-out — the cutter lifts straight up.'],
@@ -256,7 +302,7 @@ function nvqProps(c, p, r, sh, idx) {
   if (!nvqRoutable(sh.op)) return '';
   var o = nvqOpt(sh.cam), raw = sh.cam || {}, sided = nvqSided(sh), R0 = E.R.rout, rr = R0.dia / 2, maxD = p.T - R0.skin, depth = sh.through ? maxD : Math.min(+sh.depth || 0, maxD), h = '';
   var segB = function (k, opts) { return '<div class="seg nvq-seg" role="group">' + opts.map(function (x) { var on = String(o[k]) === String(x[0]); return '<button type="button" data-nv="nvqSet" data-v="' + k + ':' + x[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>'; };
-  var num = function (k, label, unit, ph, title) { var v = raw[k] != null ? raw[k] : (k === 'aang' || k === 'rang' || k === 'amul' || k === 'rmul' ? o[k] : '');
+  var num = function (k, label, unit, ph, title) { var v = raw[k] != null || k === 'aang' || k === 'rang' || k === 'amul' || k === 'rmul' ? o[k] : '';   /* what is used (within its limits), not merely what was typed */
     return '<label class="f sk-f nvq-f"' + (title ? ' title="' + esc(title) + '"' : '') + '><span>' + esc(label) + (unit ? ' <i>' + esc(unit) + '</i>' : '') + '</span><input type="text" inputmode="decimal" data-nv-change="nvqNum" data-k="' + k + '" value="' + esc(v === '' ? '' : String(v)) + '" placeholder="' + esc(ph || '') + '"></label>'; };
   var row = function (label, body) { return '<div class="nvq-row"><span class="nvq-k">' + esc(label) + '</span><div class="nvq-v">' + body + '</div></div>'; };
   if (sided) {
@@ -285,6 +331,7 @@ function nvqProps(c, p, r, sh, idx) {
 }
 NVA.nvqSet = function (el, v) {
   var kv = String(v).split(':'), k = kv[0], val = kv[1]; if (!(k in NVQ_DEF)) return false;
+  var X = skCtx(), sh0 = skSelShape(X); if (!sh0 || String(nvqOpt(sh0.cam)[k]) === String(val)) return false;   // already so: nothing to undo, no angle to reset
   skChange(function (sh) { nvqPut(sh, k, k === 'rev' ? (+val ? 1 : 0) : val); });
 };
 NVA.nvqReset = function () { skChange(function (sh) { delete sh.cam; }); };
@@ -293,7 +340,9 @@ NVC.nvqNum = function (el) {
   if (t === '') { skChange(function (sh) { nvqPut(sh, k, null); }); return; }
   var v = skNum(t); if (v == null || v < 0) { toast(L('Įveskite skaičių', 'Enter a number'), true); return; }
   v = Math.max(lim[0], Math.min(lim[1], v));
-  skChange(function (sh) { nvqPut(sh, k, v || null); });
+  if ((k === 'feed' || k === 'feedIn') && v > 0 && v < NVQ_FEED_MIN) { v = NVQ_FEED_MIN; toast(L('Mažiausia pastūma — ', 'The lowest feed is ') + NVQ_FEED_MIN + ' mm/min'); }
+  var ang = k === 'aang' || k === 'rang';   // 0° is an angle (straight on); everywhere else 0 means "as usual"
+  skChange(function (sh) { var type = (sh.cam || {})[k === 'aang' ? 'ain' : 'rout']; if (ang && type === 'line') v = Math.min(v, 90); if (ang && type === 'arc') v = Math.max(v, 10); nvqPut(sh, k, ang ? v : (v || null)); });
 };
 
 /* what the route could not do as asked is said in the check list too (it is still made — in the safer way) */

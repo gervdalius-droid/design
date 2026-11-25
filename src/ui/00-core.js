@@ -93,8 +93,8 @@ function nvRedo() { var H = NV.hist; if (typeof nvpIs === 'function' && nvpIs(S.
 /* the live save(), plus the undo note */
 function save() {
   if (!S.proj) return;
+  if (typeof nvpGuard === 'function' && nvpGuard()) return;   // produced and locked (65-produced.js) — also while only viewing
   if (S.ro) { S.roDirty = true; return; }   // view only / not yet confirmed that nobody else edits it (locks.js)
-  if (typeof nvpGuard === 'function' && nvpGuard()) return;   // produced and locked (65-produced.js)
   VER.touched();
   clearTimeout(clibTimer); clibTimer = setTimeout(clibSync, 300);
   if (S.tab !== 'room' && S.roomUndo && S.roomUndo.length) S.roomUndo = [];

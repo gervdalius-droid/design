@@ -83,16 +83,17 @@ PATCHES = [
     #     Each path also carries its operation and the routing options of src/ui/38-route.js.
     ('engine', "loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep }); });",
                "if (op !== 'on') loops = loops.map(function (lp) { return lp.concat([lp[0]]); });\n"
-               "    if (api.nvClip) { loops = api.nvClip(loops, p.L, p.W, C0); if (!loops.length) { warn.push(tag + 'visa operacija už detalės — NEPROGRAMUOTA'); return; } }\n"
+               "    if (api.nvClip) { var nvC = api.nvClip(loops, p.L, p.W, C0, op, o.pts, s.t); loops = nvC.loops; if (!loops.length) { if (s.through) nThr--; warn.push(tag + (nvC.why === 'small' ? 'kontūras per mažas frezai ø' + num(C0.dia) : nvC.why === 'neck' ? 'kontūras vietomis siauresnis už frezą ø' + num(C0.dia) : 'visa operacija už detalės') + ' — NEPROGRAMUOTA'); return; } }\n"
                "    loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep, op:op, cam:s.cam || null }); });"),
     #     … so only a drilled hole is still refused for lying outside (and one whose centre is off the part altogether)
     ('engine', "if (o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }",
                "if ((op === 'drill' || !api.nvClip) && o.pts.some(function (q) { return q[0] < -air || q[0] > p.L + air || q[1] < -air || q[1] > p.W + air; })) { warn.push(tag + 'išeina daugiau nei ' + air + ' mm už detalės — NEPROGRAMUOTA'); return; }\n"
                "    if (op === 'drill' && s.t === 'circle' && ((+s.x || 0) < 0 || (+s.x || 0) > p.L || (+s.y || 0) < 0 || (+s.y || 0) > p.W)) { warn.push(tag + 'skylės centras už detalės — NEPROGRAMUOTA'); return; }"),
     # (2) a path with routing options (lead-in, lead-out, passes …) gets its moves from src/ui/38-route.js; without options
-    #     the live moves, unchanged
+    #     the live moves, unchanged — except a closed ring shorter than the 30 mm way down (a pocket's inner rings): the live
+    #     ramp along it and back was close to a plunge; it is gone round as a spiral instead
     ('engine', "return routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), Math.min(g.depth, DZ - R.rout.skin), g.name);",
-               "var nvD = Math.min(g.depth, DZ - R.rout.skin), nvM = g.cam && api.nvRoute ? api.nvRoute(P, nvD, g, R.rout, { DX:DX, DY:DY }) : null; return nvM ? { name:g.name, moves:nvM } : routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), nvD, g.name);"),
+               "var nvD = Math.min(g.depth, DZ - R.rout.skin), nvM = api.nvRoute ? api.nvRoute(P, nvD, g, R.rout, { DX:DX, DY:DY }) : null; return nvM ? { name:g.name, moves:nvM } : routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), nvD, g.name);"),
 
     # ---- the drawing tool (src/ui/37-sketch.js): where a point lands is decided there (ends, middles, centres, on a line,
     #      crossings, perpendicular, horizontal / vertical …), it draws what was caught, and a dragged shape is caught by the

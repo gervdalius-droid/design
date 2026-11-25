@@ -3280,7 +3280,7 @@ function applySketch(p, list, warn) {
       }
     }
     if (op !== 'on') loops = loops.map(function (lp) { return lp.concat([lp[0]]); });
-    if (api.nvClip) { loops = api.nvClip(loops, p.L, p.W, C0); if (!loops.length) { warn.push(tag + 'visa operacija už detalės — NEPROGRAMUOTA'); return; } }
+    if (api.nvClip) { var nvC = api.nvClip(loops, p.L, p.W, C0, op, o.pts, s.t); loops = nvC.loops; if (!loops.length) { if (s.through) nThr--; warn.push(tag + (nvC.why === 'small' ? 'kontūras per mažas frezai ø' + num(C0.dia) : nvC.why === 'neck' ? 'kontūras vietomis siauresnis už frezą ø' + num(C0.dia) : 'visa operacija už detalės') + ' — NEPROGRAMUOTA'); return; } }
     loops.forEach(function (lp, k) { p.paths.push({ face:face, name:'ESKIZAS_' + (i + 1) + (loops.length > 1 ? '_' + (k + 1) : ''), pts:lp.map(function (q) { return [Math.round(q[0] * 1000) / 1000, Math.round(q[1] * 1000) / 1000]; }), depth:dep, op:op, cam:s.cam || null }); });
     nOp++;
   });
@@ -4982,7 +4982,7 @@ function programs(p) {
       return groovePath({ x0:g.x0, x1:g.x1, y0:y0, y1:y1 }, DX, DY, dep, g.name || 'GROOVE');
     }).concat(PA.filter(function (g) { return g.face === up; }).map(function (g) {   // drawn by hand: the tool centre's path as worked out with the part (B up: Y mirrored)
       var P = g.pts.map(function (q) { return [q[0], up === 'A' ? q[1] : DY - q[1]]; }); if (up === 'B') P.reverse();   // mirrored: turn the path round so the panel stays on the same side of the tool
-      var nvD = Math.min(g.depth, DZ - R.rout.skin), nvM = g.cam && api.nvRoute ? api.nvRoute(P, nvD, g, R.rout, { DX:DX, DY:DY }) : null; return nvM ? { name:g.name, moves:nvM } : routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), nvD, g.name);
+      var nvD = Math.min(g.depth, DZ - R.rout.skin), nvM = api.nvRoute ? api.nvRoute(P, nvD, g, R.rout, { DX:DX, DY:DY }) : null; return nvM ? { name:g.name, moves:nvM } : routeMoves(P[0], P.slice(1).map(function (q) { return { x:q[0], y:q[1] }; }), nvD, g.name);
     }));
   };
   var faceTxt = function (up) { return up === 'A' ? '' : ' -- THIS PROGRAM DRILLS THE OTHER FACE: panel turned over about X (long edge stays, Y mirrored)'; };
@@ -12956,7 +12956,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = api; else 
 })(typeof window !== 'undefined' ? window : this);
 
 </script>
-<script>window.NV_BUILD="183c0e0af7"</script>
+<script>window.NV_BUILD="ce4604887f"</script>
 <script>
 /* =====================================================================
    app.js — Dėdės Baldai spintelių kūrėjas (cabinet creator).
@@ -16700,8 +16700,8 @@ function nvRedo() { var H = NV.hist; if (typeof nvpIs === 'function' && nvpIs(S.
 /* the live save(), plus the undo note */
 function save() {
   if (!S.proj) return;
+  if (typeof nvpGuard === 'function' && nvpGuard()) return;   // produced and locked (65-produced.js) — also while only viewing
   if (S.ro) { S.roDirty = true; return; }   // view only / not yet confirmed that nobody else edits it (locks.js)
-  if (typeof nvpGuard === 'function' && nvpGuard()) return;   // produced and locked (65-produced.js)
   VER.touched();
   clearTimeout(clibTimer); clibTimer = setTimeout(clibSync, 300);
   if (S.tab !== 'room' && S.roomUndo && S.roomUndo.length) S.roomUndo = [];
@@ -19235,6 +19235,13 @@ function nvsOut(p, kind, guides, nv) { return { p: [p[0], p[1]], kind: kind, gui
    drag: { move: shape } | { grip: handle, o: shape } while dragging, mm: millimetres per screen pixel, g: the grid */
 function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
   if (!X || !X.p || !S.sk || !isFinite(mm) || !(mm > 0)) return null;
+  var L0 = NVS.last, dr0 = X.K.draft;   /* the pointer has not left the spot whose click made the last point: that point again — a second click there finishes the line (from the new last point other things would be caught: the foot of a perpendicular, a held direction) */
+  if (prev && !drag && L0 && dr0 && dr0.t === 'line' && L0.out[0] === prev[0] && L0.out[1] === prev[1] && nvsD(P, L0.raw) < 4 * mm) return nvsOut(prev, 'pt', [], { t: 'again' });
+  var res = nvsSnap0(P, X, prev, e, exclId, drag, mm, g);
+  if (res && !drag) NVS.last = { raw: [P[0], P[1]], out: res.p };
+  return res;
+}
+function nvsSnap0(P, X, prev, e, exclId, drag, mm, g) {
   if (e && e.altKey) return nvsOut(P, 'grid', [], { free: true });
   var tol = NVS.px * mm, en = nvsEnts(X, exclId, drag), dr = X.K.draft, line = !!(prev && dr && dr.t === 'line'), i, j;
   var best = null, take = function (p, t, d, more) { if (d < (best ? best.d : tol)) { best = { p: p, t: t, d: d }; if (more) for (var k in more) best[k] = more[k]; } };
@@ -19255,14 +19262,14 @@ function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
   if (best) return nvsOut(best.p, 'pt', [], { t: best.t, ref: best.ref, circ: best.circ, from: line ? prev : null });
 
   /* 2. the direction a line being drawn holds */
-  var lock = null;
+  var lock = null, shift = !!(e && e.shiftKey);
   if (line) {
     var dirs = [{ d: [1, 0], rel: 'ax' }, { d: [0, 1], rel: 'ax' }], skew = function (u) { return Math.abs(u[0]) > 2e-3 && Math.abs(u[1]) > 2e-3; },
       has = function (u) { return dirs.some(function (D) { return Math.abs(D.d[0] * u[1] - D.d[1] * u[0]) < 2e-3; }); },
       add = function (a, b, r1, r2, ref) { var l = nvsD(a, b); if (l < 1e-6) return; var u = [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; if (!skew(u) || has(u)) return; dirs.push({ d: u, rel: r1, ref: ref }, { d: [-u[1], u[0]], rel: r2, ref: ref }); };
     var n = dr.pts.length; if (n >= 2) add(dr.pts[n - 2], dr.pts[n - 1], 'ext', 'perp', { a: dr.pts[n - 2], b: dr.pts[n - 1] });
     Sg.forEach(function (s) { if (s.k === 'line' && dirs.length < 14) add(s.a, s.b, 'par', 'perp', s); });
-    var v = [P[0] - prev[0], P[1] - prev[1]], len = Math.hypot(v[0], v[1]), shift = !!(e && e.shiftKey);
+    var v = [P[0] - prev[0], P[1] - prev[1]], len = Math.hypot(v[0], v[1]);
     if (len > tol * 0.4) dirs.forEach(function (D) { if (shift && D.rel !== 'ax') return;
       var off = Math.abs(v[0] * D.d[1] - v[1] * D.d[0]), lim = shift ? Infinity : Math.min(tol * 0.6, len * (D.rel === 'ax' ? 0.12 : 0.085));   /* ≈ 7° to the axes, 5° to other directions */
       if (off < lim && (!lock || off < lock.off)) lock = { d: D.d, rel: D.rel, ref: D.ref, off: off, al: v[0] * D.d[0] + v[1] * D.d[1] }; });
@@ -19279,7 +19286,7 @@ function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
     else nvsLineCirc(prev, lock.d, on.circ.c, on.circ.r).forEach(function (q) { if (nvsD(q.p, P) < tol * 1.5 && (!hit || nvsD(q.p, P) < nvsD(hit, P))) hit = q.p; });
     if (hit) return nvsOut(hit, 'pt', [], { t: 'on', rel: lock.rel, d: lock.d, lref: lock.ref, ref: on.seg, circ: on.circ, from: prev });
   }
-  if (on && !(lock && lock.off < on.d)) {
+  if (on && !(lock && (shift || lock.off < on.d))) {   /* Shift: level or upright, whatever lies near */
     var q0 = on.p, gd = [], s0 = on.seg;
     if (s0) { var hor = Math.abs(s0.a[1] - s0.b[1]) < 1e-9, ver = Math.abs(s0.a[0] - s0.b[0]) < 1e-9;
       if (hor || ver) {   // along an edge or a straight line: level with another point, else whole grid steps
@@ -19318,7 +19325,7 @@ function nvsBase(o, start) {
 }
 
 var NVS_NAME = { end: ['Galas', 'Endpoint'], corner: ['Kampas', 'Corner'], close: ['Uždaryti kontūrą', 'Close the outline'], mid: ['Vidurys', 'Midpoint'], cen: ['Centras', 'Centre'], quad: ['Kvadrantas', 'Quadrant'],
-  hole: ['Skylė', 'Hole'], int: ['Sankirta', 'Intersection'], perp: ['Statmenai', 'Perpendicular'], tan: ['Liestinė', 'Tangent'], on: ['Ant linijos', 'On the line'], onEdge: ['Ant krašto', 'On the edge'], onCirc: ['Ant apskritimo', 'On the circle'],
+  hole: ['Skylė', 'Hole'], again: ['Dar kartą — baigti', 'Again — finish'], int: ['Sankirta', 'Intersection'], perp: ['Statmenai', 'Perpendicular'], tan: ['Liestinė', 'Tangent'], on: ['Ant linijos', 'On the line'], onEdge: ['Ant krašto', 'On the edge'], onCirc: ['Ant apskritimo', 'On the circle'],
   H: ['Horizontaliai', 'Horizontal'], V: ['Vertikaliai', 'Vertical'], ext: ['Tęsinys', 'Extension'], par: ['Lygiagrečiai', 'Parallel'], relPerp: ['Statmenai', 'Perpendicular'], free: ['Laisvai', 'Free'] };
 
 /* what was caught, drawn at the pointer. u: one hundredth of the view, sP: program point → the drawing's coordinates */
@@ -19326,6 +19333,7 @@ function nvsMarks(X, info, cur, u, sP, D) {
   if (!info || !info.nv || !S.sk) return '';
   var dragging = !!(D && (D.mode === 'move' || D.mode === 'grip') && D.moved);
   if (S.sk.tool === 'sel' ? !dragging : !cur) return '';
+  if (S.sk.tool !== 'sel' && nvsD(cur, info.p) > 0.051) return '';   /* the point came from the keyboard since: what the pointer was caught by no longer says where it is */
   var sv0 = document.querySelector('.sk-svg'), m0 = sv0 && sv0.getScreenCTM(), px = m0 && m0.a ? 1 / m0.a : u / 4;   // one screen pixel, in the drawing's units: signs and words keep their size at any zoom
   var nv = info.nv, q = info.p, C = sP(q), s = '', en = S.lang === 'en' ? 1 : 0, pe = ' vector-effect="non-scaling-stroke" pointer-events="none"', Y = '#e8a200', G = '#1f7a4d';
   var ln = function (a, b, st) { var A = sP(a), B = sP(b); return '<line x1="' + A[0] + '" y1="' + A[1] + '" x2="' + B[0] + '" y2="' + B[1] + '"' + st + pe + '/>'; };
@@ -19339,7 +19347,7 @@ function nvsMarks(X, info, cur, u, sP, D) {
     else words.push(NVS_NAME[nv.rel === 'perp' ? 'relPerp' : nv.rel][en]);
   }
   var h = px * 5.5, st = ' fill="#fff" stroke="' + G + '" stroke-width="2"' + pe, t = nv.t, x = C[0], y = C[1], R1 = function (v) { return Math.round(v * 100) / 100; };
-  if (t === 'end' || t === 'corner' || t === 'close') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><circle cx="' + x + '" cy="' + y + '" r="' + R1(h * 0.35) + '" fill="' + G + '" pointer-events="none"/>';
+  if (t === 'end' || t === 'corner' || t === 'close' || t === 'again') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><circle cx="' + x + '" cy="' + y + '" r="' + R1(h * 0.35) + '" fill="' + G + '" pointer-events="none"/>';
   else if (t === 'mid') s += '<path d="M' + R1(x - h) + ' ' + R1(y + h * 0.8) + 'L' + R1(x + h) + ' ' + R1(y + h * 0.8) + 'L' + x + ' ' + R1(y - h) + 'Z"' + st + '/>';
   else if (t === 'cen' || t === 'hole') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><path d="M' + R1(x - h * 1.5) + ' ' + y + 'h' + R1(h * 3) + 'M' + x + ' ' + R1(y - h * 1.5) + 'v' + R1(h * 3) + '" stroke="' + G + '" stroke-width="1.5"' + pe + '/>';
   else if (t === 'quad') s += '<path d="M' + R1(x - h) + ' ' + y + 'L' + x + ' ' + R1(y - h) + 'L' + R1(x + h) + ' ' + y + 'L' + x + ' ' + R1(y + h) + 'Z"' + st + '/>';
@@ -19361,11 +19369,12 @@ function nvsMarks(X, info, cur, u, sP, D) {
   return s;
 }
 
+function nvsBehind(a) { return !!(a && a !== document.body && a.blur && a.closest && document.querySelector('.skover') && a.closest('#app') && !a.closest('.skover')); }   // a field of this page, behind the open drawing window
 /* the keyboard belongs to the drawing while it is open: a field left in focus behind the window would swallow Enter,
    the typed sizes and Esc (and take the typed numbers for itself) */
 NVAFTER.push(function () {
   if (!S.sk) return; var a = document.activeElement;
-  if (a && a !== document.body && a.blur && !(a.closest && a.closest('.skover'))) a.blur();
+  if (nvsBehind(a)) a.blur();
   var h = document.querySelector('.skover .sk-hint');   // what the pointer is caught by, said once under the drawing
   if (h && !h.querySelector('.nvs-h')) h.insertAdjacentHTML('beforeend', ' <span class="nvs-h">' + esc(S.sk.tool === 'sel'
     ? L('Tempiama figūra limpa tuo tašku, už kurio paimta. Alt — nelimpa.', 'A dragged shape is caught by the point it was taken by. Alt — nothing is caught.')
@@ -19374,13 +19383,13 @@ NVAFTER.push(function () {
 });
 document.addEventListener('keydown', function (e) {   // capture, registered after the live handler: only ever sees what that one let through
   if (!S.sk) return; var a = e.target;
-  if (a && a.blur && /INPUT|SELECT|TEXTAREA/.test(a.tagName || '') && !(a.closest && a.closest('.skover'))) { a.blur(); e.preventDefault(); }
+  if (a && /INPUT|SELECT|TEXTAREA/.test(a.tagName || '') && nvsBehind(a)) { a.blur(); e.preventDefault(); }
 }, true);
 
-/* the part fills the drawing: a narrower margin than the live view's (which left a fifth of the drawing empty) */
+/* the part fills more of the drawing: a narrower margin than the live view's, still with room for the edges' names */
 function skView(p, F) {
   var K = S.sk, v = K && K.view; if (v && v.key === p.key + skSide()) return v;
-  F = F || skFrame(p, skSide()); var m = Math.max(F.Dw, F.Dh) * 0.035 + 34;
+  F = F || skFrame(p, skSide()); var m = Math.max(F.Dw, F.Dh) * 0.07 + 20;   /* the edges' names stand 6 % of the view outside the part */
   return { key: p.key + skSide(), x: -m, y: -(F.Dh + m), w: F.Dw + 2 * m, h: F.Dh + 2 * m };
 }
 
@@ -19412,6 +19421,7 @@ function skView(p, F) {
 
 var NVQ_DEF = { ain: 'ramp', amode: 'down', amul: 2, rout: 'up', rmul: 2, over: 0, step: 0, dang: 0, rev: 0, feed: 0, feedIn: 0 };
 var NVQ_LIM = { amul: [0.5, 6], rmul: [0.5, 6], aang: [0, 180], rang: [0, 180], over: [0, 60], step: [0, 40], dang: [0, 45], feed: [0, 12000], feedIn: [0, 8000] };
+var NVQ_FEED_MIN = 300;   // mm/min: a typed 4 is a slip of the hand, not a feed
 function nvqAngDef(type) { return type === 'arc' ? 90 : 45; }
 function nvqOpt(cam) {
   cam = cam || {}; var o = {}, k; for (k in NVQ_DEF) o[k] = cam[k] != null ? cam[k] : NVQ_DEF[k];
@@ -19420,6 +19430,7 @@ function nvqOpt(cam) {
   for (k in NVQ_LIM) { var v = +o[k]; o[k] = isFinite(v) ? Math.max(NVQ_LIM[k][0], Math.min(NVQ_LIM[k][1], v)) : (NVQ_DEF[k] || 0); }
   if (o.ain === 'line') o.aang = Math.min(o.aang, 90); if (o.rout === 'line') o.rang = Math.min(o.rang, 90);
   if (o.ain === 'arc') o.aang = Math.max(o.aang, 10); if (o.rout === 'arc') o.rang = Math.max(o.rang, 10);
+  if (o.feed > 0) o.feed = Math.max(o.feed, NVQ_FEED_MIN); if (o.feedIn > 0) o.feedIn = Math.max(o.feedIn, NVQ_FEED_MIN);
   return o;
 }
 function nvqRoutable(op) { return op === 'on' || op === 'in' || op === 'out' || op === 'pocket'; }
@@ -19429,7 +19440,7 @@ function nvqPut(sh, k, v) {
   var cam = sh.cam = sh.cam || {};
   if (v == null || v === '' || v === NVQ_DEF[k] || ((k === 'aang' || k === 'rang') && +v === nvqAngDef(cam[k === 'aang' ? 'ain' : 'rout'] || 'ramp'))) delete cam[k]; else cam[k] = v;
   if (k === 'ain') { delete cam.aang; if (v === 'ramp') { delete cam.amul; delete cam.amode; } }
-  if (k === 'rout') { delete cam.rang; if (v === 'up') { delete cam.rmul; delete cam.over; } }
+  if (k === 'rout') { delete cam.rang; if (v === 'up') delete cam.rmul; }   /* the overlap stays: it is run before lifting straight up too */
   if (!Object.keys(cam).length) delete sh.cam;
 }
 
@@ -19496,11 +19507,30 @@ function nvqClip(pts, x0, y0, x1, y1) {   // → the stretches of the path insid
     if (D(f[0], pts[0]) < 1e-6 && D(l[l.length - 1], pts[0]) < 1e-6) { runs[0] = l.concat(f.slice(1)); runs.pop(); } }
   return runs.filter(function (r) { return r.length > 1; });
 }
-E.nvClip = function (loops, L, W, C0) {
-  var r = C0.dia / 2, m = Math.min(C0.air, r + C0.leadIn), out = [];
-  (loops || []).forEach(function (lp) { nvqClip(lp, -m, -m, L + m, W + m).forEach(function (run) {
+function nvqSegDist(a, b, c, d) {   // the least distance between the segments a–b and c–d
+  var X = nvqSegX(a, b, c, d); if (X) return 0;
+  var ps = function (q, u, v) { var dx = v[0] - u[0], dy = v[1] - u[1], l2 = dx * dx + dy * dy, t = l2 > 1e-12 ? Math.max(0, Math.min(1, ((q[0] - u[0]) * dx + (q[1] - u[1]) * dy) / l2)) : 0; return Math.hypot(u[0] + dx * t - q[0], u[1] + dy * t - q[1]); };
+  return Math.min(ps(a, c, d), ps(b, c, d), ps(c, a, b), ps(d, a, b));
+}
+function nvqSegX(a, b, c, d) { var o = function (p, q, r) { return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]); }, d1 = o(c, d, a), d2 = o(c, d, b), d3 = o(a, b, c), d4 = o(a, b, d); return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)); }
+/* loops: the cutter centre's paths of one shape as the engine made them (closed ones with their first point repeated; a
+   pocket's rings from the middle outwards). → { loops, why }: what is left to route, and why nothing is ('small' | 'neck' | 'outside') */
+E.nvClip = function (loops, L, W, C0, op, outline, type) {
+  var r = C0.dia / 2, m = Math.min(C0.air, r + C0.leadIn), out = [], per = function (lp) { var c = nvqCum(lp); return c[c.length - 1]; };
+  loops = (loops || []).slice();
+  if (op === 'pocket') loops = loops.filter(function (lp, i) {   // a ring so small that the next one out clears all of it: left out (it would be gone down on the spot)
+    if (i === loops.length - 1) return true; var in1 = null; try { in1 = E.offsetPoly(lp, r * 0.05); } catch (e) { in1 = lp; } return !!in1; });
+  if (loops.some(function (lp) { return per(lp) < 1; })) return { loops: [], why: 'small' };   // a dot, or a shape the cutter's own size: routing it would be a plunge
+  if (op === 'in' || op === 'out' || op === 'pocket') {
+    if (type === 'line' && outline && outline.length > 2) {   // a drawn outline may be narrower than the cutter somewhere: the path would run into its walls
+      var O = outline, lim = r - 0.02;
+      for (var li = 0; li < loops.length; li++) { var lp = loops[li];
+        for (var i = 0; i < lp.length - 1; i++) for (var j = 0; j < O.length; j++) if (nvqSegDist(lp[i], lp[i + 1], O[j], O[(j + 1) % O.length]) < lim) return { loops: [], why: 'neck' }; }
+    }
+  }
+  loops.forEach(function (lp) { nvqClip(lp, -m, -m, L + m, W + m).forEach(function (run) {
     for (var i = 0; i < run.length - 1; i++) if (nvqClipSeg(run[i], run[i + 1], -r, -r, L + r, W + r)) { out.push(run); return; } }); });   // it reaches the board somewhere
-  return out;
+  return { loops: out, why: out.length ? '' : 'outside' };
 };
 
 /* ---------------------------------------------------------------- the moves
@@ -19528,7 +19558,9 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
   var rampLen = function (dz) { return cam.dang > 0 ? Math.max(1, dz / Math.tan(cam.dang * Math.PI / 180)) : C0.ramp; };
   var R3 = function (v) { return Math.round(v * 1000) / 1000; }, cur = null;
   var go = function (q) { mv.push({ t: 'G0', x: R3(q[0]), y: R3(q[1]), z: C0.safeZ, k: 'rapid' }); cur = q; };
-  var to = function (q, z, v, k) { mv.push({ t: 'L', x: R3(q[0]), y: R3(q[1]), z: R3(z), v: v, k: k }); cur = q; };
+  var to = function (q, z, v, k) { var x = R3(q[0]), y = R3(q[1]), zz = R3(z), l = mv[mv.length - 1]; cur = q;
+    if (l && l.t === 'L' && Math.abs(l.x - x) < 0.0045 && Math.abs(l.y - y) < 0.0045 && Math.abs(l.z - zz) < 0.0045) { l.x = x; l.y = y; l.z = zz; return; }   /* a step of a few thousandths (where two stretches meet): the move before it ends there instead */
+    mv.push({ t: 'L', x: x, y: y, z: zz, v: v, k: k }); };
   var run = function (pts, z0, z1, v, k) { var len = 0, i, acc = 0; for (i = 1; i < pts.length; i++) len += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
     for (i = 1; i < pts.length; i++) { acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); to(pts[i], len > 1e-9 ? z0 + (z1 - z0) * acc / len : z1, v, k); } };
   var plen = function (pts) { var l = 0; for (var i = 1; i < pts.length; i++) l += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return l; };
@@ -19537,7 +19569,12 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
   var onRing = function (q) { for (var i = 0; i < ring.length; i++) { var a = ring[i], b = ring[(i + 1) % ring.length], dx = b[0] - a[0], dy = b[1] - a[1], l2 = dx * dx + dy * dy, t = l2 > 1e-12 ? Math.max(0, Math.min(1, ((q[0] - a[0]) * dx + (q[1] - a[1]) * dy) / l2)) : 0;
       if (Math.hypot(a[0] + dx * t - q[0], a[1] + dy * t - q[1]) < 1e-4) return true; } return false; };
   var inWaste = function (q) { return onRing(q) || nvqInside(q, ring) === (op === 'in'); };   // on the path itself counts: it is cut anyway
-  var leadOk = function (pts, skip) { for (var i = 0; i < pts.length; i++) { if (i === skip) continue; var o = pts[i === 0 ? 1 : i - 1], q = pts[i];
+  var crosses = function (a, b) {   // does a–b meet the path anywhere but at its own two ends?
+    for (var i = 0; i < ring.length; i++) { var c = ring[i], d = ring[(i + 1) % ring.length], rx = b[0] - a[0], ry = b[1] - a[1], sx = d[0] - c[0], sy = d[1] - c[1], den = rx * sy - ry * sx; if (Math.abs(den) < 1e-9) continue;
+      var t = ((c[0] - a[0]) * sy - (c[1] - a[1]) * sx) / den, u = ((c[0] - a[0]) * ry - (c[1] - a[1]) * rx) / den; if (t > 1e-6 && t < 1 - 1e-6 && u > -1e-9 && u < 1 + 1e-9) return true; }
+    return false; };
+  var leadOk = function (pts, skip) { for (var j = 1; j < pts.length; j++) if (crosses(pts[j - 1], pts[j])) return false;
+    for (var i = 0; i < pts.length; i++) { if (i === skip) continue; var o = pts[i === 0 ? 1 : i - 1], q = pts[i];
       if (q[0] < -air || q[0] > dim.DX + air || q[1] < -air || q[1] > dim.DY + air) return false;
       var mid = [(q[0] + o[0]) / 2, (q[1] + o[1]) / 2]; if (!inWaste(q) || !inWaste(mid)) return false; } return true; };
   var fit = function (make, mul, skipLast, short) { var fs = [1, 0.75, 0.5, 0.35]; for (var i = 0; i < fs.length; i++) { var pts = make(mul * fs[i]); if (leadOk(pts, skipLast ? pts.length - 1 : 0)) { if (i) notes.push(short); return pts; } } return null; };
@@ -19551,7 +19588,10 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
   var LI = null;
   if (lin !== 'ramp') { var A0 = nvqAt(P, cum, 0), nW0 = normal(A0.t);
     LI = fit(function (m) { return nvqLead(A0.p, A0.t, nW0, lin, m, cam.aang, r, side, false); }, cam.amul, true, 'inShort');
-    if (!LI) { notes.push('inNone'); lin = 'ramp'; } }
+    if (!LI) { notes.push('inNone'); lin = 'ramp'; }
+    else { var S9 = LI[0], out9 = S9[0] < -r || S9[0] > dim.DX + r || S9[1] < -r || S9[1] > dim.DY + r;
+      if (!(cam.amode === 'quote' && out9) && plen(LI) * 15 < rampLen(depth) - 1e-9) { notes.push('inSteep'); lin = 'ramp'; LI = null; } } }
+  over = Math.min(over, T);
 
   if (lin !== 'ramp') {   // every pass: in along the lead, once round (and the overlap), out, up
     var S0 = LI[0], ll = plen(LI), back = LI.slice().reverse(), outside = S0[0] < -r || S0[0] > dim.DX + r || S0[1] < -r || S0[1] > dim.DY + r;
@@ -19559,7 +19599,7 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
     for (var k = 1; k <= nP; k++) { var zk = -depth * k / nP;
       go(S0);
       if (quote) { to(S0, zk, feedIn, 'in'); run(LI, zk, zk, feed, 'in'); }
-      else { to(S0, 0, feedIn, 'in'); var m = Math.max(1, Math.ceil(rampLen(-zk) / ll - 1e-9)); if (m % 2 === 0) m++; m = Math.min(m, 15);
+      else { to(S0, 0, feedIn, 'in'); var m = Math.max(1, Math.ceil(rampLen(-zk) / ll - 1e-9)); if (m % 2 === 0) m++; m = Math.min(m, 17);
         for (var j = 0; j < m; j++) run(j % 2 ? back : LI, zk * j / m, zk * (j + 1) / m, feedIn, 'in'); }
       run(nvqSub(P, cum, true, 0, T + over), zk, zk, feed, 'cut');
       leave(over, zk);
@@ -19567,7 +19607,8 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
     }
   } else if (closed) {   // down along the outline itself, round, deeper along the next stretch, round … no lifting in between
     go(P[0]); to(P[0], 0, feedIn, 'in'); var s = 0, zp = 0;
-    for (var k2 = 1; k2 <= nP; k2++) { var z2 = -depth * k2 / nP, rl = Math.min(rampLen(zp - z2), T);
+    for (var k2 = 1; k2 <= nP; k2++) { var z2 = -depth * k2 / nP, want2 = rampLen(zp - z2), rl = Math.min(want2, T * 60);   /* a ring shorter than the way down: round and round (a spiral), never steeper */
+      if (rl < want2 - 1e-6 && notes.indexOf('steep') < 0) notes.push('steep');
       run(nvqSub(P, cum, true, s, s + rl), zp, z2, feedIn, 'in');
       run(nvqSub(P, cum, true, s + rl, s + rl + T), z2, z2, feed, 'cut');
       s += rl; zp = z2; }
@@ -19576,20 +19617,32 @@ function nvqMoves(P0, depth, op, camRaw, C0, dim) {
     to(cur, C0.safeZ, feed, 'lift');
   } else {   // an open line: down along it, back, to the far end; the next pass comes back the same way
     var Q = P, cq = cum; go(Q[0]); to(Q[0], 0, feedIn, 'in'); var zq = 0;
-    for (var k3 = 1; k3 <= nP; k3++) { var z3 = -depth * k3 / nP, rl3 = Math.min(rampLen(zq - z3), T), head = nvqSub(Q, cq, false, 0, rl3);
-      run(head, zq, z3, feedIn, 'in'); run(head.slice().reverse(), z3, z3, feed, 'cut'); run(nvqSub(Q, cq, false, 0, T), z3, z3, feed, 'cut');
-      zq = z3; Q = Q.slice().reverse(); cq = nvqCum(Q); }
+    for (var k3 = 1; k3 <= nP; k3++) { var z3 = -depth * k3 / nP, want3 = rampLen(zq - z3), Qr = Q.slice().reverse();
+      if (T >= want3 - 1e-9) { var head = nvqSub(Q, cq, false, 0, want3);
+        run(head, zq, z3, feedIn, 'in'); run(head.slice().reverse(), z3, z3, feed, 'in'); run(nvqSub(Q, cq, false, 0, T), z3, z3, feed, 'cut');   /* the way back over the ramp belongs to going in (the arrow shows the pass itself) */
+        Q = Qr; cq = nvqCum(Q); }
+      else {   /* a line shorter than the way down: down along it there and back as often as it takes, then once along it at depth */
+        var m3 = Math.min(60, Math.max(1, Math.ceil(want3 / T - 1e-9))); if (m3 * T < want3 - 1e-6 && notes.indexOf('steep') < 0) notes.push('steep');
+        for (var j3 = 0; j3 < m3; j3++) run(j3 % 2 ? Qr : Q, zq + (z3 - zq) * j3 / m3, zq + (z3 - zq) * (j3 + 1) / m3, feedIn, 'in');
+        run(m3 % 2 ? Qr : Q, z3, z3, feed, 'cut');
+        if (m3 % 2 === 0) { Q = Qr; cq = nvqCum(Q); } }
+      zq = z3; }
     to(cur, C0.safeZ, feed, 'lift');
   }
   return { moves: mv, notes: notes, passes: nP, start: [mv[0].x, mv[0].y] };
 }
-E.nvRoute = function (P, depth, g, C0, dim) {   // the engine asks here for every path that has options; null = its own moves
-  try { var o = nvqMoves(P, depth, g.op, g.cam, C0, dim); return o ? o.moves : null; } catch (e) { if (window.console) console.error(e); return null; }
+function nvqShortRing(P, C0) {   // a path shorter than the way down: the live ramp along all of it and back would be close to a plunge
+  if (!P || P.length < 2) return false; var c = nvqCum(P); return c[c.length - 1] < C0.ramp - 1e-9;
+}
+E.nvRoute = function (P, depth, g, C0, dim) {   // the engine asks here for every path; null = its own (the live) moves
+  try { if (!g.cam && !nvqShortRing(P, C0)) return null;
+    var o = nvqMoves(P, depth, g.op, g.cam, C0, dim); return o ? o.moves : null; } catch (e) { if (window.console) console.error(e); return null; }
 };
 
 /* the same moves in the part's own frame (as drawn): a path worked from face B is mirrored for its program and back */
 function nvqPreview(p, g) {
-  if (!g || !g.cam) return null; var C0 = E.R.rout, B = g.face === 'B', DY = p.W;
+  if (!g) return null; var C0 = E.R.rout, B = g.face === 'B', DY = p.W;
+  if (!g.cam && !nvqShortRing(g.pts, C0)) return null;
   var P = g.pts.map(function (q) { return [q[0], B ? DY - q[1] : q[1]]; }); if (B) P.reverse();
   var o = null; try { o = nvqMoves(P, Math.min(g.depth, p.T - C0.skin), g.op, g.cam, C0, { DX: p.L, DY: p.W }); } catch (e) { o = null; }
   if (!o) return null;
@@ -19598,6 +19651,8 @@ function nvqPreview(p, g) {
 function nvqPathsOf(p, n) { return (p.paths || []).filter(function (g) { var m = /^ESKIZAS_(\d+)/.exec(g.name || ''); return m && +m[1] === n; }); }
 var NVQ_NOTE = {
   inShort: ['Įėjimas sutrumpintas — atliekoje jam per mažai vietos.', 'The lead-in was shortened — the waste has no room for it.'],
+  steep: ['Kontūras per trumpas nusileisti nurodytu kampu — leidžiamasi stačiau.', 'The path is too short to go down on at the angle asked — it goes down more steeply.'],
+  inSteep: ['Įėjimas per trumpas nusileisti nurodytu kampu — freza leidžiasi pačiu kontūru.', 'The lead-in is too short to go down on at the angle asked — the cutter goes down along the outline itself.'],
   inNone: ['Įėjimui linija ar lanku atliekoje vietos nėra — freza leidžiasi pačiu kontūru.', 'No room in the waste for a line or arc lead-in — the cutter goes down along the outline itself.'],
   outShort: ['Išėjimas sutrumpintas — atliekoje jam per mažai vietos.', 'The lead-out was shortened — the waste has no room for it.'],
   outNone: ['Išėjimui atliekoje vietos nėra — freza kyla tiesiai aukštyn.', 'No room in the waste for the lead-out — the cutter lifts straight up.'],
@@ -19644,7 +19699,7 @@ function nvqProps(c, p, r, sh, idx) {
   if (!nvqRoutable(sh.op)) return '';
   var o = nvqOpt(sh.cam), raw = sh.cam || {}, sided = nvqSided(sh), R0 = E.R.rout, rr = R0.dia / 2, maxD = p.T - R0.skin, depth = sh.through ? maxD : Math.min(+sh.depth || 0, maxD), h = '';
   var segB = function (k, opts) { return '<div class="seg nvq-seg" role="group">' + opts.map(function (x) { var on = String(o[k]) === String(x[0]); return '<button type="button" data-nv="nvqSet" data-v="' + k + ':' + x[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + esc(x[1]) + '</button>'; }).join('') + '</div>'; };
-  var num = function (k, label, unit, ph, title) { var v = raw[k] != null ? raw[k] : (k === 'aang' || k === 'rang' || k === 'amul' || k === 'rmul' ? o[k] : '');
+  var num = function (k, label, unit, ph, title) { var v = raw[k] != null || k === 'aang' || k === 'rang' || k === 'amul' || k === 'rmul' ? o[k] : '';   /* what is used (within its limits), not merely what was typed */
     return '<label class="f sk-f nvq-f"' + (title ? ' title="' + esc(title) + '"' : '') + '><span>' + esc(label) + (unit ? ' <i>' + esc(unit) + '</i>' : '') + '</span><input type="text" inputmode="decimal" data-nv-change="nvqNum" data-k="' + k + '" value="' + esc(v === '' ? '' : String(v)) + '" placeholder="' + esc(ph || '') + '"></label>'; };
   var row = function (label, body) { return '<div class="nvq-row"><span class="nvq-k">' + esc(label) + '</span><div class="nvq-v">' + body + '</div></div>'; };
   if (sided) {
@@ -19673,6 +19728,7 @@ function nvqProps(c, p, r, sh, idx) {
 }
 NVA.nvqSet = function (el, v) {
   var kv = String(v).split(':'), k = kv[0], val = kv[1]; if (!(k in NVQ_DEF)) return false;
+  var X = skCtx(), sh0 = skSelShape(X); if (!sh0 || String(nvqOpt(sh0.cam)[k]) === String(val)) return false;   // already so: nothing to undo, no angle to reset
   skChange(function (sh) { nvqPut(sh, k, k === 'rev' ? (+val ? 1 : 0) : val); });
 };
 NVA.nvqReset = function () { skChange(function (sh) { delete sh.cam; }); };
@@ -19681,7 +19737,9 @@ NVC.nvqNum = function (el) {
   if (t === '') { skChange(function (sh) { nvqPut(sh, k, null); }); return; }
   var v = skNum(t); if (v == null || v < 0) { toast(L('Įveskite skaičių', 'Enter a number'), true); return; }
   v = Math.max(lim[0], Math.min(lim[1], v));
-  skChange(function (sh) { nvqPut(sh, k, v || null); });
+  if ((k === 'feed' || k === 'feedIn') && v > 0 && v < NVQ_FEED_MIN) { v = NVQ_FEED_MIN; toast(L('Mažiausia pastūma — ', 'The lowest feed is ') + NVQ_FEED_MIN + ' mm/min'); }
+  var ang = k === 'aang' || k === 'rang';   // 0° is an angle (straight on); everywhere else 0 means "as usual"
+  skChange(function (sh) { var type = (sh.cam || {})[k === 'aang' ? 'ain' : 'rout']; if (ang && type === 'line') v = Math.min(v, 90); if (ang && type === 'arc') v = Math.max(v, 10); nvqPut(sh, k, ang ? v : (v || null)); });
 };
 
 /* what the route could not do as asked is said in the check list too (it is still made — in the safer way) */
@@ -21326,7 +21384,7 @@ NVAFTER.push(function () {
    Whenever a produced project is opened it is built again with its own rules and compared with the fingerprints: if this
    app (or the data) would now give something else, it says so — and only the kept package is offered. */
 var NVP_DB = 'dbKurejasProduced';
-function nvpIs(p) { return !!(p && p.prod && p.prod.at); }
+function nvpIs(p) { return !!(p && p.prod && p.prod.at && (p.prod.id == null || p.prod.id === p.id)); }   // a copy carries the record along but is another project (another id): not produced
 function nvpHash(s) {   // cyrb53: a fingerprint of a text (not a secret) — enough to see that two outputs are the same
   s = String(s); var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (var i = 0, ch; i < s.length; i++) { ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
@@ -21344,6 +21402,7 @@ function nvpDataSig(p) {
   var cabs = (p.cabinets || []).map(function (c) { try { return normCab(clone(c)); } catch (e) { return c; } });
   return nvpHash(nvpCanon({ name: p.name, cabinets: cabs, layout: p.layout || null }));
 }
+function nvpEditSig(p) { var cabs = (p.cabinets || []).map(function (c) { try { return normCab(clone(c)); } catch (e) { return c; } }); return nvpHash(nvpCanon({ name: p.name, cabinets: cabs })); }   // what a person changes (making the files may tidy the layout by itself)
 function nvpManifest(pj) { var m = {}; (pj.files || []).forEach(function (f) { m[f.name] = nvpHash(f.text); }); m['detales.csv'] = nvpHash(csvOf(pj)); return m; }
 function nvpWhen(iso) { var d = new Date(iso), z = function (n) { return (n < 10 ? '0' : '') + n; }; return isNaN(d) ? String(iso || '') : d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
 function nvpBuild() { return String(window.NV_BUILD || 'dev'); }
@@ -21356,12 +21415,21 @@ function nvpGet(id) { return nvpDb().then(function (d) { return new Promise(func
 function nvpDel(id) { return nvpDb().then(function (d) { return new Promise(function (res) { var tx = d.transaction('a', 'readwrite'); tx.objectStore('a').delete(id); tx.oncomplete = tx.onerror = function () { res(true); }; }); }).catch(function () { return false; }); }
 
 /* ---- a produced project is built with the workshop rules it was produced with, whatever the settings say now */
-function nvpSyncRules() {
+var nvpApply0 = applyRules;
+applyRules = function () {   // also when the settings page or the cloud sync applies them in the middle of it
+  var p = !S.home && S.proj && nvpIs(S.proj) && S.proj.prod.rules && !NV.pApplying ? S.proj : null;
+  if (!p) return nvpApply0.apply(this, arguments);
+  var keep = S.settings.rules; NV.pApplying = true;
+  try { S.settings.rules = Object.assign(clone(keep), clone(p.prod.rules)); return nvpApply0.apply(this, arguments); } finally { S.settings.rules = keep; NV.pApplying = false; }
+};
+function nvpSyncRules() {   // on every draw: the rules in force are those of the project on screen (null = not known: apply)
   var p = !S.home && S.proj && nvpIs(S.proj) ? S.proj : null, key = p ? p.id + '|' + p.prod.at : '';
-  if ((NV.pRules || '') === key) return; NV.pRules = key;
-  if (p && p.prod.rules) { var keep = S.settings.rules; try { S.settings.rules = Object.assign(clone(keep), clone(p.prod.rules)); applyRules(); } finally { S.settings.rules = keep; } }
-  else applyRules();
+  if (NV.pRules === key) return; NV.pRules = key; NV.issues = null;
+  applyRules();
 }
+/* a project that is opened (from the list, by the cloud sync, after a lock is granted, as a copy) is looked at afresh */
+var nvpOpen0 = openProject;
+openProject = function () { NV.pSnap = null; NV.pCheck = null; NV.pRules = null; NV.pAsk = false; NV.pUndo = false; return nvpOpen0.apply(this, arguments); };
 /* ---- the lock: a produced project cannot change. Called first thing in save(); true = nothing is saved */
 function nvpGuard() {
   var p = S.proj; if (!nvpIs(p) || NV.pWrite) return false;
@@ -21370,6 +21438,8 @@ function nvpGuard() {
   var now = JSON.stringify(p, function (k, v) { return k === 'updated' ? undefined : v; });
   if (now === snap.json) return true;
   S.proj = JSON.parse(snap.full); NV.issues = null; NV.pCheck = null;
+  var now9 = Date.now(), rv = NV.pRev && now9 - NV.pRev.t < 1500 ? NV.pRev : (NV.pRev = { t: now9, n: 0 });
+  if (++rv.n > 4) return true;   /* something keeps writing by itself: put back, but do not redraw (and tell) over and over */
   toast(L('Projektas pagamintas ir užrakintas — pakeitimas nepriimtas. Keitimams sukurkite naują versiją.', 'The project is produced and locked — the change was not taken. Make a new version for changes.'), true);
   setTimeout(render, 0);
   return true;
@@ -21400,12 +21470,17 @@ NVA.nvpMake = function () {
   var p = S.proj; if (!p || nvpIs(p)) return false;
   if (typeof nvmPass === 'function' && !nvmPass()) return false;
   if (S.busy) { toast(t('building')); return false; }
-  var pj = buildProjectAll(), at = new Date().toISOString(), man = nvpManifest(pj);
+  if (S.ro) { toast(L('Projektas atidarytas tik peržiūrai — pažymėti gali tas, kas jį redaguoja.', 'The project is open for viewing only — whoever edits it can mark it.'), true); return false; }
+  var pj = buildProjectAll(), at = new Date().toISOString(), man = nvpManifest(pj), sig0 = nvpEditSig(p);
+  var same = function () { return S.proj === p && !S.home && !S.ro && nvpEditSig(p) === sig0; };
+  var changed = function () { S.busy = false; toast(L('Projektas pasikeitė, kol buvo ruošiami failai — nepažymėta. Pažymėkite dar kartą.', 'The project changed while the files were being made — not marked. Mark it again.'), true); render(); };
   S.busy = true; toast(t('building'));
   zipAll(pj).then(function (zip) {
+    if (!same()) return changed();
     S.busy = false;
-    p.prod = { at: at, build: nvpBuild(), rev: +p.rev || 1, n: { cab: p.cabinets.length, parts: pj.parts.length, files: pj.files.length }, files: man, sig: nvpHash(JSON.stringify(man)), data: nvpDataSig(p), rules: clone(S.settings.rules) };
+    p.prod = { at: at, id: p.id, build: nvpBuild(), rev: +p.rev || 1, n: { cab: p.cabinets.length, parts: pj.parts.length, files: pj.files.length }, files: man, sig: nvpHash(JSON.stringify(man)), data: nvpDataSig(p), rules: clone(S.settings.rules) };
     var done = function (who) {
+      if (S.proj !== p || S.home) { delete p.prod; return changed(); }
       if (who) p.prod.by = who;
       NV.pWrite = true; try { save(); clearTimeout(libTimer); libSave(); } finally { NV.pWrite = false; }
       NV.pAsk = false; NV.pSnap = null; NV.pCheck = null; NV.pRules = null;
@@ -21452,12 +21527,13 @@ NVA.nvpUndo = function () {
   if (NV.pSnap && NV.pSnap.id === id) S.proj = p = JSON.parse(NV.pSnap.full);
   NV.pWrite = true; try { delete p.prod; save(); clearTimeout(libTimer); libSave(); } finally { NV.pWrite = false; }
   NV.pSnap = null; NV.pCheck = null; NV.pRules = null; nvpDel(id);
+  if (NV.hist) { NV.hist.past = []; NV.hist.future = []; }   // the marked state is not an undo step to fall back into
   toast(L('Žyma „pagaminta“ nuimta — projektą vėl galima keisti.', 'The "produced" mark is removed — the project can be changed again.'));
 };
 
 /* ---- what is shown */
 function nvpPill() { var p = S.proj; return nvpIs(p) ? '<span class="nvp-pill" title="' + esc(L('Pagaminta ', 'Produced ') + nvpWhen(p.prod.at) + L(' — užrakinta', ' — locked')) + '">🔒 ' + L('Pagaminta', 'Produced') + '</span>' : ''; }
-function nvpBadge(rec) { var pr = rec && rec.data && rec.data.prod; return pr && pr.at ? '<span class="nv-badge nvp-b" title="' + esc(L('Pagaminta ', 'Produced ') + nvpWhen(pr.at)) + '">🔒 ' + L('Pagaminta', 'Produced') + '</span>' : ''; }
+function nvpBadge(rec) { var pr = rec && rec.data && nvpIs(rec.data) ? rec.data.prod : null; return pr ? '<span class="nv-badge nvp-b" title="' + esc(L('Pagaminta ', 'Produced ') + nvpWhen(pr.at)) + '">🔒 ' + L('Pagaminta', 'Produced') + '</span>' : ''; }
 function nvpBanner() {
   var p = S.proj; if (!nvpIs(p)) return '';
   var pr = p.prod, c = nvpCheck() || {}, bad = !!(c.err || (c.diff || []).length || c.data), n = pr.n || {};
@@ -21496,6 +21572,16 @@ app.addEventListener('click', function (e) {   // the live download commands (th
   var el = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!el || !NVM_EXPORT[el.getAttribute('data-act')] || S.home || !S.proj || !nvpStale()) return;
   e.preventDefault(); e.stopImmediatePropagation();
+}, true);
+
+/* an earlier version cannot be restored over a produced project (the live command writes it straight into the project,
+   past the lock); a copy of that version can still be made, and it is a project of its own */
+document.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest ? e.target.closest('#verdlg [data-vact="restore"]') : null; if (!b) return;
+  var pid = typeof VD !== 'undefined' && VD ? VD.pid : null, rec = pid && typeof verRec === 'function' ? verRec(pid) : null, d = S.proj && S.proj.id === pid ? S.proj : rec && rec.data;
+  if (!nvpIs(d)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  toast(L('Projektas pagamintas ir užrakintas — ankstesnės versijos į jį atkurti negalima. Padarykite tos versijos kopiją.', 'The project is produced and locked — an earlier version cannot be restored into it. Make a copy of that version.'), true);
 }, true);
 
 

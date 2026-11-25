@@ -9,7 +9,7 @@
    Whenever a produced project is opened it is built again with its own rules and compared with the fingerprints: if this
    app (or the data) would now give something else, it says so — and only the kept package is offered. */
 var NVP_DB = 'dbKurejasProduced';
-function nvpIs(p) { return !!(p && p.prod && p.prod.at); }
+function nvpIs(p) { return !!(p && p.prod && p.prod.at && (p.prod.id == null || p.prod.id === p.id)); }   // a copy carries the record along but is another project (another id): not produced
 function nvpHash(s) {   // cyrb53: a fingerprint of a text (not a secret) — enough to see that two outputs are the same
   s = String(s); var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (var i = 0, ch; i < s.length; i++) { ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
@@ -27,6 +27,7 @@ function nvpDataSig(p) {
   var cabs = (p.cabinets || []).map(function (c) { try { return normCab(clone(c)); } catch (e) { return c; } });
   return nvpHash(nvpCanon({ name: p.name, cabinets: cabs, layout: p.layout || null }));
 }
+function nvpEditSig(p) { var cabs = (p.cabinets || []).map(function (c) { try { return normCab(clone(c)); } catch (e) { return c; } }); return nvpHash(nvpCanon({ name: p.name, cabinets: cabs })); }   // what a person changes (making the files may tidy the layout by itself)
 function nvpManifest(pj) { var m = {}; (pj.files || []).forEach(function (f) { m[f.name] = nvpHash(f.text); }); m['detales.csv'] = nvpHash(csvOf(pj)); return m; }
 function nvpWhen(iso) { var d = new Date(iso), z = function (n) { return (n < 10 ? '0' : '') + n; }; return isNaN(d) ? String(iso || '') : d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
 function nvpBuild() { return String(window.NV_BUILD || 'dev'); }
@@ -39,12 +40,21 @@ function nvpGet(id) { return nvpDb().then(function (d) { return new Promise(func
 function nvpDel(id) { return nvpDb().then(function (d) { return new Promise(function (res) { var tx = d.transaction('a', 'readwrite'); tx.objectStore('a').delete(id); tx.oncomplete = tx.onerror = function () { res(true); }; }); }).catch(function () { return false; }); }
 
 /* ---- a produced project is built with the workshop rules it was produced with, whatever the settings say now */
-function nvpSyncRules() {
+var nvpApply0 = applyRules;
+applyRules = function () {   // also when the settings page or the cloud sync applies them in the middle of it
+  var p = !S.home && S.proj && nvpIs(S.proj) && S.proj.prod.rules && !NV.pApplying ? S.proj : null;
+  if (!p) return nvpApply0.apply(this, arguments);
+  var keep = S.settings.rules; NV.pApplying = true;
+  try { S.settings.rules = Object.assign(clone(keep), clone(p.prod.rules)); return nvpApply0.apply(this, arguments); } finally { S.settings.rules = keep; NV.pApplying = false; }
+};
+function nvpSyncRules() {   // on every draw: the rules in force are those of the project on screen (null = not known: apply)
   var p = !S.home && S.proj && nvpIs(S.proj) ? S.proj : null, key = p ? p.id + '|' + p.prod.at : '';
-  if ((NV.pRules || '') === key) return; NV.pRules = key;
-  if (p && p.prod.rules) { var keep = S.settings.rules; try { S.settings.rules = Object.assign(clone(keep), clone(p.prod.rules)); applyRules(); } finally { S.settings.rules = keep; } }
-  else applyRules();
+  if (NV.pRules === key) return; NV.pRules = key; NV.issues = null;
+  applyRules();
 }
+/* a project that is opened (from the list, by the cloud sync, after a lock is granted, as a copy) is looked at afresh */
+var nvpOpen0 = openProject;
+openProject = function () { NV.pSnap = null; NV.pCheck = null; NV.pRules = null; NV.pAsk = false; NV.pUndo = false; return nvpOpen0.apply(this, arguments); };
 /* ---- the lock: a produced project cannot change. Called first thing in save(); true = nothing is saved */
 function nvpGuard() {
   var p = S.proj; if (!nvpIs(p) || NV.pWrite) return false;
@@ -53,6 +63,8 @@ function nvpGuard() {
   var now = JSON.stringify(p, function (k, v) { return k === 'updated' ? undefined : v; });
   if (now === snap.json) return true;
   S.proj = JSON.parse(snap.full); NV.issues = null; NV.pCheck = null;
+  var now9 = Date.now(), rv = NV.pRev && now9 - NV.pRev.t < 1500 ? NV.pRev : (NV.pRev = { t: now9, n: 0 });
+  if (++rv.n > 4) return true;   /* something keeps writing by itself: put back, but do not redraw (and tell) over and over */
   toast(L('Projektas pagamintas ir užrakintas — pakeitimas nepriimtas. Keitimams sukurkite naują versiją.', 'The project is produced and locked — the change was not taken. Make a new version for changes.'), true);
   setTimeout(render, 0);
   return true;
@@ -83,12 +95,17 @@ NVA.nvpMake = function () {
   var p = S.proj; if (!p || nvpIs(p)) return false;
   if (typeof nvmPass === 'function' && !nvmPass()) return false;
   if (S.busy) { toast(t('building')); return false; }
-  var pj = buildProjectAll(), at = new Date().toISOString(), man = nvpManifest(pj);
+  if (S.ro) { toast(L('Projektas atidarytas tik peržiūrai — pažymėti gali tas, kas jį redaguoja.', 'The project is open for viewing only — whoever edits it can mark it.'), true); return false; }
+  var pj = buildProjectAll(), at = new Date().toISOString(), man = nvpManifest(pj), sig0 = nvpEditSig(p);
+  var same = function () { return S.proj === p && !S.home && !S.ro && nvpEditSig(p) === sig0; };
+  var changed = function () { S.busy = false; toast(L('Projektas pasikeitė, kol buvo ruošiami failai — nepažymėta. Pažymėkite dar kartą.', 'The project changed while the files were being made — not marked. Mark it again.'), true); render(); };
   S.busy = true; toast(t('building'));
   zipAll(pj).then(function (zip) {
+    if (!same()) return changed();
     S.busy = false;
-    p.prod = { at: at, build: nvpBuild(), rev: +p.rev || 1, n: { cab: p.cabinets.length, parts: pj.parts.length, files: pj.files.length }, files: man, sig: nvpHash(JSON.stringify(man)), data: nvpDataSig(p), rules: clone(S.settings.rules) };
+    p.prod = { at: at, id: p.id, build: nvpBuild(), rev: +p.rev || 1, n: { cab: p.cabinets.length, parts: pj.parts.length, files: pj.files.length }, files: man, sig: nvpHash(JSON.stringify(man)), data: nvpDataSig(p), rules: clone(S.settings.rules) };
     var done = function (who) {
+      if (S.proj !== p || S.home) { delete p.prod; return changed(); }
       if (who) p.prod.by = who;
       NV.pWrite = true; try { save(); clearTimeout(libTimer); libSave(); } finally { NV.pWrite = false; }
       NV.pAsk = false; NV.pSnap = null; NV.pCheck = null; NV.pRules = null;
@@ -135,12 +152,13 @@ NVA.nvpUndo = function () {
   if (NV.pSnap && NV.pSnap.id === id) S.proj = p = JSON.parse(NV.pSnap.full);
   NV.pWrite = true; try { delete p.prod; save(); clearTimeout(libTimer); libSave(); } finally { NV.pWrite = false; }
   NV.pSnap = null; NV.pCheck = null; NV.pRules = null; nvpDel(id);
+  if (NV.hist) { NV.hist.past = []; NV.hist.future = []; }   // the marked state is not an undo step to fall back into
   toast(L('Žyma „pagaminta“ nuimta — projektą vėl galima keisti.', 'The "produced" mark is removed — the project can be changed again.'));
 };
 
 /* ---- what is shown */
 function nvpPill() { var p = S.proj; return nvpIs(p) ? '<span class="nvp-pill" title="' + esc(L('Pagaminta ', 'Produced ') + nvpWhen(p.prod.at) + L(' — užrakinta', ' — locked')) + '">🔒 ' + L('Pagaminta', 'Produced') + '</span>' : ''; }
-function nvpBadge(rec) { var pr = rec && rec.data && rec.data.prod; return pr && pr.at ? '<span class="nv-badge nvp-b" title="' + esc(L('Pagaminta ', 'Produced ') + nvpWhen(pr.at)) + '">🔒 ' + L('Pagaminta', 'Produced') + '</span>' : ''; }
+function nvpBadge(rec) { var pr = rec && rec.data && nvpIs(rec.data) ? rec.data.prod : null; return pr ? '<span class="nv-badge nvp-b" title="' + esc(L('Pagaminta ', 'Produced ') + nvpWhen(pr.at)) + '">🔒 ' + L('Pagaminta', 'Produced') + '</span>' : ''; }
 function nvpBanner() {
   var p = S.proj; if (!nvpIs(p)) return '';
   var pr = p.prod, c = nvpCheck() || {}, bad = !!(c.err || (c.diff || []).length || c.data), n = pr.n || {};
@@ -179,4 +197,14 @@ app.addEventListener('click', function (e) {   // the live download commands (th
   var el = e.target.closest ? e.target.closest('[data-act]') : null;
   if (!el || !NVM_EXPORT[el.getAttribute('data-act')] || S.home || !S.proj || !nvpStale()) return;
   e.preventDefault(); e.stopImmediatePropagation();
+}, true);
+
+/* an earlier version cannot be restored over a produced project (the live command writes it straight into the project,
+   past the lock); a copy of that version can still be made, and it is a project of its own */
+document.addEventListener('click', function (e) {
+  var b = e.target && e.target.closest ? e.target.closest('#verdlg [data-vact="restore"]') : null; if (!b) return;
+  var pid = typeof VD !== 'undefined' && VD ? VD.pid : null, rec = pid && typeof verRec === 'function' ? verRec(pid) : null, d = S.proj && S.proj.id === pid ? S.proj : rec && rec.data;
+  if (!nvpIs(d)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  toast(L('Projektas pagamintas ir užrakintas — ankstesnės versijos į jį atkurti negalima. Padarykite tos versijos kopiją.', 'The project is produced and locked — an earlier version cannot be restored into it. Make a copy of that version.'), true);
 }, true);

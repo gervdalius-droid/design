@@ -67,6 +67,13 @@ function nvsOut(p, kind, guides, nv) { return { p: [p[0], p[1]], kind: kind, gui
    drag: { move: shape } | { grip: handle, o: shape } while dragging, mm: millimetres per screen pixel, g: the grid */
 function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
   if (!X || !X.p || !S.sk || !isFinite(mm) || !(mm > 0)) return null;
+  var L0 = NVS.last, dr0 = X.K.draft;   /* the pointer has not left the spot whose click made the last point: that point again — a second click there finishes the line (from the new last point other things would be caught: the foot of a perpendicular, a held direction) */
+  if (prev && !drag && L0 && dr0 && dr0.t === 'line' && L0.out[0] === prev[0] && L0.out[1] === prev[1] && nvsD(P, L0.raw) < 4 * mm) return nvsOut(prev, 'pt', [], { t: 'again' });
+  var res = nvsSnap0(P, X, prev, e, exclId, drag, mm, g);
+  if (res && !drag) NVS.last = { raw: [P[0], P[1]], out: res.p };
+  return res;
+}
+function nvsSnap0(P, X, prev, e, exclId, drag, mm, g) {
   if (e && e.altKey) return nvsOut(P, 'grid', [], { free: true });
   var tol = NVS.px * mm, en = nvsEnts(X, exclId, drag), dr = X.K.draft, line = !!(prev && dr && dr.t === 'line'), i, j;
   var best = null, take = function (p, t, d, more) { if (d < (best ? best.d : tol)) { best = { p: p, t: t, d: d }; if (more) for (var k in more) best[k] = more[k]; } };
@@ -87,14 +94,14 @@ function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
   if (best) return nvsOut(best.p, 'pt', [], { t: best.t, ref: best.ref, circ: best.circ, from: line ? prev : null });
 
   /* 2. the direction a line being drawn holds */
-  var lock = null;
+  var lock = null, shift = !!(e && e.shiftKey);
   if (line) {
     var dirs = [{ d: [1, 0], rel: 'ax' }, { d: [0, 1], rel: 'ax' }], skew = function (u) { return Math.abs(u[0]) > 2e-3 && Math.abs(u[1]) > 2e-3; },
       has = function (u) { return dirs.some(function (D) { return Math.abs(D.d[0] * u[1] - D.d[1] * u[0]) < 2e-3; }); },
       add = function (a, b, r1, r2, ref) { var l = nvsD(a, b); if (l < 1e-6) return; var u = [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; if (!skew(u) || has(u)) return; dirs.push({ d: u, rel: r1, ref: ref }, { d: [-u[1], u[0]], rel: r2, ref: ref }); };
     var n = dr.pts.length; if (n >= 2) add(dr.pts[n - 2], dr.pts[n - 1], 'ext', 'perp', { a: dr.pts[n - 2], b: dr.pts[n - 1] });
     Sg.forEach(function (s) { if (s.k === 'line' && dirs.length < 14) add(s.a, s.b, 'par', 'perp', s); });
-    var v = [P[0] - prev[0], P[1] - prev[1]], len = Math.hypot(v[0], v[1]), shift = !!(e && e.shiftKey);
+    var v = [P[0] - prev[0], P[1] - prev[1]], len = Math.hypot(v[0], v[1]);
     if (len > tol * 0.4) dirs.forEach(function (D) { if (shift && D.rel !== 'ax') return;
       var off = Math.abs(v[0] * D.d[1] - v[1] * D.d[0]), lim = shift ? Infinity : Math.min(tol * 0.6, len * (D.rel === 'ax' ? 0.12 : 0.085));   /* ≈ 7° to the axes, 5° to other directions */
       if (off < lim && (!lock || off < lock.off)) lock = { d: D.d, rel: D.rel, ref: D.ref, off: off, al: v[0] * D.d[0] + v[1] * D.d[1] }; });
@@ -111,7 +118,7 @@ function nvsSnap(P, X, prev, e, exclId, drag, mm, g) {
     else nvsLineCirc(prev, lock.d, on.circ.c, on.circ.r).forEach(function (q) { if (nvsD(q.p, P) < tol * 1.5 && (!hit || nvsD(q.p, P) < nvsD(hit, P))) hit = q.p; });
     if (hit) return nvsOut(hit, 'pt', [], { t: 'on', rel: lock.rel, d: lock.d, lref: lock.ref, ref: on.seg, circ: on.circ, from: prev });
   }
-  if (on && !(lock && lock.off < on.d)) {
+  if (on && !(lock && (shift || lock.off < on.d))) {   /* Shift: level or upright, whatever lies near */
     var q0 = on.p, gd = [], s0 = on.seg;
     if (s0) { var hor = Math.abs(s0.a[1] - s0.b[1]) < 1e-9, ver = Math.abs(s0.a[0] - s0.b[0]) < 1e-9;
       if (hor || ver) {   // along an edge or a straight line: level with another point, else whole grid steps
@@ -150,7 +157,7 @@ function nvsBase(o, start) {
 }
 
 var NVS_NAME = { end: ['Galas', 'Endpoint'], corner: ['Kampas', 'Corner'], close: ['Uždaryti kontūrą', 'Close the outline'], mid: ['Vidurys', 'Midpoint'], cen: ['Centras', 'Centre'], quad: ['Kvadrantas', 'Quadrant'],
-  hole: ['Skylė', 'Hole'], int: ['Sankirta', 'Intersection'], perp: ['Statmenai', 'Perpendicular'], tan: ['Liestinė', 'Tangent'], on: ['Ant linijos', 'On the line'], onEdge: ['Ant krašto', 'On the edge'], onCirc: ['Ant apskritimo', 'On the circle'],
+  hole: ['Skylė', 'Hole'], again: ['Dar kartą — baigti', 'Again — finish'], int: ['Sankirta', 'Intersection'], perp: ['Statmenai', 'Perpendicular'], tan: ['Liestinė', 'Tangent'], on: ['Ant linijos', 'On the line'], onEdge: ['Ant krašto', 'On the edge'], onCirc: ['Ant apskritimo', 'On the circle'],
   H: ['Horizontaliai', 'Horizontal'], V: ['Vertikaliai', 'Vertical'], ext: ['Tęsinys', 'Extension'], par: ['Lygiagrečiai', 'Parallel'], relPerp: ['Statmenai', 'Perpendicular'], free: ['Laisvai', 'Free'] };
 
 /* what was caught, drawn at the pointer. u: one hundredth of the view, sP: program point → the drawing's coordinates */
@@ -158,6 +165,7 @@ function nvsMarks(X, info, cur, u, sP, D) {
   if (!info || !info.nv || !S.sk) return '';
   var dragging = !!(D && (D.mode === 'move' || D.mode === 'grip') && D.moved);
   if (S.sk.tool === 'sel' ? !dragging : !cur) return '';
+  if (S.sk.tool !== 'sel' && nvsD(cur, info.p) > 0.051) return '';   /* the point came from the keyboard since: what the pointer was caught by no longer says where it is */
   var sv0 = document.querySelector('.sk-svg'), m0 = sv0 && sv0.getScreenCTM(), px = m0 && m0.a ? 1 / m0.a : u / 4;   // one screen pixel, in the drawing's units: signs and words keep their size at any zoom
   var nv = info.nv, q = info.p, C = sP(q), s = '', en = S.lang === 'en' ? 1 : 0, pe = ' vector-effect="non-scaling-stroke" pointer-events="none"', Y = '#e8a200', G = '#1f7a4d';
   var ln = function (a, b, st) { var A = sP(a), B = sP(b); return '<line x1="' + A[0] + '" y1="' + A[1] + '" x2="' + B[0] + '" y2="' + B[1] + '"' + st + pe + '/>'; };
@@ -171,7 +179,7 @@ function nvsMarks(X, info, cur, u, sP, D) {
     else words.push(NVS_NAME[nv.rel === 'perp' ? 'relPerp' : nv.rel][en]);
   }
   var h = px * 5.5, st = ' fill="#fff" stroke="' + G + '" stroke-width="2"' + pe, t = nv.t, x = C[0], y = C[1], R1 = function (v) { return Math.round(v * 100) / 100; };
-  if (t === 'end' || t === 'corner' || t === 'close') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><circle cx="' + x + '" cy="' + y + '" r="' + R1(h * 0.35) + '" fill="' + G + '" pointer-events="none"/>';
+  if (t === 'end' || t === 'corner' || t === 'close' || t === 'again') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><circle cx="' + x + '" cy="' + y + '" r="' + R1(h * 0.35) + '" fill="' + G + '" pointer-events="none"/>';
   else if (t === 'mid') s += '<path d="M' + R1(x - h) + ' ' + R1(y + h * 0.8) + 'L' + R1(x + h) + ' ' + R1(y + h * 0.8) + 'L' + x + ' ' + R1(y - h) + 'Z"' + st + '/>';
   else if (t === 'cen' || t === 'hole') s += '<circle cx="' + x + '" cy="' + y + '" r="' + R1(h) + '"' + st + '/><path d="M' + R1(x - h * 1.5) + ' ' + y + 'h' + R1(h * 3) + 'M' + x + ' ' + R1(y - h * 1.5) + 'v' + R1(h * 3) + '" stroke="' + G + '" stroke-width="1.5"' + pe + '/>';
   else if (t === 'quad') s += '<path d="M' + R1(x - h) + ' ' + y + 'L' + x + ' ' + R1(y - h) + 'L' + R1(x + h) + ' ' + y + 'L' + x + ' ' + R1(y + h) + 'Z"' + st + '/>';
@@ -193,11 +201,12 @@ function nvsMarks(X, info, cur, u, sP, D) {
   return s;
 }
 
+function nvsBehind(a) { return !!(a && a !== document.body && a.blur && a.closest && document.querySelector('.skover') && a.closest('#app') && !a.closest('.skover')); }   // a field of this page, behind the open drawing window
 /* the keyboard belongs to the drawing while it is open: a field left in focus behind the window would swallow Enter,
    the typed sizes and Esc (and take the typed numbers for itself) */
 NVAFTER.push(function () {
   if (!S.sk) return; var a = document.activeElement;
-  if (a && a !== document.body && a.blur && !(a.closest && a.closest('.skover'))) a.blur();
+  if (nvsBehind(a)) a.blur();
   var h = document.querySelector('.skover .sk-hint');   // what the pointer is caught by, said once under the drawing
   if (h && !h.querySelector('.nvs-h')) h.insertAdjacentHTML('beforeend', ' <span class="nvs-h">' + esc(S.sk.tool === 'sel'
     ? L('Tempiama figūra limpa tuo tašku, už kurio paimta. Alt — nelimpa.', 'A dragged shape is caught by the point it was taken by. Alt — nothing is caught.')
@@ -206,12 +215,12 @@ NVAFTER.push(function () {
 });
 document.addEventListener('keydown', function (e) {   // capture, registered after the live handler: only ever sees what that one let through
   if (!S.sk) return; var a = e.target;
-  if (a && a.blur && /INPUT|SELECT|TEXTAREA/.test(a.tagName || '') && !(a.closest && a.closest('.skover'))) { a.blur(); e.preventDefault(); }
+  if (a && /INPUT|SELECT|TEXTAREA/.test(a.tagName || '') && nvsBehind(a)) { a.blur(); e.preventDefault(); }
 }, true);
 
-/* the part fills the drawing: a narrower margin than the live view's (which left a fifth of the drawing empty) */
+/* the part fills more of the drawing: a narrower margin than the live view's, still with room for the edges' names */
 function skView(p, F) {
   var K = S.sk, v = K && K.view; if (v && v.key === p.key + skSide()) return v;
-  F = F || skFrame(p, skSide()); var m = Math.max(F.Dw, F.Dh) * 0.035 + 34;
+  F = F || skFrame(p, skSide()); var m = Math.max(F.Dw, F.Dh) * 0.07 + 20;   /* the edges' names stand 6 % of the view outside the part */
   return { key: p.key + skSide(), x: -m, y: -(F.Dh + m), w: F.Dw + 2 * m, h: F.Dh + 2 * m };
 }
