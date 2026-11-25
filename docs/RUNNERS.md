@@ -38,3 +38,20 @@ The screw row therefore belongs at
 
 Not touched: BLUM TANDEM, the GTV / DTC ball-bearing and undermount runners (shop-made boxes, the front is screwed to the
 box wherever it has to be) — they were not checked against a catalogue here.
+
+## TANDEMBOX boxes as the workshop makes them (November 2026)
+
+The workshop uses the antaro **M side on every TANDEMBOX drawer**. A low drawer gets Blum's steel back; a higher one a 16 mm
+chipboard back and gallery rails on the M side. The live engine listed only the runner set; the build now also lists what
+the shop cuts and buys (build.py PATCHES, `R.tbox`):
+
+| box | back | gallery rails | cut by the shop |
+|---|---|---|---|
+| M | steel back (bought, `LW=`) | — | base LW − 75 × NL − 24 |
+| C | chipboard 167 mm | 1 per side | base, back LW − 87 × 167 |
+| D | chipboard 199 mm | 2 per side | base, back LW − 87 × 199 |
+
+Field **TANDEMBOX dėžė (šonai M)** on a drawer section / front: by the front's height (the highest that fits: back + 9 mm
+base offset above the reference line R, up to 10 mm under the front's top) or M / C / D by hand. Base and back are 16 mm —
+without a drawer material the carcass board is named and a warning asks for the 16 mm one.
+Not changed: the front fixing holes (65.5 / 97.5, and 225.5 on fronts from 250 mm), the 3-D picture of the box.

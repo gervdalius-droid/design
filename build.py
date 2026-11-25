@@ -74,6 +74,70 @@ PATCHES = [
     ('engine', "axis:Math.max(t + up, f.bottom + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop)",
                "axis:Math.max(t + up, f.bottom + (+R.merivo.fa || 0) + up), top:Math.min(f.bottom + f.h - +R.merivo.topGap, innerTop)"),
 
+    # ---- TANDEMBOX as the workshop makes it (Nov 2026): antaro **M sides on every drawer**; a low drawer has Blum's steel
+    #      back, a higher one a 16 mm chipboard back (C 167 / D 199) and gallery rails on the M side. The shop cuts the base
+    #      (and that back); the live engine listed only the runner set. Cutting sizes from Blum's TANDEMBOX antaro planning
+    #      sheets ("Cutting – 16 mm chipboard"): base LW − 75 × NL − 24, chipboard back LW − 87 × back height; the box's base
+    #      underside 9 mm above its reference line R (the top of the board under it, docs/RUNNERS.md). Gallery rails per side:
+    #      C 1, D 2. All of it in R.tbox (workshop settings can change it); section / front field tbH: auto | M | C | D.
+    ('engine', "  facade: { sideGap:3,",
+               "  tbox: { backH:{ M:84, C:167, D:199 }, rails:{ C:1, D:2 }, ded:75, backDed:87, shorter:24, baseUp:9, t:16, topGap:10 },   // TANDEMBOX antaro, M sides (above)\n"
+               "  facade: { sideGap:3,"),
+    ('engine', "function merivoPick(want, ext, room) {",
+               "/* TANDEMBOX (M sides always): which back the drawer gets — M: Blum's steel back; C / D: a chipboard back and gallery rails.\n"
+               "   room: from the box's reference line R up to where the box must stop; a height fits when back + base offset ≤ room. */\n"
+               "function tbPick(want, room) {\n"
+               "  var T = R.tbox, fits = function (k) { return +T.backH[k] + +T.baseUp <= room + 0.01; }, auto = ['D', 'C', 'M'].filter(fits)[0] || null;\n"
+               "  var code = want && want !== 'auto' && T.backH[want] ? want : auto, note = '';\n"
+               "  if (code && !fits(code)) { note = 'TANDEMBOX ' + code + ' (galas ' + T.backH[code] + ' mm) netelpa — ' + (auto ? 'imamas ' + auto : 'per žemas fasadas'); code = auto; }\n"
+               "  if (!code) return null;\n"
+               "  return { code:code, backH:+T.backH[code], rails:code === 'M' ? 0 : +(T.rails[code] || 1), steel:code === 'M', note:note };\n"
+               "}\n"
+               "/* TANDEMBOX parts for one drawer: the 16 mm base, and for C / D the chipboard back; ctx as merivoParts (axis = the cabinet profile row) */\n"
+               "function tbParts(ctx, warnOnce) {\n"
+               "  var T = R.tbox, LW = ctx.x1 - ctx.x0, rail = +ctx.rail || 500, Rz = ctx.axis - +R.runner['BLUM TANDEMBOX'].up, bt = +T.t || 16;\n"
+               "  var pk = tbPick(ctx.want, ctx.top - Rz);\n"
+               "  if (!pk) { warnOnce(ctx.lbl + ': fasadas per žemas TANDEMBOX dėžei (M ' + T.backH.M + ' mm) — dugnas nepridėtas'); return null; }\n"
+               "  if (pk.note) warnOnce(ctx.lbl + ': ' + pk.note);\n"
+               "  var BW = LW - +T.ded, BD = rail - +T.shorter, bx0 = ctx.x0 + +T.ded / 2, zs = Rz + +T.baseUp;\n"
+               "  if (BW < 100) { warnOnce(ctx.lbl + ': anga per siaura TANDEMBOX dėžei — dugnas nepridėtas'); return null; }\n"
+               "  if (!ctx.matOwn && ctx.carcT && Math.abs(ctx.carcT - bt) > 0.3) warnOnce('TANDEMBOX ' + (pk.steel ? 'dugnas pjaunamas' : 'dugnas ir galas pjaunami') + ' iš ' + num(bt) + ' mm plokštės, korpusas ' + num(ctx.carcT) + ' mm — nurodykite stalčių dugno / galo medžiagą (' + num(bt) + ' mm)');\n"
+               "  var pb = panel(ctx.name('DUGNAS'), 'STALC_DUGNAS', BW, BD, bt, ctx.lbl + ', TANDEMBOX ' + pk.code + ' dugnas (LW − ' + num(+T.ded) + ', NL − ' + num(+T.shorter) + '), priekis Y=0');\n"
+               "  place(pb, [bx0, ctx.y0, zs + bt], X, Y, Z); pb.mat = ctx.mat; pb.drawerOf = ctx.pname;\n"
+               "  var parts = [pb], hw = [];\n"
+               "  if (pk.steel) hw.push({ item:'BLUM TANDEMBOX plieninis galas M, LW=' + num(LW), qty:1, unit:'vnt.' });\n"
+               "  else {\n"
+               "    var GW = LW - +T.backDed, gx0 = ctx.x0 + +T.backDed / 2;\n"
+               "    var pg = panel(ctx.name('GALAS'), 'STALC_GALAS', GW, pk.backH, bt, ctx.lbl + ', TANDEMBOX ' + pk.code + ' galas (LW − ' + num(+T.backDed) + '), ant dugno, apačia Y=0');\n"
+               "    place(pg, [gx0, ctx.y0 + BD, zs + bt], X, Z, neg(Y)); pg.mat = ctx.mat; pg.eb.y1 = ctx.eb; pg.drawerOf = ctx.pname; parts.push(pg);\n"
+               "    hw.push({ item:'BLUM TANDEMBOX galerija L=' + rail, qty:2 * pk.rails, unit:'vnt.' });\n"
+               "  }\n"
+               "  return { parts:parts, pick:pk, hw:hw, box:{ code:pk.code, backH:pk.backH, rails:pk.rails, steel:pk.steel, zs:zs, bx0:bx0, bx1:bx0 + BW, y0:ctx.y0, len:BD } };\n"
+               "}\n"
+               "function merivoPick(want, ext, room) {"),
+    # the drawer sections of a cabinet …
+    ('engine', "    f.mv = res.box; U('BLUM MERIVOBOX (dugnas, galas ir bėgelių skylės)');\n  });",
+               "    f.mv = res.box; U('BLUM MERIVOBOX (dugnas, galas ir bėgelių skylės)');\n  });\n"
+               "  /* ---- Blum TANDEMBOX (M sides): the shop cuts the base, and for a high drawer the chipboard back (tbParts) */\n"
+               "  facades.forEach(function (f) {\n"
+               "    var rt = R.runner[f.hw]; if (f.hw !== 'BLUM TANDEMBOX' || !rt || o.tbParts === false) return;\n"
+               "    var k = f.col || 0, s2 = (c.sections || []).filter(function (q) { return Math.min(cols - 1, Math.max(0, Math.floor(+q.col || 0))) === k; })[f.sec] || {}, rail = +s2.rail || 500;\n"
+               "    var lbl2 = 'stalčius ' + (cols > 1 ? (k + 1) + '.' : '') + (f.sec + 1) + '.' + (f.idx + 1), up = +rt.up;\n"
+               "    var innerTop = (topFull ? H - t : (rl.front === 'v' ? H - rw : H - t)) - 3, nb = nBox + 1;\n"
+               "    var res = tbParts({ x0:ix0(k), x1:ix1(k), y0:0, axis:Math.max(t + up, f.bottom + (+rt.fa || 0) + up), top:Math.min(f.bottom + f.h - +R.tbox.topGap, innerTop), rail:rail,\n"
+               "      want:s2.tbH, name:function (q) { return nm('STALC' + nb + '_' + q); }, mat:mDrw, matOwn:!!mat.drawer, carcT:t, eb:eCarc, pname:f.pname, lbl:lbl2 }, warnOnce);\n"
+               "    if (!res) return;\n"
+               "    nBox++; res.parts.forEach(function (q) { out.push(q); }); res.hw.forEach(function (h) { hw.push(h); });\n"
+               "    var fp = out.filter(function (q) { return q.name === f.pname; })[0]; if (fp) fp.tb = res.box; f.tb = res.box;\n"
+               "  });"),
+    # … and the drawer fronts of a 3-D construction
+    ('engine', "          else hw.push({ item:'BLUM MERIVOBOX L=' + rail, qty:1, unit:'kompl.' }); }\n      }",
+               "          else hw.push({ item:'BLUM MERIVOBOX L=' + rail, qty:1, unit:'kompl.' }); }\n"
+               "        if (hwN === 'BLUM TANDEMBOX' && o.tbParts !== false) { var nbT = nBoxF + 1;\n"
+               "          var tres = tbParts(Object.assign({}, ctx, { top:Math.min(fb + hD - +R.tbox.topGap, zhi - 3), rail:rail, want:fr0.tbH, name:function (q) { return nm('STALC' + nbT + '_' + q); }, mat:mDrw, matOwn:!!mat.drawer, carcT:t, eb:eCarc }), warnOnce);\n"
+               "          if (tres) { nBoxF++; tres.parts.forEach(function (q) { out.push(q); }); tres.hw.forEach(function (h) { hw.push(h); }); p.tb = f.tb = tres.box; } }\n"
+               "      }"),
+
     # ---- routing drawn by hand (Detalių operacijos)
     # (1) a closed outline (cut out, cut round, a pocket's rings) was routed without its last side: the path stopped at
     #     the last corner and lifted, so a rectangle got three sides of four. The loop is closed here.

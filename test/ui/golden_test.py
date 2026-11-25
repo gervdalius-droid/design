@@ -7,7 +7,7 @@ identical, text for text.
 
     python3 test/ui/golden_test.py [new-page-path]       (default: index.html; needs nothing running)
 """
-import http.server, json, os, sys, threading, hashlib
+import http.server, json, os, re, sys, threading, hashlib
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(ROOT, 'tools'))
 from cdp import Chrome
@@ -79,7 +79,17 @@ def main():
     print('programs  %s  (%d .XXL files, sha1 %s)' % ('identical' if not diff else 'DIFFERENT: ' + ', '.join(diff[:8]), len(fa),
           hashlib.sha1(json.dumps(fa, sort_keys=True).encode()).hexdigest()[:12]))
     # 2. the build that is shipped differs from the live app only where the engine is corrected on purpose (docs/RUNNERS.md):
-    #    the runner rows on the sides / partitions of cabinets with drawers above the lowest one — nothing else
+    #    the runner rows on the sides / partitions of cabinets with drawers above the lowest one, and the TANDEMBOX drawers'
+    #    base / chipboard back and their fittings (M sides always: build.py PATCHES) — nothing else
+    live_names = set(x['name'] for x in a['parts'])
+    tbp = set(x['name'] for x in n['parts'] if x.get('role') in ('STALC_DUGNAS', 'STALC_GALAS') and x['name'] not in live_names)
+    tbo = lambda nm: any(q in str(nm) for q in tbp)
+    n = dict(n, parts=[x for x in n['parts'] if x['name'] not in tbp],
+             hardware=[h for h in n['hardware'] if not ('TANDEMBOX galerija' in h.get('item', '') or 'TANDEMBOX plieninis galas' in h.get('item', ''))],
+             csv='\n'.join(re.sub(r'^\d+;', '#;', l) for l in n['csv'].split('\n') if not tbo(l)))   # the rows after an added part are numbered one on
+    a = dict(a, csv='\n'.join(re.sub(r'^\d+;', '#;', l) for l in a['csv'].split('\n')))
+    fn = {k: v for k, v in fn.items() if not tbo(k)}
+    print('shipped   %d TANDEMBOX base / back parts added (left out of the comparison)' % len(tbp))
     bad2 = 0
     for key in ('parts', 'hardware', 'csv'):
         same = a[key] == n[key]; bad2 += not same
@@ -89,7 +99,7 @@ def main():
     print('shipped   %d programs differ from the live app, all on sides / partitions: %s' % (len(d2), 'yes' if d2 and not odd else 'NO — ' + ', '.join((odd or ['none differ'])[:8])))
     for e in errs: print('  ' + e[:300])
     if bad or diff or errs or bad2 or odd or not d2: sys.exit(1)
-    print('golden: the new interface produces exactly the live app\'s output; the shipped build differs only by the corrected runner rows')
+    print('golden: the new interface produces exactly the live app\'s output; the shipped build differs only by the corrected runner rows and the TANDEMBOX base / back')
 
 if __name__ == '__main__':
     main()

@@ -22,3 +22,22 @@ function nvuSetNote(html) {
     .replace('The cabinet profile holes and their height are NOT yet verified on a real MERIVOBOX — measure one and correct them here.',
              'The cabinet profile holes and their height follow Blum\'s planning sheet: the screw row 54 mm above the box\'s reference (the top of the board under it), the base\'s underside 20 mm above it; holes from the front 37 / 261 / 293 mm (NL 270–350: 37 / 197 / 229).');
 }
+/* the drawer section's / front's box height field: MERIVOBOX as the live app; TANDEMBOX (M sides always, build.py PATCHES):
+   by the front, or M (steel back), C / D (chipboard back + gallery rails) */
+function mvFields(b, s) {
+  var rt = E.R.runner[s.hw] || {};
+  if (rt.merivo) {
+    var m = E.R.merivo, h = s.mvH && m.sideH[s.mvH] ? s.mvH : 'auto';
+    return fS(t('mvH'), b + 'mvH', h, [['auto', t('mvAuto')]].concat(['N', 'M', 'K', 'E'].map(function (k) { return [k, k + ' · ' + String(m.sideH[k]).replace('.', ',') + ' mm']; }))) +
+      (h === 'auto' || h === 'E' ? fS(t('mvExt'), b + 'mvExt', s.mvExt === 'boxcap' ? 'boxcap' : 'rail', [['rail', t('mvRail')], ['boxcap', t('mvBoxcap')]]) : '');
+  }
+  if (s.hw === 'BLUM TANDEMBOX' && E.R.tbox) {
+    var T = E.R.tbox, k = s.tbH && T.backH[s.tbH] ? s.tbH : 'auto', g = function (c) { var n = +(T.rails[c] || 1); return n + ' ' + (n === 1 ? L('galerija', 'gallery rail') : L('galerijos', 'gallery rails')); };
+    return fS(L('TANDEMBOX dėžė (šonai M)', 'TANDEMBOX box (M sides)'), b + 'tbH', k, [
+      ['auto', L('Pagal fasado aukštį', 'By the front\'s height')],
+      ['M', 'M · ' + L('plieninis galas', 'steel back')],
+      ['C', 'C · ' + L('galas ', 'back ') + T.backH.C + ' mm + ' + g('C')],
+      ['D', 'D · ' + L('galas ', 'back ') + T.backH.D + ' mm + ' + g('D')]]);
+  }
+  return '';
+}

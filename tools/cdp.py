@@ -14,7 +14,7 @@ Every Chrome() picks its own free debugging port and a throw-away profile, so se
 """
 import base64, json, os, shutil, socket, struct, subprocess, sys, tempfile, time, urllib.request
 
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+CHROME = os.environ.get("CHROME") or "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"   # elsewhere: CHROME=/path/to/chrome
 
 
 class WS:
@@ -99,7 +99,7 @@ class Chrome:
             [CHROME, "--headless=new", f"--remote-debugging-port={self.port}",
              f"--user-data-dir={self.profile}", "--no-first-run", "--no-default-browser-check",
              "--hide-scrollbars", "--disable-gpu-vsync", "--force-device-scale-factor=1",
-             f"--window-size={self.w},{self.h}", "about:blank"],
+             f"--window-size={self.w},{self.h}"] + os.environ.get("CHROME_ARGS", "").split() + ["about:blank"],   # e.g. CHROME_ARGS=--no-sandbox when run as root
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         ws_url = None
         for _ in range(80):
