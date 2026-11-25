@@ -37,7 +37,7 @@ function nvjBody(c, inf) {
         '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Standartas', 'Standard') + '</button></div>' +
       (pos.length ? '<div class="nvj-row"><span class="nvj-l">' + L('Kur, mm nuo jungties pradžios', 'Where, mm from the joint\'s start') + '</span><span class="nv3-jpos">' + pos.map(function (v, k) { return '<label class="' + (sel.idx === k ? 'on' : '') + '"><input type="text" inputmode="decimal" value="' + fmt(v) + '" data-nv3j="' + k + '" aria-label="' + (k + 1) + '"><button type="button" data-nv="nv3" data-v="j:del:' + k + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></label>'; }).join('') + '</span>' +
         '<small class="nv-muted nvj-n">' + L('Nuo galo ≥ ' + lim.edge + ', tarp jungčių ≥ ' + lim.gap + '. Tašką galima tempti modelyje.', 'From the end ≥ ' + lim.edge + ', apart ≥ ' + lim.gap + '. A point can be dragged in the model.') + '</small></div>' : '') +
-      '<div class="nvj-row"><span class="nvj-l">' + L('Pusė', 'Side') + '</span>' + nv3JFlipBtn(c, r, j, sd, sel) + '</div></section>'; }
+      '<div class="nvj-row nvj-sides"><span class="nvj-l">' + L('Pusė ir ašis', 'Side and axis') + '</span>' + nv3JFlipBtn(c, r, j, sd, sel) + nv3JAxisBtn(c, r, j) + '</div></section>'; }
   else h += '<div class="nvj-pick">' + L('Pasirinkite jungtį — čia atsiras jos nustatymai: kuo jungiama, kiek, kur ir kurioje pusėje.', 'Pick a joint — its settings appear here: what joins it, how many, where and on which side.') + '</div>';
   /* every joint */
   h += nvtGrp(L('Jungtys', 'Joints'), joints.length, '<div class="nvj-list">' + joints.map(function (x) {

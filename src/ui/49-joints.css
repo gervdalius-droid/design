@@ -29,3 +29,5 @@
 .nv-app .av [data-connectors]{display:none}
 /* while joints are worked on the model has the whole picture: the cabinet's other notes wait in Patikra */
 .nve-ws.nve-joints .nve-iss{display:none}
+.nvj-sides .nv3-jflip{flex:1 1 0;min-width:130px;flex-direction:column;align-items:flex-start;gap:4px}
+.nvj-sides .nv3-jflip small{line-height:1.3}

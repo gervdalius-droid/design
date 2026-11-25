@@ -2703,6 +2703,8 @@ button.nve-more:hover{color:var(--ink);text-decoration:underline}
 .nv-app .av [data-connectors]{display:none}
 /* while joints are worked on the model has the whole picture: the cabinet's other notes wait in Patikra */
 .nve-ws.nve-joints .nve-iss{display:none}
+.nvj-sides .nv3-jflip{flex:1 1 0;min-width:130px;flex-direction:column;align-items:flex-start;gap:4px}
+.nvj-sides .nv3-jflip small{line-height:1.3}
 
 </style>
 <style>
@@ -20002,10 +20004,30 @@ function nv3JDrop(jd) {
   var pos = (q.sd.pos || []).slice(); pos[jd.i] = jd.at; NV3.jSel = { key: s.key, side: s.side || 'L', seam: jd.seam, idx: null };
   nv3JCommit(s.key, s.side || 'L', q.sd.type, pos);
 }
+/* "Pakeisti ašį" — the connector turns to the other board of the corner: the board that ran through now ends at the other one,
+   so a cam's housing (or a screw's head) moves to the other board. It is the construction's own choice, written where the
+   live app keeps it: a bottom under / between the sides (c.cnc.bottom), a full top on / between them (c.cnc.topMount),
+   a solid back on the rear edges / between the sides (c.cnc.backMount), a free construction's corner (c.box.cover). */
+function nv3JAxis(c, r, j) {
+  var o = c.cnc || {};
+  if (c.kind === 'box') { if (!j.box || !E.boxPair) return null; var pk = E.boxPair(j.box.P, j.box.Q), cv = ((r.box || {}).covers || []).filter(function (k) { return k.key === pk; })[0]; if (!cv || cv.forced) return null;
+    var nm = function (id) { var x = t('bx_' + id); return x === 'bx_' + id ? id : x; };
+    return { cover: pk, to: cv.by === cv.a ? cv.b : cv.a, now: L('dabar sukama per: ', 'now driven through: ') + nm(cv.by) }; }
+  if (c.kind) return null;
+  if (j.key === 'bottom') return { bind: 'c.cnc.bottom', to: o.bottom === 'inside' ? 'under' : 'inside', now: o.bottom === 'inside' ? L('dabar: dugnas tarp šonų', 'now: the bottom between the sides') : L('dabar: dugnas po šonais', 'now: the bottom under the sides') };
+  if (j.key === 'top' && o.top === 'full') return { bind: 'c.cnc.topMount', to: o.topMount === 'inside' ? 'over' : 'inside', now: o.topMount === 'inside' ? L('dabar: viršus tarp šonų', 'now: the top between the sides') : L('dabar: viršus ant šonų', 'now: the top on the sides') };
+  if (j.key === 'back' && (o.backs || []).length && (o.backs || []).slice(0, colsOf(c)).every(function (b) { return b === 'solid'; })) return { bind: 'c.cnc.backMount', to: o.backMount === 'inside' ? 'top' : 'inside', now: o.backMount === 'inside' ? L('dabar: nugara tarp šonų', 'now: the back between the sides') : L('dabar: nugara ant galinių kraštų', 'now: the back on the rear edges') };
+  return null;
+}
+function nv3JAxisBtn(c, r, j) {
+  var ax = nv3JAxis(c, r, j), lab = '⤡ ' + L('Pakeisti ašį', 'Swap axis');
+  if (!ax) return '<span class="nv3-jflip"><button type="button" class="nv-btn sm" disabled title="' + esc(L('Šios jungties plokščių sukeisti negalima', 'The boards of this joint cannot be swapped')) + '">' + lab + '</button></span>';
+  return '<span class="nv3-jflip"><button type="button" class="nv-btn sm" data-nv="nv3" data-v="j:axis" title="' + esc(L('Jungtis pasukama į kitą kampo plokštę: lizdas (ar varžto galvutė) pereina į ją. Keičiasi ir plokščių ilgiai.', 'The connector turns to the other board of the corner: the housing (or the screw\'s head) moves to it. The boards\' lengths change too.')) + '">' + lab + '</button><small class="nv-muted">' + esc(ax.now) + '</small></span>';
+}
 /* "Pakeisti puses" — the chosen fasteners go to the other side:
    · eccentrics: the housing is drilled in the other face of its board (the one picked in the model, or — with none picked —
      all of this joint's); kept in c.nvFlip['<joint>|<L or R>'] = 'all' | [indexes], applied to the engine's holes in 49-flip.js;
-   · a corner of a free construction joined otherwise: the connector is driven through the other board (the live "boxcover"). */
+   · where the live app keeps "cams on the outer face" itself (c.cnc.camOut) the whole joint uses that setting. */
 function nv3JCamKey(c, j) {   // the live app keeps "cams on the outer face" itself for a bottom, a top and a back that sit between the sides (c.cnc.camOut)
   var o = c.cnc || {}; if (c.kind) return null;
   return j.key === 'bottom' && o.bottom === 'inside' ? 'bottom' : j.key === 'top' && o.top === 'full' && o.topMount === 'inside' ? 'top'
@@ -20023,10 +20045,6 @@ function nv3JFlipBtn(c, r, j, sd, sel) {
   if (sd.type === 'cam' && n) { var one = sel.idx != null, on = nv3JFlipState(c, j, sel), ck = !one && (j.single || NV3.jBoth) ? nv3JCamKey(c, j) : null;   // the whole joint, where the live app has the setting: the live command
     return '<span class="nv3-jflip"><button type="button" class="nv-btn sm' + (on ? ' on' : '') + '" ' + (ck ? 'data-act="camside" data-v="' + ck + '"' : 'data-nv="nv3" data-v="j:flip"') + ' aria-pressed=""' + on + '" title="' + esc(L('Ekscentriko lizdas gręžiamas kitoje plokštės pusėje', 'The cam housing is drilled in the other face of the board')) + '">' + lab + '</button>' +
       '<small class="nv-muted">' + (one ? L('pasirinktas ekscentrikas Nr. ' + (sel.idx + 1), 'the chosen cam, no. ' + (sel.idx + 1)) : L('visi šios jungties ekscentrikai — arba modelyje spustelėkite vieną', 'all cams of this joint — or click one in the model')) + '</small></span>'; }
-  if (c.kind === 'box' && j.box && E.boxPair && n) { var pk = E.boxPair(j.box.P, j.box.Q), cv = ((r.box || {}).covers || []).filter(function (k) { return k.key === pk; })[0];
-    if (cv && !cv.forced) { var other = cv.by === cv.a ? cv.b : cv.a, nm = function (id) { var x = t('bx_' + id); return x === 'bx_' + id ? id : x; };
-      return '<span class="nv3-jflip"><button type="button" class="nv-btn sm" data-act="boxcover" data-v="' + esc(pk) + '" data-w="' + esc(other) + '" title="' + esc(L('Jungtis bus sukama per kitą plokštę; pasikeis ir plokščių ilgiai', 'The connector will be driven through the other board; the boards\' lengths change too')) + '">' + lab + '</button>' +
-        '<small class="nv-muted">' + L('dabar sukama per: ', 'now driven through: ') + esc(nm(cv.by)) + '</small></span>'; } }
   return '<span class="nv3-jflip"><button type="button" class="nv-btn sm" disabled title="' + esc(L('Pusę galima keisti ekscentrikams (lizdas kitoje plokštės pusėje)', 'The side can be changed for cams (the housing in the other face of the board)')) + '">' + lab + '</button></span>';
 }
 function nv3JAct(a, el) {
@@ -20045,6 +20063,10 @@ function nv3JAct(a, el) {
       if (sel.idx != null) { cur0 = cur0.filter(function (i) { return i !== sel.idx; }); if (!was) cur0.push(sel.idx); } else cur0 = was ? [] : all;
       cur0.sort(function (a1, b1) { return a1 - b1; }); if (!cur0.length) delete F[k1]; else F[k1] = cur0.length >= n1 ? 'all' : cur0; });
     delete c1.jointsOk; save(); return; }   // a housing in another face is another drilling: to be confirmed again
+  if (p[0] === 'axis') { var c3 = cur(), ax = nv3JAxis(c3, r, j); if (!ax) return false; pushUndo();
+    if (c3.nvFlip) { delete c3.nvFlip[j.key + '|L']; delete c3.nvFlip[j.key + '|R']; }   // the housings go to another board: a swapped face does not follow them
+    if (ax.cover) c3.box.cover[ax.cover] = ax.to; else assign(ax.bind, ax.to);
+    delete c3.jointsOk; save(); return; }
   if (p[0] === 'type') { if (p[1] !== sd.type) noFlip(); nv3JCommit(j.key, sel.side, p[1], null, true); return false; }   // the type's own standard places
   if (p[0] === 'reset') { pushUndo(); noFlip(); var c = cur(); if (j.single || NV3.jBoth) { if (c.cnc.joints) delete c.cnc.joints[j.key]; } else setJoint(c, j.key, { side: sel.side, type: sd.type, pos: null }); save(); return; }
   if (p[0] === 'del') { pos.splice(+p[1], 1); nv3JCommit(j.key, sel.side, sd.type, pos); return false; }
@@ -20137,7 +20159,7 @@ function nvjBody(c, inf) {
         '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="j:reset">↺ ' + L('Standartas', 'Standard') + '</button></div>' +
       (pos.length ? '<div class="nvj-row"><span class="nvj-l">' + L('Kur, mm nuo jungties pradžios', 'Where, mm from the joint\'s start') + '</span><span class="nv3-jpos">' + pos.map(function (v, k) { return '<label class="' + (sel.idx === k ? 'on' : '') + '"><input type="text" inputmode="decimal" value="' + fmt(v) + '" data-nv3j="' + k + '" aria-label="' + (k + 1) + '"><button type="button" data-nv="nv3" data-v="j:del:' + k + '" title="' + esc(L('Pašalinti', 'Remove')) + '">✕</button></label>'; }).join('') + '</span>' +
         '<small class="nv-muted nvj-n">' + L('Nuo galo ≥ ' + lim.edge + ', tarp jungčių ≥ ' + lim.gap + '. Tašką galima tempti modelyje.', 'From the end ≥ ' + lim.edge + ', apart ≥ ' + lim.gap + '. A point can be dragged in the model.') + '</small></div>' : '') +
-      '<div class="nvj-row"><span class="nvj-l">' + L('Pusė', 'Side') + '</span>' + nv3JFlipBtn(c, r, j, sd, sel) + '</div></section>'; }
+      '<div class="nvj-row nvj-sides"><span class="nvj-l">' + L('Pusė ir ašis', 'Side and axis') + '</span>' + nv3JFlipBtn(c, r, j, sd, sel) + nv3JAxisBtn(c, r, j) + '</div></section>'; }
   else h += '<div class="nvj-pick">' + L('Pasirinkite jungtį — čia atsiras jos nustatymai: kuo jungiama, kiek, kur ir kurioje pusėje.', 'Pick a joint — its settings appear here: what joins it, how many, where and on which side.') + '</div>';
   /* every joint */
   h += nvtGrp(L('Jungtys', 'Joints'), joints.length, '<div class="nvj-list">' + joints.map(function (x) {
