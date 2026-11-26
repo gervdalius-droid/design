@@ -138,6 +138,38 @@ PATCHES = [
                "          if (tres) { nBoxF++; tres.parts.forEach(function (q) { out.push(q); }); tres.hw.forEach(function (h) { hw.push(h); }); p.tb = f.tb = tres.box; } }\n"
                "      }"),
 
+    # ---- the cabinet sheet (Nov 2026). (1) the parts list sits at the bottom of the left column, the views on top;
+    #      (2) "Surinkimo schema" is the 3-D view as it is with "Jungtys" on — the carcass pulled apart with its
+    #      connectors, the drawers in their place with their runners — drawn by three.js (src/ui/66-drwsnap.js, given to
+    #      the sheets as opts.snap); the part numbers go where each board lands in that picture. Without three.js
+    #      (offline) the sheet keeps its own line drawing.
+    ('drawings', "  var yT = vb.bottom + 8, rh = Math.max(2.7, Math.min(5, (bottomY - yT - 8) / nRows)), fs = Math.min(2.7, rh * 0.58);",
+                 "  var rh = Math.max(2.7, Math.min(4, (bottomY - vb.bottom - 16) / nRows)), yT = Math.max(vb.bottom + 8, bottomY - 2 - rh * nRows), fs = Math.min(2.7, rh * 0.58);   // the list at the bottom of the column"),
+    ('drawings', "  var V = viewIso(ISO_D), boxes = cabBoxes(r, { plinth:false, fit:true, c:c }); explode(r, boxes);\n"
+                 "  var order = solve(boxes, V), fp = fitPic(order, area[0] + 4, area[2] + 4, area[1] - area[0] - 8, area[3] - area[2] - 8);\n"
+                 "  svg += viewTitle(AX, top, L.expl, L.nts);\n"
+                 "  var anchors = {};\n"
+                 "  svg += drawBoxes(order, fp.m, { lw:0.26, shade:true, after:connectorLines(r, boxes, V, function (q) { return fp.m(q); }, order, anchors) });",
+                 "  var SNAP = null; try { SNAP = meta.snap ? meta.snap(c, r, { w:area[1] - area[0] - 30, h:area[3] - area[2] - 8 }) : null; } catch (eS) { SNAP = null; }\n"
+                 "  var V = viewIso(ISO_D), boxes = cabBoxes(r, { plinth:false, fit:true, c:c }); explode(r, boxes);\n"
+                 "  var order = SNAP ? [] : solve(boxes, V), fp;\n"
+                 "  if (SNAP) { var bw0 = area[1] - area[0] - 30, bh0 = area[3] - area[2] - 8, kS = Math.min(bw0 / SNAP.w, bh0 / SNAP.h), ixS = area[0] + (area[1] - area[0] - SNAP.w * kS) / 2, iyS = area[2] + 4 + (bh0 - SNAP.h * kS) / 2;\n"
+                 "    fp = { m:function (q) { return [ixS + q[0] * kS, iyS + q[1] * kS]; }, pb:[0, SNAP.w, SNAP.h, 0] }; }   // picture pixels → sheet\n"
+                 "  else fp = fitPic(order, area[0] + 4, area[2] + 4, area[1] - area[0] - 8, area[3] - area[2] - 8);\n"
+                 "  svg += viewTitle(AX, top, L.expl, L.nts);\n"
+                 "  var anchors = {};\n"
+                 "  if (SNAP) { var i0 = fp.m([0, 0]); svg += '<image x=\"' + f2(i0[0]) + '\" y=\"' + f2(i0[1]) + '\" width=\"' + f2(SNAP.w * kS) + '\" height=\"' + f2(SNAP.h * kS) + '\" preserveAspectRatio=\"none\" href=\"' + SNAP.url + '\"/>'; }\n"
+                 "  else svg += drawBoxes(order, fp.m, { lw:0.26, shade:true, after:connectorLines(r, boxes, V, function (q) { return fp.m(q); }, order, anchors) });"),
+    ('drawings', "    if (!g.main) return;   // balloons only on the carcass and the fronts: drawer boxes and fittings are in the lists\n",
+                 "    if (!g.main) return;   // balloons only on the carcass and the fronts: drawer boxes and fittings are in the lists\n"
+                 "    if (SNAP) { var sp = g.members.map(function (q) { return SNAP.pts[q.name]; }).filter(Boolean)[0]; if (sp && !gotNr[g.nr]) { gotNr[g.nr] = 1; items.push({ a:fp.m(sp), n:g.nr }); } return; }\n"),
+    ('drawings', "  var meta = { project:opts.project || proj.name || '', date:opts.date || '', paper:opts.paper || 'A3' };",
+                 "  var meta = { project:opts.project || proj.name || '', date:opts.date || '', paper:opts.paper || 'A3', snap:opts.snap || null };"),
+    ('app', "paper:pp, only:o === 'all' || o === 'furn' ? null : oi, RM:RM });",
+            "paper:pp, only:o === 'all' || o === 'furn' ? null : oi, RM:RM, snap:typeof nvdSnap === 'function' ? nvdSnap : null });"),
+    ('app', "  var day = new Date().toISOString().slice(0, 10), key = JSON.stringify([S.proj, S.settings, S.lang, pp, o, oi, day]);",
+            "  var day = new Date().toISOString().slice(0, 10), key = JSON.stringify([S.proj, S.settings, S.lang, pp, o, oi, day, typeof nvdReady === 'function' && nvdReady()]);   // the 3-D assembly picture once three.js is there"),
+
     # ---- routing drawn by hand (Detalių operacijos)
     # (1) a closed outline (cut out, cut round, a pocket's rings) was routed without its last side: the path stopped at
     #     the last corner and lifted, so a rectangle got three sides of four. The loop is closed here.

@@ -334,7 +334,8 @@ function nv3Build() {
     } else {
       var rail = Math.min(+sec.rail || 500, D - 45); NV3.moving.push({ g: g, door: false, travel: rail * 0.8 });
       var own = (r.panels || []).filter(function (q) { return q.drawerOf === p.name && q.place; });
-      if (own.length) own.forEach(function (q) { inner.add(nv3Board(q, MC(q.mat, '#e5e2da'))); });
+      if ((sec.hw || m.hw) === 'BLUM TANDEMBOX' && !m.cargo && !door && nv3BlumDrawer(c, r, m, sec, x, z, w, h, inner, root, rail)) { /* its base / back are parts now (TANDEMBOX, build.py): the Blum model draws the whole box */ }
+      else if (own.length) own.forEach(function (q) { inner.add(nv3Board(q, MC(q.mat, '#e5e2da'))); });
       else if (!m.cargo && !door && nv3BlumDrawer(c, r, m, sec, x, z, w, h, inner, root, rail)) { /* drawn from Blum's models */ }
       else if (!m.cargo && !door) {   // a metal-sided box (TANDEMBOX and the like): sides, bottom, back
         var bw = w - 36, bx = x + 18, sh = Math.max(60, Math.min(h - 45, 170)), bz = z + 22, dep = rail - 10, grey = Object.assign({ noLine: false }, { metalness: 0.75, roughness: 0.38 });

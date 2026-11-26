@@ -12,5 +12,6 @@ window.__nv = {
   skScreen: function (x, y) { var X = skCtx(), sv = document.querySelector('.sk-svg'); if (!X || !sv) return null; var d = X.F.to(x, y), pt = sv.createSVGPoint(); pt.x = d[0]; pt.y = -d[1]; var q = pt.matrixTransform(sv.getScreenCTM()); return [q.x, q.y]; },
   skShapes: function () { var X = skCtx(); return X ? X.list : null; },
   routeNotes: function (p, n) { return nvqNotes(p, n); },
+  snap: function (c, r, box) { return nvdSnap(c, r, box); },   // the sheet's 3-D assembly picture (66-drwsnap.js)
   skSnap: function (P, prev, mm, o) { o = o || {}; return nvsSnap(P, skCtx(), prev || null, { altKey: !!o.alt, shiftKey: !!o.shift }, o.excl == null ? null : o.excl, o.drag || null, mm || 2, o.grid || 5); }
 };
