@@ -170,6 +170,9 @@ PATCHES = [
     ('app', "  var day = new Date().toISOString().slice(0, 10), key = JSON.stringify([S.proj, S.settings, S.lang, pp, o, oi, day]);",
             "  var day = new Date().toISOString().slice(0, 10), key = JSON.stringify([S.proj, S.settings, S.lang, pp, o, oi, day, typeof nvdReady === 'function' && nvdReady()]);   // the 3-D assembly picture once three.js is there"),
 
+    # ---- admin prices: a TANDEMBOX drawer's base / back are parts now (above) — no second, estimated box on top
+    ('app', "if (E.R.runner[f.hw] && (E.R.runner[f.hw].ball || E.R.runner[f.hw].under || (E.R.runner[f.hw].merivo && f.mv))) return;",
+            "if (f.tb || (E.R.runner[f.hw] && (E.R.runner[f.hw].ball || E.R.runner[f.hw].under || (E.R.runner[f.hw].merivo && f.mv)))) return;"),
     # ---- routing drawn by hand (Detalių operacijos)
     # (1) a closed outline (cut out, cut round, a pocket's rings) was routed without its last side: the path stopped at
     #     the last corner and lifted, so a rectangle got three sides of four. The loop is closed here.
