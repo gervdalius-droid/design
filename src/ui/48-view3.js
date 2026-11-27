@@ -39,7 +39,7 @@ function nv3Html() {
       '<span class="nv3-grow"></span>' + (NV3.joints ? '' : b('full', NV3.full ? L('Uždaryti ✕', 'Close ✕') : L('Išplėsti ⤢', 'Expand ⤢'), NV3.full)) + '</div>' +
     (NV3.edges ? '<div class="nv3-bar">' + (fp ? '<b>' + L('Kraštai', 'Edges') + ' — ' + esc(typeof nvpName === 'function' ? nvpName({ kind: 'panel', role: fp.role }, fp) : fp.short) + '</b> <span class="nv-muted">' + fmt(fp.L) + ' × ' + fmt(fp.W) + '</span>' : '<b>' + L('Kraštų laminavimas', 'Edge banding') + '</b>') +
       ' <span class="nv3-leg"><i style="background:#1f5fbf"></i>' + esc(c.edge.carc || L('karkaso kraštas', 'carcass edge')) + ' <i style="background:#d9730d"></i>' + L('pagal fasadą', 'as the fronts') + ' <i style="background:#b9b4a8"></i>' + L('nelaminuojama', 'not banded') + '</span>' +
-      '<span class="nv3-grow"></span>' + (fp ? '<button type="button" class="nv-btn sm" data-act="ebk" data-v="' + esc(fp.key) + '" data-i="all">' + L('Visi 4 / nė vieno', 'All 4 / none') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="unfocus">' + L('Visa spintelė', 'Whole cabinet') + '</button>' : '<button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="ecall">' + L('Sąrašas ir patvirtinimas →', 'List and confirmation →') + '</button>') +
+      '<span class="nv3-grow"></span>' + (fp ? '<button type="button" class="nv-btn sm" data-act="ebk" data-v="' + esc(fp.key) + '" data-i="all">' + L('Visi 4 / nė vieno', 'All 4 / none') + '</button><button type="button" class="nv-btn sm ghost" data-nv="nv3" data-v="unfocus">' + L('Visa spintelė', 'Whole cabinet') + '</button>' : '<button type="button" class="nv-btn sm' + (NV3.eExp !== false ? ' on' : '') + '" data-nv="nv3" data-v="e:exp" aria-pressed="' + (NV3.eExp !== false) + '">⤢ ' + L('Išskleista', 'Pulled apart') + '</button>') +
       '<button type="button" class="nv-btn sm pri" data-nv="nv3" data-v="edges">' + L('Gerai', 'Done') + '</button></div>' : '') +
     '<div class="nv3-stage" id="nv3-stage"><div class="nv3-cam"><button type="button" data-nv="nv3" data-v="z:0.8" aria-label="+">+</button><button type="button" data-nv="nv3" data-v="z:1.25" aria-label="−">−</button><button type="button" data-nv="nv3" data-v="v:iso" aria-label="reset">↺</button></div>' +
       '<div class="nv3-hint">' + (NV3.joints ? L('Spustelėkite jungties liniją ar tašką · tempkite tašką išilgai · spustelėjus liniją pridedama jungtis · pažymėjus ekscentriką — „Pakeisti puses“', 'Click a joint line or a point · drag a point along it · a click on the line adds a connector · with a cam picked — “Swap sides”') : NV3.edges ? L('Spustelėkite kraštą: nelaminuojama → karkaso kraštas → pagal fasadą', 'Click an edge: not banded → carcass edge → as the fronts') : L('Tempkite — sukite · ratukas — mastelis · dešinys klavišas — perstumti · spustelėkite detalę — keisti', 'Drag to turn · wheel to zoom · right button to pan · click a board to change it')) + '</div></div>' +
@@ -50,9 +50,10 @@ function nv3Html() {
 NVLIVE.nv3 = function () { nv3Build(); return ''; };
 NVA.nv3 = function (el, v) {
   if (v.indexOf('m:') === 0) { NV3.mode = v.slice(2); if (NV.topic === 'joints') NV.topic = NV.jPrev || 'body'; return; }
-  if (v === 'edges') { NV3.edges = !NV3.edges; NV3.focus = null; if (NV.topic === 'joints') NV.topic = NV.jPrev || 'body'; return; }
+  if (v === 'edges') { if (typeof nvkToggle === 'function') return nvkToggle(); NV3.edges = !NV3.edges; NV3.focus = null; if (NV.topic === 'joints') NV.topic = NV.jPrev || 'body'; return; }   // the topic "Kraštai" is the place; the picture follows it (49-ktopic.js)
   if (v === 'unfocus') { NV3.focus = null; return; }
   if (v === 'ecall') { S.echeck = true; S.jcheck = false; return; }
+  if (v === 'e:exp') { NV3.eExp = NV3.eExp === false; return; }
   if (v === 'joints') { if (NV.topic === 'joints') NV.topic = NV.jPrev || 'body'; else { NV.jPrev = NV.topic; NV.topic = 'joints'; NV.secSel = null; } return; }   // the topic "Jungtys" is the place; the picture follows it (49-joints.js)
   if (v.indexOf('j:') === 0) return nv3JAct(v.slice(2), el);
   if (v === 'full') { NV3.full = !NV3.full; return; }
@@ -284,8 +285,8 @@ function nv3Build() {
   var jKeep = null;
   if (jm && NV3.jSel) { var jj = (r.joints || []).filter(function (x) { return x.key === NV3.jSel.key; })[0]; jKeep = [];
     (r.seams || []).forEach(function (s0) { if (s0.key === NV3.jSel.key && (!jj || jj.single || NV3.jBoth || !s0.side || s0.side === NV3.jSel.side)) jKeep = jKeep.concat(nv3JKeys(r, s0)); }); }
-  var jx = jm && NV3.jExp !== false, expOff = function (cen) { return [0, 1, 2].map(function (i) { return Math.max(-1, Math.min(1, (cen[i] - mid[i]) / Math.max(1, ext[i] / 2))) * Math.max(130, Math.max(W, H, D) * 0.09); }); };   // the same gap whatever the cabinet's size   // joints: the boards pulled apart so every joint shows what goes into what
-  (r.panels || []).forEach(function (p) { if (!p.place || p.drawerOf || isFront(p)) return;
+  var ex = NV3.edges && !focus && NV3.eExp !== false, jx = (jm && NV3.jExp !== false) || ex, expOff = function (cen) { return [0, 1, 2].map(function (i) { return Math.max(-1, Math.min(1, (cen[i] - mid[i]) / Math.max(1, ext[i] / 2))) * Math.max(130, Math.max(W, H, D) * 0.09); }); };   // the same gap whatever the cabinet's size   // joints: the boards pulled apart so every joint shows what goes into what
+  (r.panels || []).forEach(function (p) { if (!p.place || isFront(p) || (p.drawerOf && !(focus && p.key === focus))) return;   // a drawer's own board comes out of its drawer when its edges are set
     var bm = nv3Board(p, MC(p.mat, '#e9e6de'), { dim: (jm && !jx) || (focus && p.key !== focus) || !!(jx && jKeep && jKeep.indexOf(p.key) < 0) });
     if (jx) { var eo = expOff(bm.userData.cen), eg = new T.Group(); eg.position.set(eo[0], eo[1], eo[2]); eg.add(bm); root.add(eg); } else root.add(place(bm, p)); });
   if (jm) nv3Seams(r, root, jx ? expOff : null);
@@ -295,7 +296,7 @@ function nv3Build() {
     var a = new T.Mesh(g1, nv3Mat('#2b3230', Object.assign({ roughness: 0.5 }, faint || {}))); a.position.set(l.x, l.y, -l.h / 2); root.add(a);
     if (!l.feet) { var g2 = new T.CylinderGeometry(rad * 1.4, rad * 1.5, 10, 28); g2.rotateX(Math.PI / 2); var b2 = new T.Mesh(g2, nv3Mat('#222826', Object.assign({ roughness: 0.5 }, faint || {}))); b2.position.set(l.x, l.y, -l.h + 5); root.add(b2); }
   });
-  var asm = NV3.mode === 'assembly' && !focus && !jm, vis = r.visual || {};
+  var asm = NV3.mode === 'assembly' && !focus && !jm && !NV3.edges, vis = r.visual || {};
   if (asm || (focus && false)) {
     if (vis.plinth) { var pl = vis.plinth; root.add(nv3Box([pl.x0, pl.y0, pl.z0], [pl.x1 - pl.x0, pl.t, pl.z1 - pl.z0], MC(pl.mat, '#d5cbbd'), null, { kind: 'plinth' })); }
     if (r.worktop) { var wt = r.worktop; root.add(nv3Box([wt.x0, wt.y0, wt.z0], [wt.L, wt.y1 - wt.y0, wt.T], MC(wt.mat, '#b98d5e'), { roughness: 0.45 }, { kind: 'worktop' })); }
@@ -304,7 +305,8 @@ function nv3Build() {
   if (jx) nv3Screws(jKeep ? Object.assign({}, r, { panels: (r.panels || []).filter(function (p) { return jKeep.indexOf(p.key) >= 0 || !p.place; }) }) : r, root, expOff); else if (NV3.hw && !focus) nv3Screws(r, root);
   if (!jx && !focus) ((r.visual && r.visual.rails) || []).forEach(function (q) { root.add(nv3Rod([q.x0, q.y, q.z], [q.x1, q.y, q.z], 12.5, '#b4bcc1')); });   // hanging rails of a wardrobe (35-robe.js)
   /* fronts: doors on a pivot at their hinge side, drawers on a slide */
-  var fronts = jm ? [] : (r.panels || []).filter(isFront), di = 0, fi = 0, showF = NV3.mode === 'assembly';
+  var fronts = jm || ex ? [] : (r.panels || []).filter(isFront),   // pulled apart for the edges: the carcass only — a front or a drawer board is brought out from the list
+    di = 0, fi = 0, showF = NV3.mode === 'assembly';
   fronts.forEach(function (p) {
     var door = p.role === 'DURYS', m = door ? (vis.doors || [])[di++] : (vis.drawers || [])[fi++];
     if (focus) { if (p.key === focus) root.add(place(nv3Board(p, MC(p.mat, '#d5cbbd')), p)); return; }
@@ -378,7 +380,7 @@ function nv3Pose() {   // doors and drawers at the opening of the slider
 }
 function nv3View(kind, fly) {
   var T = NV3.T, c = cur(); if (!c || !NV3.cam) return;
-  var W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, D = num(c.D) || 560, pad = NV3.joints && NV3.jExp !== false && c.kind !== 'panel' ? Math.max(260, Math.max(W, H, D) * 0.18) : 0,   // pulled apart: 130 mm further out on every side, plus the screws
+  var W = num(c.dishwasher ? c.dishWidth : c.W) || 600, H = num(c.H) || 720, D = num(c.D) || 560, pad = ((NV3.joints && NV3.jExp !== false) || (NV3.edges && !NV3.focus && NV3.eExp !== false)) && c.kind !== 'panel' ? Math.max(260, Math.max(W, H, D) * 0.18) : 0,   // pulled apart: 130 mm further out on every side, plus the screws
     size = Math.hypot(W + pad, H + pad, D + pad), tg = new T.Vector3(W / 2, H / 2 - (pad ? 0 : 30), -D / 2 + (pad ? 0 : 60));
   var dirV = kind ? new T.Vector3().fromArray(kind === 'front' ? [0, 0.05, 1] : kind === 'under' ? [-0.5, -0.75, 1] : kind === 'back' ? [0.6, 0.45, -1] : [-0.62, 0.48, 1]) : NV3.cam.position.clone().sub(NV3.ctl.target);   // no kind: the same cabinet, another size or mode — keep the angle
   if (dirV.length() < 1e-6) dirV.set(-0.62, 0.48, 1);
