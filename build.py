@@ -261,8 +261,15 @@ def main():
     shared = arg('--shared') or 'shared/'   # on the workshop's site: --shared /hub/shared/ (tools/deploy.py)
     # sign-in, cloud saving and "one editor per project" — the live app's own scripts, unchanged, loaded exactly as there
     # (copies next to the page so it also runs outside app.dedesbaldai.lt; tools/sync_legacy.py refreshes them)
-    js += ''.join('<script src="%s"%s></script>\n' % (s, ' defer' if 'notices' in s else '') for s in
-                  ['workshop-auth.js', shared + 'notices.js', 'cloud.js', shared + 'project-lock.js', 'locks.js', shared + 'back.js'])
+    viewer = '--viewer' in sys.argv   # builder/viewer.html: the 3-D view alone for ShopFlow's assembly station (src/ui/95-viewer.js) —
+    if not viewer:                    # no sign-in, no cloud, no locks; nothing it is shown is ever saved (localStorage writes are dropped)
+        js += ''.join('<script src="%s"%s></script>\n' % (s, ' defer' if 'notices' in s else '') for s in
+                      ['workshop-auth.js', shared + 'notices.js', 'cloud.js', shared + 'project-lock.js', 'locks.js', shared + 'back.js'])
+    else:
+        head = ('<script>window.NV_VIEWER = true; document.documentElement.classList.add("nvv");\n'
+                '(function () { var ls; try { ls = window.localStorage; } catch (e) { return; } if (!ls) return; var P = Storage.prototype, set = P.setItem, rem = P.removeItem, clr = P.clear;\n'
+                '  P.setItem = function (k, v) { if (this === ls) return; return set.call(this, k, v); }; P.removeItem = function (k) { if (this === ls) return; return rem.call(this, k); }; P.clear = function () { if (this === ls) return; return clr.call(this); }; })();</script>\n'
+                '<meta name="robots" content="noindex,nofollow">\n') + head
     if re.search(r'</script', overlay, re.I):   # an inline script must never contain its own end tag
         sys.exit("build.py: a src/ui script contains '</script' — write it as '<\\/script'")
     page = ('<!doctype html>\n<html lang="lt" data-theme="light">\n<head>\n' + head + css + '</head>\n<body>\n'

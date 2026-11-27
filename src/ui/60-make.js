@@ -79,25 +79,9 @@ function nvmDrwHandoff(pj) {
       parts: x.cab == null ? [] : pj.parts.filter(function (p) { return p.cab === x.cab + 1; }).map(function (p) { return p.name; }), svg: x.svg };
   });
 }
-/* the cabinets as boxes for the assembly station's 3-D view (ShopFlow): every board's extent in its cabinet (x right,
-   y from the front, z up), its look colour and how far it moves in the exploded view — the same as the drawing sheets' */
-function nvmModel3d() {
-  var out = [];
-  if (!DR || !DR.cabBoxes || !DR.explode) return out;
-  (S.proj.cabinets || []).forEach(function (c, i) {
-    var inf = S._info && S._info[i], r = inf && inf.r; if (!r || !r.panels) return;
-    try {
-      var boxes = DR.cabBoxes(r, { plinth:true, fit:true, c:c }); DR.explode(r, boxes); boxes = boxes.filter(function (b) { return !b.polys && b.e; });   // fittings drawn as faces (hinges) stay out: boxes only
-      var r1 = function (v) { return Math.round(v * 10) / 10; };
-      out.push({ cab:i, nr:i + 1, name:c.name || '', parts:boxes.map(function (b) {
-        return { n:b.p ? b.p.name : '', s:b.p ? (b.p.short || b.p.role || '') : '', role:b.p ? b.p.role || '' : (b.leg ? 'KOJA' : b.plinth ? 'COKOLIS' : b.fit ? 'FIT' : ''), fit:b.fit && !b.p ? String(b.fit) : undefined, att:b.att || undefined,
-          front:!!b.front, e:b.e.map(function (q, k) { var dk = (b.disp || [0, 0, 0])[k]; return [r1(q[0] - dk), r1(q[1] - dk)]; }), d:(b.disp || [0, 0, 0]).map(r1), f:b.fill || '#ffffff',
-          dr:b.p && b.p.drawerOf ? b.p.drawerOf : undefined, door:!!b.door || undefined, hl:b.door ? !!b.hingeLeft : undefined };
-      }) });
-    } catch (e) { if (window.console) console.warn('3-D model for ShopFlow', i, e); }
-  });
-  return out;
-}
+/* the project itself for the assembly station's 3-D view (builder/viewer.html in ShopFlow): the cabinets and the settings
+   they are built with, so the picture there is this one — joints, hardware, looks. Prices stay here. */
+function nvmProjHandoff() { var p = clone(S.proj); delete p.pricing; return { proj: p, settings: clone(S.settings) }; }
 function nvmIdbPut(key, val) {
   return new Promise(function (res, rej) {
     if (!window.indexedDB) return rej(new Error('no IndexedDB'));
@@ -124,8 +108,8 @@ NVA.mshop = function () {
   var drw = 0;
   Promise.all([xlsmBytes(pj), nvmWait3d(5000).then(function () {
     var sheets = nvmDrwHandoff(pj); if (!sheets.length) return 0;
-    var model = []; try { model = nvmModel3d(); } catch (e) { model = []; }
-    return nvmIdbPut('drawings', { project: S.proj.id, at: Date.now(), sheets: sheets, model: model }).then(function () { return sheets.length; }, function () { return 0; });
+    var whole = null; try { whole = nvmProjHandoff(); } catch (e) { whole = null; }
+    return nvmIdbPut('drawings', { project: S.proj.id, at: Date.now(), sheets: sheets, whole: whole }).then(function () { return sheets.length; }, function () { return 0; });
   })]).then(function (r) {
     var bytes = r[0]; drw = r[1];
     S.busy = false;

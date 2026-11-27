@@ -1,0 +1,12 @@
+/* 95-viewer.css — builder/viewer.html (html.nvv): the 3-D view alone, filling the page, for a finger */
+html.nvv,html.nvv body{overflow:hidden;height:100%}
+html.nvv .nv3{position:fixed!important;inset:0!important;z-index:9000!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--panel)}
+html.nvv .nv3-stage{min-height:0!important}
+html.nvv .nv3 [data-v="edges"],html.nvv .nv3 [data-act="skopen"],html.nvv .nv3 [data-nv="nv3old"],html.nvv .nv3 [data-v="full"],html.nvv .nv3-hint,html.nvv .nv3-bar:not(.nv3-jbar){display:none!important}
+html.nvv .nv3-jbar button,html.nvv .nv3-jbar select,html.nvv .nv3-jbar input{pointer-events:none;opacity:.5}
+html.nvv .nv3-b{min-height:44px;padding:6px 14px;font-size:15px}
+html.nvv .nv3-cam button{width:46px;height:46px;font-size:20px}
+html.nvv .nv3-foot{padding:8px 14px;font-size:15px}
+html.nvv .nv3-range input{min-height:34px}
+html.nvv:not(.nvv-on) body::after{content:"Kraunama…";position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f6f5f1;color:#55605a;font:600 16px system-ui,sans-serif}
+html.nvv #toast{display:none!important}

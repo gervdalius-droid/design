@@ -37,6 +37,12 @@ def main():
     for s in ('src="/hub/shared/notices.js"', 'src="/hub/shared/project-lock.js"', 'src="/hub/shared/back.js"', 'src="workshop-auth.js"', 'src="cloud.js"', 'src="locks.js"'):
         if page.count(s) != 1: sys.exit('deploy.py: the built page does not load %s exactly once' % s)
     print('deployed to %s  (%.2f MB, sha1 %s)' % (out, os.path.getsize(out) / 1e6, sha(out)))
+    vout = os.path.join(dst, 'viewer.html')   # the 3-D view alone, for ShopFlow's assembly station (build.py --viewer)
+    r = subprocess.run([sys.executable, os.path.join(R, 'build.py'), '--out', vout, '--shared', '/hub/shared/', '--viewer'], capture_output=True, text=True)
+    if r.returncode: sys.stdout.write(r.stdout); sys.stderr.write(r.stderr); sys.exit(r.returncode)
+    vpage = open(vout, encoding='utf-8').read()
+    if 'workshop-auth.js' in vpage or 'cloud.js"' in vpage or 'window.NV_VIEWER = true' not in vpage: sys.exit('deploy.py: viewer.html must load no sign-in/cloud scripts and set NV_VIEWER')
+    print('deployed to %s  (%.2f MB)' % (vout, os.path.getsize(vout) / 1e6))
     print('next:  git -C %s status   → commit → push' % app)
 
 if __name__ == '__main__':
