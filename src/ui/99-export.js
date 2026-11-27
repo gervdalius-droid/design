@@ -7,7 +7,7 @@ window.__nv = {
   go: nvGo, undo: nvUndo, redo: nvRedo, render: function () { render(); },
   S: S, cur: cur, info: function () { return S._info; },
   build: function () { return buildProjectAll(); },
-  drwHandoff: function () { return nvmDrwHandoff(buildProjectAll()); },   // the drawing sheets that go to ShopFlow with the project (60-make.js)
+  drwHandoff: function () { return nvmDrwHandoff(buildProjectAll()); }, model3d: function () { return nvmModel3d(); },   // the drawing sheets that go to ShopFlow with the project (60-make.js)
   topics: function () { return typeof NVTOPICS !== 'undefined' ? NVTOPICS : []; },
   /* the drawing on a part: a program point → where it is on the screen (tests click there) */
   skScreen: function (x, y) { var X = skCtx(), sv = document.querySelector('.sk-svg'); if (!X || !sv) return null; var d = X.F.to(x, y), pt = sv.createSVGPoint(); pt.x = d[0]; pt.y = -d[1]; var q = pt.matrixTransform(sv.getScreenCTM()); return [q.x, q.y]; },

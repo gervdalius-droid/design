@@ -313,6 +313,7 @@ function M(s, ox, oy) { return function (q) { return [ox + q[0] * s, oy - q[1] *
 function drawBoxes(order, m, o) {
   o = o || {}; var out = '', lw = o.lw || 0.3, extra = o.after || {};
   order.forEach(function (b, bi) {
+    if (b.p && b.p.name) out += '<g data-p="' + esc(b.p.name) + '">';   // the panel's name: the assembly station highlights it
     b.faces.forEach(function (f) {
       var pts = f.pts.map(m), fill = b.fill;
       if (b.polys) fill = shadeOf(fill, 0.8 + 0.2 * Math.max(0, f.n[2] * 0.7 - f.n[0] * 0.4 - f.n[1] * 0.3));
@@ -320,6 +321,7 @@ function drawBoxes(order, m, o) {
       var see = o.see && o.see(b), stc = darkFill(fill) && !see ? '#c3cac6' : COL.line;
       out += '<polygon points="' + pts.map(function (p) { return f2(p[0]) + ',' + f2(p[1]); }).join(' ') + '" fill="' + fill + '"' + (see ? ' fill-opacity="0.14" stroke-dasharray="1.6 1"' : '') + ' stroke="' + stc + '" stroke-width="' + f2(b.thin ? lw * 0.6 : lw) + '" stroke-linejoin="round"/>';
     });
+    if (b.p && b.p.name) out += '</g>';
     if (extra[bi]) out += extra[bi];
   });
   return out;
@@ -499,7 +501,9 @@ function table(x, y, cols, rows, o) {   // cols: [{ w, label, align }], rows: ar
   var cx = x; cols.forEach(function (c, i) { if (i) s += line([cx, y], [cx, y + rh * (rows.length + 1)], 0.15, '#7f8782');
     s += txt(c.align === 'end' ? cx + c.w - 1.2 : cx + 1.2, y + rh * 0.72, c.label, fs * 0.92, { bold:true, anchor:c.align === 'end' ? 'end' : null }); cx += c.w; });
   rows.forEach(function (r, ri) { var yy = y + rh * (ri + 1); if (ri) s += line([x, yy], [x + W, yy], 0.1, '#b5bbb7'); var cx2 = x;
-    cols.forEach(function (c, i) { var v = clip(r[i], Math.floor((c.w - 2) / (fs * 0.56))); s += txt(c.align === 'end' ? cx2 + c.w - 1.2 : cx2 + 1.2, yy + rh * 0.72, v, fs, { anchor:c.align === 'end' ? 'end' : null }); cx2 += c.w; }); });
+    if (r.ps) s += '<g data-ps="' + esc(r.ps.join('|')) + '"><rect class="ps-bg" x="' + f2(x + 0.2) + '" y="' + f2(yy + 0.1) + '" width="' + f2(W - 0.4) + '" height="' + f2(rh - 0.2) + '" fill="none"/>';   // the panels of a parts line
+    cols.forEach(function (c, i) { var v = clip(r[i], Math.floor((c.w - 2) / (fs * 0.56))); s += txt(c.align === 'end' ? cx2 + c.w - 1.2 : cx2 + 1.2, yy + rh * 0.72, v, fs, { anchor:c.align === 'end' ? 'end' : null }); cx2 += c.w; });
+    if (r.ps) s += '</g>'; });
   return { svg:s, h:rh * (rows.length + 1), w:W };
 }
 
@@ -877,7 +881,7 @@ function cabLists(c, r) {
   groups = groups.filter(function (g) { return !g.p.drawerOf; }).concat(groups.filter(function (g) { return g.p.drawerOf; }));   // carcass and fronts first (they get the balloons), the drawer boxes after
   groups.forEach(function (g, i) { g.nr = i + 1; g.main = !g.p.drawerOf; g.members.forEach(function (p) { posOf[p.name] = g.nr; }); });
   var eTxt = function (nL, nW) { return edgeTxt([nL ? nL + 'L' : '', nW ? nW + 'W' : '']); };
-  var rows = groups.map(function (g) { var p = g.p; return [String(g.nr), groupName(g.members.map(function (q) { return q.short || q.role; })), String(g.members.length), nm(p.L), nm(p.W), nm(p.T), p.mat || '', eTxt(g.nL, g.nW)]; });
+  var rows = groups.map(function (g) { var p = g.p, row = [String(g.nr), groupName(g.members.map(function (q) { return q.short || q.role; })), String(g.members.length), nm(p.L), nm(p.W), nm(p.T), p.mat || '', eTxt(g.nL, g.nW)]; row.ps = g.members.map(function (q) { return q.name; }); return row; });
   extras.forEach(function (x) { var nL = (x.e1 ? 1 : 0) + (x.e2 ? 1 : 0), nW = (x.e3 ? 1 : 0) + (x.e4 ? 1 : 0);
     rows.push(['–', x.name || L.extra, String(Math.max(1, Math.round(+x.qty || 1))), nm(+x.L), nm(+x.W), nm(+x.T || +c.thick || 18), x.mat || (c.mat && c.mat.carc) || '', eTxt(nL, nW)]); });
   var wp = r.worktop && WT_PIECES ? WT_PIECES.filter(function (q) { return q.ids && q.ids.indexOf(c.id) >= 0; })[0] : null;
@@ -895,7 +899,7 @@ var PART_COLS = function (rows, W) {
   cols[1].w = W - cols.reduce(function (a, c0) { return a + c0.w; }, 0);
   return cols;
 };
-function partTable(x, y, rows, o, W) { var cols = PART_COLS(rows, W); return table(x, y, cols, rows.map(function (r0) { return cols.map(function (c0) { return r0[c0.k]; }); }), o); }
+function partTable(x, y, rows, o, W) { var cols = PART_COLS(rows, W); return table(x, y, cols, rows.map(function (r0) { var a = cols.map(function (c0) { return r0[c0.k]; }); if (r0.ps) a.ps = r0.ps; return a; }), o); }
 var HW_COLS = function () { return [{ w:9, label:L.pos }, { w:137, label:L.name }, { w:25, label:L.qty, align:'end' }, { w:25, label:L.unit }]; };
 /* views scale for the cabinet sheet and how many list lines fit under the views (2.7 mm a line at the least) */
 function cabPlan(c, r) {
@@ -968,7 +972,7 @@ function sheetCabinet(c, r, nr, meta, plan) {
     var mine = order.filter(function (b) { return b.p && posOf[b.p.name] === g.nr; });
     var seen = mine.map(function (b) { return { b:b, a:anchorOf(b, order, true), sz:(b.e[0][1] - b.e[0][0]) * (b.e[2][1] - b.e[2][0]) + (b.e[1][1] - b.e[1][0]) * (b.e[2][1] - b.e[2][0]) }; }).filter(function (q) { return q.a; }).sort(function (x, y) { return y.sz - x.sz; });
     var a = seen.length ? seen[0].a : mine.length ? anchorOf(mine[mine.length - 1], order) : null;
-    if (a && !gotNr[g.nr]) { gotNr[g.nr] = 1; items.push({ a:fp.m(a), n:g.nr }); } });
+    if (a && !gotNr[g.nr]) { gotNr[g.nr] = 1; items.push({ a:fp.m(a), n:g.nr, ps:g.members.map(function (q) { return q.name; }) }); } });
   /* fittings: one lettered balloon per line of the fittings list, on one of its pieces */
   var pickFit = function (test) { var cands = order.filter(test); cands.sort(function (a, b) { return (b.e[2][1] - a.e[2][1]) || (a.e[0][0] - b.e[0][0]); });
     for (var i = 0; i < cands.length; i++) { var a = anchorOf(cands[i], order, true); if (a) return fp.m(a); }
@@ -991,7 +995,7 @@ function sheetCabinet(c, r, nr, meta, plan) {
     if (a) items.push({ a:a, n:LETTER(i), fit:true });
   });
   var pbS = [fp.m([fp.pb[0], fp.pb[3]]), fp.m([fp.pb[1], fp.pb[2]])], ring = [Math.max(AX + 4, pbS[0][0] - 8), Math.min(SW - FR - 5, pbS[1][0] + 8), FR + 22, area[3] + 4];
-  placeColumns(items, ring, 3.1, (pbS[0][0] + pbS[1][0]) / 2).forEach(function (it) { svg += line(it.a, it.p, 0.18, it.fit ? '#7a4d12' : '#3a423e') + '<circle cx="' + f2(it.a[0]) + '" cy="' + f2(it.a[1]) + '" r="0.55" fill="' + (it.fit ? '#7a4d12' : '#3a423e') + '"/>' + (it.fit ? fitBalloon(it.p, it.n, 3.1) : balloon(it.p, it.n, 3.1)); });
+  placeColumns(items, ring, 3.1, (pbS[0][0] + pbS[1][0]) / 2).forEach(function (it) { svg += (it.ps ? '<g data-ps="' + esc(it.ps.join('|')) + '" class="ps-bl">' : '') + line(it.a, it.p, 0.18, it.fit ? '#7a4d12' : '#3a423e') + '<circle cx="' + f2(it.a[0]) + '" cy="' + f2(it.a[1]) + '" r="0.55" fill="' + (it.fit ? '#7a4d12' : '#3a423e') + '"/>' + (it.fit ? fitBalloon(it.p, it.n, 3.1) : balloon(it.p, it.n, 3.1)) + (it.ps ? '</g>' : ''); });
   var lg = FR + 16.5, lx = AX, anyConn = (r.panels || []).some(function (p) { return p.edges && p.edges.length; });
   if (anyConn) svg += txt(lx, lg, L.conn, 2.1, { fill:'#55605a' }); lx += tw(L.conn, 2.1) + 3;
   if (anyConn) [[COL.conf, L.cConf], [COL.cam, L.cCam], [COL.dowel, L.cDowel]].forEach(function (k) { svg += line([lx, lg - 0.7], [lx + 6, lg - 0.7], 0.3, k[0], '1.4 0.9') + txt(lx + 7.5, lg, k[1], 2.1, { fill:'#55605a' }); lx += 10 + tw(k[1], 2.1) + 4; });

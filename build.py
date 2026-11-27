@@ -162,7 +162,9 @@ PATCHES = [
                  "  else svg += drawBoxes(order, fp.m, { lw:0.26, shade:true, after:connectorLines(r, boxes, V, function (q) { return fp.m(q); }, order, anchors) });"),
     ('drawings', "    if (!g.main) return;   // balloons only on the carcass and the fronts: drawer boxes and fittings are in the lists\n",
                  "    if (!g.main) return;   // balloons only on the carcass and the fronts: drawer boxes and fittings are in the lists\n"
-                 "    if (SNAP) { var sp = g.members.map(function (q) { return SNAP.pts[q.name]; }).filter(Boolean)[0]; if (sp && !gotNr[g.nr]) { gotNr[g.nr] = 1; items.push({ a:fp.m(sp), n:g.nr }); } return; }\n"),
+                 "    if (SNAP) { var sp = g.members.map(function (q) { return SNAP.pts[q.name]; }).filter(Boolean)[0]; if (sp && !gotNr[g.nr]) { gotNr[g.nr] = 1; items.push({ a:fp.m(sp), n:g.nr, ps:g.members.map(function (q) { return q.name; }) }); }\n"
+                 "      g.members.forEach(function (q) { var pq = SNAP.pts[q.name]; if (pq) { var mq = fp.m(pq); svg += '<g data-p=\"' + esc(q.name) + '\" class=\"ps-pt\"><circle cx=\"' + f2(mq[0]) + '\" cy=\"' + f2(mq[1]) + '\" r=\"0\" fill=\"none\"/></g>'; } });   // where each board is in the picture: the assembly station rings it\n"
+                 "      return; }\n"),
     ('drawings', "  var meta = { project:opts.project || proj.name || '', date:opts.date || '', paper:opts.paper || 'A3' };",
                  "  var meta = { project:opts.project || proj.name || '', date:opts.date || '', paper:opts.paper || 'A3', snap:opts.snap || null };"),
     ('app', "paper:pp, only:o === 'all' || o === 'furn' ? null : oi, RM:RM });",
